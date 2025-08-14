@@ -1,0 +1,210 @@
+# ========================
+# Node.js 相关
+# ========================
+
+# 依赖目录 - npm/yarn安装的包文件
+node_modules/
+**/node_modules/
+
+# 日志文件 - npm和yarn产生的日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# 包管理器锁文件的本地状态
+.npm
+.yarn-integrity
+
+# ========================
+# 构建输出
+# ========================
+
+# Vite构建输出目录
+dist/
+dist-ssr/
+
+# 生产构建文件
+build/
+
+# 临时构建文件
+*.local
+
+# ========================
+# 开发环境
+# ========================
+
+# 环境变量文件（包含敏感信息）
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ========================
+# 编辑器和IDE配置
+# ========================
+
+# Visual Studio Code配置
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA配置
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# WebStorm配置
+.webstorm/
+
+# Sublime Text配置
+*.sublime-project
+*.sublime-workspace
+
+# ========================
+# 操作系统文件
+# ========================
+
+# macOS系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows系统文件
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+
+# Linux系统文件
+*~
+.directory
+.Trash-*
+
+# ========================
+# 测试相关
+# ========================
+
+# 测试覆盖率报告
+coverage/
+*.lcov
+.nyc_output/
+
+# Jest测试缓存
+.jest/
+
+# Cypress测试文件
+cypress/videos/
+cypress/screenshots/
+
+# ========================
+# 缓存文件
+# ========================
+
+# ESLint缓存
+.eslintcache
+
+# Prettier缓存
+.prettiercache
+
+# Stylelint缓存
+.stylelintcache
+
+# TypeScript缓存
+*.tsbuildinfo
+
+# Parcel缓存
+.cache/
+.parcel-cache/
+
+# Next.js缓存（如果后续迁移到Next.js）
+.next/
+out/
+
+# ========================
+# 临时文件
+# ========================
+
+# 临时文件和备份
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+
+# 交换文件
+*.swp
+*.swo
+
+# ========================
+# 项目特定忽略
+# ========================
+
+# Python生成的文件（用于生成占位图片的脚本）
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 生成的图片测试文件（如果需要保留，可以注释掉）
+# public/assets/registration/test_*.jpg
+
+# 本地开发笔记（个人笔记不应提交）
+notes.md
+TODO.md
+scratch.*
+
+# ========================
+# 杂项
+# ========================
+
+# 压缩文件（通常不应该提交）
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 数据库文件
+*.sqlite
+*.sqlite3
+*.db
+
+# SSL证书（敏感信息）
+*.pem
+*.key
+*.crt
+*.cer
+
+# ========================
+# 可选忽略项（根据需要取消注释）
+# ========================
+
+# 如果不想提交package-lock.json（团队协作建议保留）
+# package-lock.json
+
+# 如果不想提交yarn.lock（团队协作建议保留）
+# yarn.lock
+
+# 如果不想提交pnpm-lock.yaml（团队协作建议保留）
+# pnpm-lock.yaml
+
+# Storybook构建输出
+storybook-static/
+
+# 文档生成输出
+docs-dist/
+
+# ========================
+# 文件大小限制
+# ========================
+
+# 忽略大于100MB的文件（GitHub限制）
+*.mp4
+*.mov
+*.avi
+*.mkv
+large-assets/
