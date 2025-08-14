@@ -7,7 +7,8 @@ export default function useSnapSections() {
   const lastSectionRef = useRef(0);
 
   const scrollToSection = useCallback((sectionIndex) => {
-    if (isScrolling || sectionIndex === currentSection) return;
+    // 只检查是否是同一个section，移除isScrolling检查以避免阻塞
+    if (sectionIndex === currentSection) return;
     
     // 清除之前的定时器
     if (scrollTimeoutRef.current) {
@@ -35,9 +36,9 @@ export default function useSnapSections() {
       // 减少防抖时间
       scrollTimeoutRef.current = setTimeout(() => {
         setIsScrolling(false);
-      }, 300);
+      }, 500); // 稍微增加时间确保滚动完成
     }
-  }, [isScrolling, currentSection]);
+  }, [currentSection]); // 移除isScrolling依赖
 
   useEffect(() => {
     const container = document.getElementById('snap-container');
@@ -45,8 +46,6 @@ export default function useSnapSections() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (isScrolling) return; // 避免滚动过程中更新状态
-        
         // 找到最大可见比例的section
         let maxRatio = 0;
         let targetSection = null;
@@ -62,16 +61,19 @@ export default function useSnapSections() {
           }
         });
         
-        // 只有当可见比例超过40%且不同于当前section时才更新
-        if (targetSection !== null && maxRatio > 0.4 && targetSection !== lastSectionRef.current) {
+        // 降低阈值使其更敏感，当可见比例超过30%就更新
+        if (targetSection !== null && maxRatio > 0.3 && targetSection !== lastSectionRef.current) {
           setCurrentSection(targetSection);
           lastSectionRef.current = targetSection;
+          
+          // 总是更新URL hash
+          window.history.replaceState(null, null, `#section-${targetSection}`);
         }
       },
       {
         root: container,
         threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-        rootMargin: '-10px 0px -10px 0px' // 减少边缘敏感度
+        rootMargin: '0px 0px 0px 0px' // 移除边距限制，提高敏感度
       }
     );
 
@@ -85,15 +87,37 @@ export default function useSnapSections() {
 
     // 处理初始 hash
     const hash = window.location.hash;
-    if (hash) {
+    if (hash && hash.includes('section-')) {
       const sectionNumber = parseInt(hash.replace('#section-', ''));
       if (!isNaN(sectionNumber) && sectionNumber >= 0 && sectionNumber < 5) {
+        // 立即设置section状态
+        setCurrentSection(sectionNumber);
+        lastSectionRef.current = sectionNumber;
+        // 延迟滚动确保DOM已准备好
         setTimeout(() => scrollToSection(sectionNumber), 100);
       }
+    } else {
+      // 如果没有hash，确保从第一个section开始
+      setCurrentSection(0);
+      lastSectionRef.current = 0;
     }
+
+    // 监听 hash 变化
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('section-')) {
+        const sectionNumber = parseInt(hash.replace('#section-', ''));
+        if (!isNaN(sectionNumber) && sectionNumber >= 0 && sectionNumber < 5) {
+          scrollToSection(sectionNumber);
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
 
     return () => {
       observer.disconnect();
+      window.removeEventListener('hashchange', handleHashChange);
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }

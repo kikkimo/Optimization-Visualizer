@@ -56,16 +56,36 @@ const NavBar = () => {
   }, [location.pathname])
 
   const handleNavClick = (item) => {
-    navigate(item.href)
-    setActiveSection(item.id)
+    if (item.id === 'home') {
+      // 特殊处理首页导航
+      if (location.pathname !== '/') {
+        navigate('/');
+        setTimeout(() => {
+          window.location.hash = '#section-0';
+        }, 100);
+      } else {
+        window.location.hash = '#section-0';
+      }
+    } else {
+      navigate(item.href);
+    }
+    setActiveSection(item.id);
   }
 
   const scrollToTop = () => {
     if (location.pathname !== '/') {
       navigate('/')
+      // 延迟执行滚动确保页面已切换
+      setTimeout(() => {
+        window.location.hash = '#section-0';
+        gsap.to(window, { duration: 1.5, scrollTo: 0, ease: "power2.out" });
+      }, 100);
+    } else {
+      // 在首页时直接滚动到第一个section
+      window.location.hash = '#section-0';
+      gsap.to(window, { duration: 1.5, scrollTo: 0, ease: "power2.out" });
     }
-    gsap.to(window, { duration: 1.5, scrollTo: 0, ease: "power2.out" })
-    setActiveSection('home')
+    setActiveSection('home');
   }
 
   return (
