@@ -23,6 +23,7 @@ PROJECT_NAME="数学优化问题及其在测绘领域的应用"
 PROJECT_VERSION="1.0.0"
 DEFAULT_PORT=3000
 DEV_MODE=false
+CLEAR_CACHE=false
 
 # 全局变量
 PACKAGE_MANAGER=""
@@ -74,12 +75,20 @@ function print_banner() {
 # ------------------------------------------------------------------
 function print_usage() {
     echo -e "${CYAN}使用方法:${NC}"
-    echo -e "  ${GREEN}./start.sh${NC}        # 生产模式启动 (优化性能)"
-    echo -e "  ${GREEN}./start.sh --dev${NC}  # 开发模式启动 (详细日志)"
+    echo -e "  ${GREEN}./start.sh${NC}         # 生产模式启动 (优化性能)"
+    echo -e "  ${GREEN}./start.sh --dev${NC}   # 开发模式启动 (详细日志)"
+    echo -e "  ${GREEN}./start.sh --clear${NC} # 清理缓存并重新编译"
     echo ""
     echo -e "${CYAN}模式说明:${NC}"
     echo -e "  ${YELLOW}开发模式${NC}: 热重载、详细日志、源码映射"
     echo -e "  ${YELLOW}生产模式${NC}: 构建优化、压缩资源、预览服务器"
+    echo -e "  ${YELLOW}清理模式${NC}: 删除缓存文件，强制重新编译"
+    echo ""
+    echo -e "${CYAN}缓存清理范围:${NC}"
+    echo -e "  ${YELLOW}├─ node_modules/.cache/${NC} (各种构建缓存)"
+    echo -e "  ${YELLOW}├─ dist/${NC} (构建输出目录)"
+    echo -e "  ${YELLOW}├─ .vite/${NC} (Vite开发缓存)"
+    echo -e "  ${YELLOW}└─ package manager cache${NC} (npm/pnpm/yarn缓存)"
     echo ""
 }
 
@@ -94,6 +103,10 @@ function parse_arguments() {
         case $1 in
             --dev)
                 DEV_MODE=true
+                shift
+                ;;
+            --clear)
+                CLEAR_CACHE=true
                 shift
                 ;;
             --help|-h)
@@ -219,6 +232,76 @@ function find_available_port() {
 }
 
 # ------------------------------------------------------------------
+# 函数：clear_cache
+# 描述：清理项目编译缓存
+# 参数：无
+# 返回：成功返回0，失败返回非零状态码
+# ------------------------------------------------------------------
+function clear_cache() {
+    echo -e "${CYAN}[INFO] 开始清理项目缓存...${NC}"
+    
+    local cleared_items=0
+    
+    # 清理 dist 目录
+    if [ -d "dist" ]; then
+        echo -e "${YELLOW}[INFO] 清理构建输出目录 dist/${NC}"
+        rm -rf dist/
+        cleared_items=$((cleared_items + 1))
+    fi
+    
+    # 清理 Vite 缓存
+    if [ -d "node_modules/.vite" ]; then
+        echo -e "${YELLOW}[INFO] 清理 Vite 开发缓存 node_modules/.vite/${NC}"
+        rm -rf node_modules/.vite/
+        cleared_items=$((cleared_items + 1))
+    fi
+    
+    # 清理其他常见缓存目录
+    local cache_dirs=("node_modules/.cache" ".next" ".nuxt" "out" "build")
+    for dir in "${cache_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            echo -e "${YELLOW}[INFO] 清理缓存目录 $dir/${NC}"
+            rm -rf "$dir/"
+            cleared_items=$((cleared_items + 1))
+        fi
+    done
+    
+    # 清理包管理器缓存
+    echo -e "${YELLOW}[INFO] 清理 $PACKAGE_MANAGER 缓存...${NC}"
+    case "$PACKAGE_MANAGER" in
+        "npm")
+            npm cache clean --force &> /dev/null || echo -e "${YELLOW}[WARN] npm 缓存清理失败${NC}"
+            ;;
+        "pnpm")
+            pnpm store prune &> /dev/null || echo -e "${YELLOW}[WARN] pnpm 缓存清理失败${NC}"
+            ;;
+        "yarn")
+            yarn cache clean &> /dev/null || echo -e "${YELLOW}[WARN] yarn 缓存清理失败${NC}"
+            ;;
+    esac
+    cleared_items=$((cleared_items + 1))
+    
+    # 清理临时文件
+    local temp_patterns=("*.log" "*.tmp" ".DS_Store" "Thumbs.db")
+    for pattern in "${temp_patterns[@]}"; do
+        if ls $pattern 1> /dev/null 2>&1; then
+            echo -e "${YELLOW}[INFO] 清理临时文件 $pattern${NC}"
+            rm -f $pattern
+            cleared_items=$((cleared_items + 1))
+        fi
+    done
+    
+    if [ $cleared_items -gt 0 ]; then
+        echo -e "${GREEN}[SUCCESS] 缓存清理完成，共清理了 $cleared_items 项${NC}"
+        echo -e "${CYAN}[INFO] 接下来将重新安装依赖和构建项目...${NC}"
+    else
+        echo -e "${GREEN}[SUCCESS] 没有发现需要清理的缓存文件${NC}"
+    fi
+    
+    return 0
+}
+
+# ------------------------------------------------------------------
 # 函数：install_dependencies
 # 描述：安装项目依赖
 # 参数：无
@@ -232,7 +315,11 @@ function install_dependencies() {
     # 检查是否需要安装依赖
     local need_install=false
     
-    if [ ! -d "node_modules" ]; then
+    # 如果清理缓存，强制重新安装
+    if [ "$CLEAR_CACHE" = true ]; then
+        need_install=true
+        echo -e "${CYAN}[INFO] 缓存已清理，将重新安装所有依赖${NC}"
+    elif [ ! -d "node_modules" ]; then
         if [ "$DEV_MODE" = true ]; then
             echo -e "${YELLOW}[WARN] node_modules 目录不存在${NC}"
         fi
@@ -305,7 +392,11 @@ function build_project() {
         # 检查是否需要重新构建
         local need_build=false
         
-        if [ ! -d "dist" ]; then
+        # 如果清理了缓存，强制重新构建
+        if [ "$CLEAR_CACHE" = true ]; then
+            need_build=true
+            echo -e "${CYAN}[INFO] 缓存已清理，将重新构建项目${NC}"
+        elif [ ! -d "dist" ]; then
             need_build=true
         elif find src -type f -newer dist -print -quit | grep -q .; then
             need_build=true
@@ -471,8 +562,23 @@ function main() {
     check_node_version
     check_package_manager
     
+    # 如果需要清理缓存
+    if [ "$CLEAR_CACHE" = true ]; then
+        clear_cache
+        echo -e "${GREEN}[INFO] 缓存清理完成，继续后续操作...${NC}"
+    fi
+    
     # 安装依赖
     install_dependencies
+    
+    # 如果仅仅是清理缓存，不启动服务器
+    if [ "$CLEAR_CACHE" = true ] && [ "$DEV_MODE" = false ]; then
+        echo -e "${GREEN}[SUCCESS] 缓存清理和依赖安装完成！${NC}"
+        echo -e "${CYAN}[INFO] 使用以下命令启动服务器:${NC}"
+        echo -e "  ${GREEN}./start.sh --dev${NC}  # 开发模式"
+        echo -e "  ${GREEN}./start.sh${NC}        # 生产模式"
+        return 0
+    fi
     
     if [ "$DEV_MODE" = true ]; then
         # 开发模式：启动开发服务器
