@@ -1,28 +1,43 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export default function useSnapSections() {
   const [currentSection, setCurrentSection] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+  const lastSectionRef = useRef(0);
 
   const scrollToSection = useCallback((sectionIndex) => {
-    if (isScrolling) return;
+    if (isScrolling || sectionIndex === currentSection) return;
+    
+    // 清除之前的定时器
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
     
     setIsScrolling(true);
-    const container = document.getElementById('snap-container');
     const target = document.getElementById(`section-${sectionIndex}`);
     
-    if (container && target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (target) {
+      // 使用更快的滚动
+      target.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start',
+        inline: 'nearest'
+      });
+      
+      // 立即更新section状态
+      setCurrentSection(sectionIndex);
+      lastSectionRef.current = sectionIndex;
       
       // 更新 URL hash
-      window.location.hash = `section-${sectionIndex}`;
+      window.history.replaceState(null, null, `#section-${sectionIndex}`);
       
-      setTimeout(() => {
+      // 减少防抖时间
+      scrollTimeoutRef.current = setTimeout(() => {
         setIsScrolling(false);
-        setCurrentSection(sectionIndex);
-      }, 600);
+      }, 300);
     }
-  }, [isScrolling]);
+  }, [isScrolling, currentSection]);
 
   useEffect(() => {
     const container = document.getElementById('snap-container');
@@ -30,20 +45,33 @@ export default function useSnapSections() {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isScrolling) return; // 避免滚动过程中更新状态
+        
+        // 找到最大可见比例的section
+        let maxRatio = 0;
+        let targetSection = null;
+        
         entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+          if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+            maxRatio = entry.intersectionRatio;
             const sectionId = entry.target.id;
             const sectionNumber = parseInt(sectionId.replace('section-', ''));
             if (!isNaN(sectionNumber)) {
-              setCurrentSection(sectionNumber);
+              targetSection = sectionNumber;
             }
           }
         });
+        
+        // 只有当可见比例超过40%且不同于当前section时才更新
+        if (targetSection !== null && maxRatio > 0.4 && targetSection !== lastSectionRef.current) {
+          setCurrentSection(targetSection);
+          lastSectionRef.current = targetSection;
+        }
       },
       {
         root: container,
-        threshold: 0.5,
-        rootMargin: '0px'
+        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        rootMargin: '-10px 0px -10px 0px' // 减少边缘敏感度
       }
     );
 
@@ -64,8 +92,13 @@ export default function useSnapSections() {
       }
     }
 
-    return () => observer.disconnect();
-  }, [scrollToSection]);
+    return () => {
+      observer.disconnect();
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [scrollToSection, isScrolling]);
 
   return {
     currentSection,

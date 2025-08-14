@@ -63,22 +63,6 @@ export default function Section1Hero({ id }) {
           开始探索
         </button>
 
-        <p className="mt-8 flex items-center justify-center gap-2" style={{ color: 'var(--ink-mid)' }}>
-          <svg 
-            className="w-5 h-5 animate-bounce"
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={1.5}
-              d="M19 14l-7 7m0 0l-7-7m7 7V3"
-            />
-          </svg>
-          或使用鼠标滚轮继续
-        </p>
       </div>
 
       {/* 底部提示 */}

@@ -123,11 +123,6 @@ export default function Section2Bridge({ id }) {
           </div>
         </div>
 
-        <p className={`mt-12 transition-all duration-700 delay-500
-                      ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-           style={{ color: 'var(--ink-mid)' }}>
-          向下滚动，看看一个具体例子
-        </p>
       </div>
 
       {/* 底部提示 */}

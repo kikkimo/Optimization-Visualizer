@@ -177,13 +177,19 @@
   scroll-behavior: smooth;
   overflow-y: scroll;
   height: 100vh;
+  /* 优化滚动性能 */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .snap-section {
   scroll-snap-align: start;
-  scroll-snap-stop: always;
+  scroll-snap-stop: normal; /* 改为normal以减少卡顿 */
   min-height: 100dvh;
   height: 100dvh;
+  /* GPU加速 */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* Canvas Performance Optimization */
