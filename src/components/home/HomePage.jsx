@@ -1,0 +1,67 @@
+import React, { useEffect } from 'react';
+import Section1Hero from './Section1Hero';
+import Section2Bridge from './Section2Bridge';
+import Section3TSP from './Section3TSP';
+import Section4Registration from './Section4Registration';
+import Section5Summary from './Section5Summary';
+import RailDots from './RailDots';
+import useSnapSections from '../../hooks/useSnapSections';
+import '../../styles/tokens.css';
+
+export default function HomePage() {
+  const { currentSection, scrollToSection } = useSnapSections();
+
+  useEffect(() => {
+    // 键盘导航
+    const handleKeyDown = (e) => {
+      switch (e.key) {
+        case 'PageDown':
+        case 'ArrowDown':
+          e.preventDefault();
+          if (currentSection < 4) {
+            scrollToSection(currentSection + 1);
+          }
+          break;
+        case 'PageUp':
+        case 'ArrowUp':
+          e.preventDefault();
+          if (currentSection > 0) {
+            scrollToSection(currentSection - 1);
+          }
+          break;
+        case 'Enter':
+          // 激活当前段落的主按钮
+          const activeButton = document.querySelector(
+            `#section-${currentSection} button[data-primary="true"]`
+          );
+          if (activeButton) {
+            activeButton.click();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentSection, scrollToSection]);
+
+  return (
+    <div className="relative" style={{ backgroundColor: 'var(--bg-deep)', color: 'var(--ink-high)' }}>
+      <div 
+        className="snap-container"
+        id="snap-container"
+      >
+        <RailDots 
+          currentSection={currentSection} 
+          onDotClick={scrollToSection}
+        />
+        
+        <Section1Hero id="section-0" />
+        <Section2Bridge id="section-1" />
+        <Section3TSP id="section-2" />
+        <Section4Registration id="section-3" />
+        <Section5Summary id="section-4" />
+      </div>
+    </div>
+  );
+}

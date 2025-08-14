@@ -1,0 +1,74 @@
+{
+  "bundle-adjustment": {
+    "name": "Bundle Adjustment",
+    "title": "BA 束平差",
+    "description": "多视角几何约束的参数估计方法，用于同时优化相机参数和三维点坐标",
+    "theory": "通过最小化重投影误差，联合优化相机内外参数和三维点坐标",
+    "applications": ["航空摄影测量", "近景摄影测量", "SLAM", "三维重建"],
+    "complexity": "O(n³) 其中n为相机和点的总数",
+    "advantages": ["全局最优化", "精度高", "理论完备"],
+    "disadvantages": ["计算复杂度高", "需要良好初值", "内存占用大"],
+    "parameters": {
+      "dampingFactor": {
+        "label": "LM阻尼因子",
+        "description": "Levenberg-Marquardt算法的阻尼参数",
+        "range": [0.001, 1],
+        "default": 0.01
+      },
+      "convergenceThreshold": {
+        "label": "收敛阈值",
+        "description": "优化停止的误差阈值",
+        "range": [0.0001, 0.01],
+        "default": 0.001
+      }
+    }
+  },
+  "kalman-filter": {
+    "name": "Kalman Filter",
+    "title": "卡尔曼滤波",
+    "description": "线性动态系统的最优状态估计方法",
+    "theory": "基于贝叶斯估计理论，递归地估计系统状态",
+    "applications": ["GNSS/INS导航", "目标跟踪", "传感器融合", "信号处理"],
+    "complexity": "O(n³) 其中n为状态维度",
+    "advantages": ["递归算法", "实时性好", "理论最优"],
+    "disadvantages": ["仅适用于线性系统", "需要准确的噪声模型"],
+    "parameters": {
+      "processNoise": {
+        "label": "过程噪声方差",
+        "description": "系统动态模型的噪声水平",
+        "range": [0.01, 1],
+        "default": 0.1
+      },
+      "measurementNoise": {
+        "label": "观测噪声方差",
+        "description": "传感器测量的噪声水平",
+        "range": [0.01, 1],
+        "default": 0.1
+      }
+    }
+  },
+  "sgm-stereo": {
+    "name": "SGM Stereo Matching",
+    "title": "SGM 半全局立体匹配",
+    "description": "基于动态规划的稠密立体匹配算法",
+    "theory": "通过多路径代价聚合实现准确的视差估计",
+    "applications": ["数字高程模型", "三维重建", "自动驾驶", "机器人视觉"],
+    "complexity": "O(WHD) 其中W、H为图像尺寸，D为视差范围",
+    "advantages": ["稠密匹配", "边缘保持", "计算效率高"],
+    "disadvantages": ["参数敏感", "纹理依赖", "遮挡处理差"],
+    "parameters": {
+      "p1Penalty": {
+        "label": "P1平滑项",
+        "description": "小视差变化的惩罚参数",
+        "range": [1, 50],
+        "default": 10
+      },
+      "p2Penalty": {
+        "label": "P2平滑项",
+        "description": "大视差变化的惩罚参数",
+        "range": [10, 200],
+        "default": 100
+      }
+    }
+  }
+}

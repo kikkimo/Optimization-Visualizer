@@ -1,0 +1,26 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 电动车车身 -->
+  <path d="M8 14 L24 14 L26 16 L24 18 L8 18 L6 16 Z" fill="#F5B248" stroke="#F5B248" stroke-width="1"/>
+  
+  <!-- 外卖箱 -->
+  <rect x="10" y="12" width="10" height="8" fill="#3CE6C0" stroke="#0C0F10" stroke-width="0.5"/>
+  
+  <!-- 外卖箱装饰线 -->
+  <line x1="10" y1="16" x2="20" y2="16" stroke="#0C0F10" stroke-width="0.5" opacity="0.3"/>
+  
+  <!-- 前轮 -->
+  <circle cx="7" cy="20" r="2" fill="#303537" stroke="#303537" stroke-width="0.5"/>
+  
+  <!-- 后轮 -->
+  <circle cx="25" cy="20" r="2" fill="#303537" stroke="#303537" stroke-width="0.5"/>
+  
+  <!-- 车把手 -->
+  <rect x="23" y="11" width="1" height="4" fill="#9DA3A6"/>
+  <rect x="21" y="11" width="5" height="1" fill="#9DA3A6"/>
+  
+  <!-- 骑手简化轮廓（头部） -->
+  <circle cx="15" cy="9" r="2" fill="#E6E7E9"/>
+  
+  <!-- 骑手身体 -->
+  <path d="M13 10 L13 14 L17 14 L17 10 Z" fill="#E6E7E9"/>
+</svg>
