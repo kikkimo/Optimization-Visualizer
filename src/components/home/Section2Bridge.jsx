@@ -91,7 +91,7 @@ export default function Section2Bridge({ id }) {
             </p>
           </div>
 
-          {/* 最短路径卡片 */}
+          {/* 图像配准卡片 */}
           <div 
             className={`group relative p-6 rounded-lg transition-all duration-500 delay-400
                        ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
@@ -111,14 +111,14 @@ export default function Section2Bridge({ id }) {
             <div className="mb-4">
               <svg className="w-12 h-12" style={{ color: 'var(--amber-signal)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} 
-                      d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--ink-high)' }}>
-              出行导航最短路径
+              图像配准
             </h3>
             <p className="text-sm" style={{ color: 'var(--ink-mid)' }}>
-              图论算法：城市道路网络中的最优路线
+              图像配准融合：如何将多幅影像精确对齐
             </p>
           </div>
         </div>
