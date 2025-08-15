@@ -22,6 +22,7 @@ NC='\033[0m' # 无颜色
 PROJECT_NAME="数学优化问题及其在测绘领域的应用"
 PROJECT_VERSION="1.0.0"
 DEFAULT_PORT=3000
+CUSTOM_PORT=""
 DEV_MODE=false
 CLEAR_CACHE=false
 
@@ -75,14 +76,17 @@ function print_banner() {
 # ------------------------------------------------------------------
 function print_usage() {
     echo -e "${CYAN}使用方法:${NC}"
-    echo -e "  ${GREEN}./start.sh${NC}         # 生产模式启动 (优化性能)"
-    echo -e "  ${GREEN}./start.sh --dev${NC}   # 开发模式启动 (详细日志)"
-    echo -e "  ${GREEN}./start.sh --clear${NC} # 清理缓存并重新编译"
+    echo -e "  ${GREEN}./start.sh${NC}                    # 生产模式启动 (优化性能)"
+    echo -e "  ${GREEN}./start.sh --dev${NC}              # 开发模式启动 (详细日志)"
+    echo -e "  ${GREEN}./start.sh --port 3210${NC}        # 指定端口启动"
+    echo -e "  ${GREEN}./start.sh --port 3210 --dev${NC}  # 指定端口开发模式"
+    echo -e "  ${GREEN}./start.sh --clear${NC}            # 清理缓存并重新编译"
     echo ""
-    echo -e "${CYAN}模式说明:${NC}"
-    echo -e "  ${YELLOW}开发模式${NC}: 热重载、详细日志、源码映射"
-    echo -e "  ${YELLOW}生产模式${NC}: 构建优化、压缩资源、预览服务器"
-    echo -e "  ${YELLOW}清理模式${NC}: 删除缓存文件，强制重新编译"
+    echo -e "${CYAN}参数说明:${NC}"
+    echo -e "  ${YELLOW}--dev${NC}      : 开发模式 (热重载、详细日志、源码映射)"
+    echo -e "  ${YELLOW}--port PORT${NC}: 指定端口号 (如果被占用则启动失败)"
+    echo -e "  ${YELLOW}--clear${NC}    : 清理缓存 (删除缓存文件，强制重新编译)"
+    echo -e "  ${YELLOW}--help${NC}     : 显示帮助信息"
     echo ""
     echo -e "${CYAN}缓存清理范围:${NC}"
     echo -e "  ${YELLOW}├─ node_modules/.cache/${NC} (各种构建缓存)"
@@ -108,6 +112,19 @@ function parse_arguments() {
             --clear)
                 CLEAR_CACHE=true
                 shift
+                ;;
+            --port)
+                if [[ -z "$2" ]] || [[ "$2" =~ ^-- ]]; then
+                    echo -e "${RED}[ERROR] --port 参数需要指定端口号${NC}"
+                    print_usage
+                    exit 1
+                fi
+                if ! [[ "$2" =~ ^[0-9]+$ ]] || [ "$2" -lt 1 ] || [ "$2" -gt 65535 ]; then
+                    echo -e "${RED}[ERROR] 端口号必须是 1-65535 之间的数字: $2${NC}"
+                    exit 1
+                fi
+                CUSTOM_PORT="$2"
+                shift 2
                 ;;
             --help|-h)
                 print_usage
@@ -193,30 +210,53 @@ function check_package_manager() {
 # 参数：$1 - 起始端口号
 # 返回：输出可用端口号
 # ------------------------------------------------------------------
+function check_port_available() {
+    local port=$1
+    local force_check=${2:-false}
+    
+    # 使用netstat检查端口占用 (Windows兼容)
+    if command -v netstat &> /dev/null; then
+        if netstat -an | grep -q ":$port "; then
+            return 1  # 端口被占用
+        fi
+    # 或者使用lsof (Linux/Mac)
+    elif command -v lsof &> /dev/null; then
+        if lsof -i :$port &> /dev/null; then
+            return 1  # 端口被占用
+        fi
+    # 或者尝试连接测试
+    else
+        if timeout 1 bash -c "</dev/tcp/localhost/$port" &> /dev/null; then
+            return 1  # 端口被占用
+        fi
+    fi
+    
+    return 0  # 端口可用
+}
+
 function find_available_port() {
     local start_port=${1:-$DEFAULT_PORT}
+    
+    # 如果指定了自定义端口，只检查该端口
+    if [[ -n "$CUSTOM_PORT" ]]; then
+        if check_port_available "$CUSTOM_PORT"; then
+            echo "$CUSTOM_PORT"
+            return 0
+        else
+            echo -e "${RED}[ERROR] 指定的端口 $CUSTOM_PORT 已被占用，启动失败${NC}" >&2
+            echo -e "${YELLOW}[HINT] 请选择其他端口或停止占用该端口的程序${NC}" >&2
+            return 1
+        fi
+    fi
+    
+    # 自动查找可用端口
     local port=$start_port
     local max_attempts=20
     
     while [ $max_attempts -gt 0 ]; do
-        # 使用netstat检查端口占用 (Windows兼容)
-        if command -v netstat &> /dev/null; then
-            if ! netstat -an | grep -q ":$port "; then
-                echo $port
-                return 0
-            fi
-        # 或者使用lsof (Linux/Mac)
-        elif command -v lsof &> /dev/null; then
-            if ! lsof -i :$port &> /dev/null; then
-                echo $port
-                return 0
-            fi
-        # 或者尝试连接测试
-        else
-            if ! timeout 1 bash -c "</dev/tcp/localhost/$port" &> /dev/null; then
-                echo $port
-                return 0
-            fi
+        if check_port_available "$port"; then
+            echo $port
+            return 0
         fi
         
         port=$((port + 1))
@@ -471,7 +511,12 @@ function print_startup_info() {
 # 返回：成功返回0，失败返回非零状态码
 # ------------------------------------------------------------------
 function start_dev_server() {
-    echo -e "${CYAN}[INFO] 正在查找可用端口...${NC}"
+    if [[ -n "$CUSTOM_PORT" ]]; then
+        echo -e "${CYAN}[INFO] 检查指定端口 $CUSTOM_PORT...${NC}"
+    else
+        echo -e "${CYAN}[INFO] 正在查找可用端口...${NC}"
+    fi
+    
     local port
     port=$(find_available_port $DEFAULT_PORT)
     if [ $? -ne 0 ]; then
@@ -513,7 +558,12 @@ function start_dev_server() {
 # 返回：成功返回0，失败返回非零状态码
 # ------------------------------------------------------------------
 function start_preview_server() {
-    echo -e "${CYAN}[INFO] 正在查找可用端口...${NC}"
+    if [[ -n "$CUSTOM_PORT" ]]; then
+        echo -e "${CYAN}[INFO] 检查指定端口 $CUSTOM_PORT...${NC}"
+    else
+        echo -e "${CYAN}[INFO] 正在查找可用端口...${NC}"
+    fi
+    
     local port
     port=$(find_available_port $DEFAULT_PORT)
     if [ $? -ne 0 ]; then
