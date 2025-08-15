@@ -1659,8 +1659,8 @@ export default function Section3TSPSimple({ id }) {
                 </button>
                 
                 {algorithmDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 border border-[var(--border-subtle)] rounded-lg shadow-lg z-10" 
-                       style={{ backgroundColor: 'var(--bg-elevated)' }}>
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg shadow-lg z-50 backdrop-blur-sm" 
+                       style={{ backgroundColor: 'var(--bg-card)' }}>
                     {[
                       { value: 'heuristic', label: '启发式算法 (快速)', desc: '最近邻 + 2-opt局部优化' },
                       { value: 'genetic', label: '遗传算法 (全局搜索)', desc: '进化算法，适合复杂问题' },
@@ -1672,30 +1672,11 @@ export default function Section3TSPSimple({ id }) {
                           setSelectedAlgorithm(option.value);
                           setAlgorithmDropdownOpen(false);
                         }}
-                        className={`w-full px-3 py-3 text-left transition-colors border-b border-[var(--border-subtle)] last:border-b-0 ${
-                          selectedAlgorithm === option.value ? '' : ''
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-primary)] ${
+                          selectedAlgorithm === option.value ? 'bg-[var(--bg-primary)] text-[var(--accent-amber)]' : 'text-[var(--text-primary)] bg-[var(--bg-card)]'
                         }`}
-                        style={{
-                          backgroundColor: selectedAlgorithm === option.value ? 'var(--tech-mint-dim)' : 'transparent',
-                          color: 'var(--ink-high)'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (selectedAlgorithm !== option.value) {
-                            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (selectedAlgorithm !== option.value) {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }
-                        }}
                       >
-                        <div className="text-sm font-medium text-[var(--text-primary)]">
-                          {option.label}
-                        </div>
-                        <div className="text-xs text-[var(--text-secondary)] mt-1">
-                          {option.desc}
-                        </div>
+                        {option.label}
                       </button>
                     ))}
                   </div>
