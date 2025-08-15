@@ -87,7 +87,7 @@ export default function Section2Bridge({ id }) {
               外卖员最佳配送路径
             </h3>
             <p className="text-sm" style={{ color: 'var(--ink-mid)' }}>
-              TSP问题：如何规划最短的配送路线
+              TSP问题：如何规划最优的配送路线
             </p>
           </div>
 

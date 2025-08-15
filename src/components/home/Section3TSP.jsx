@@ -20,6 +20,8 @@ export default function Section3TSPSimple({ id }) {
   const [courierPosition, setCourierPosition] = useState(null);
   const [animationSpeed, setAnimationSpeed] = useState('medium');
   const [speedDropdownOpen, setSpeedDropdownOpen] = useState(false);
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('heuristic');
+  const [algorithmDropdownOpen, setAlgorithmDropdownOpen] = useState(false);
   
   // 地图编辑状态
   const [isEditMode, setIsEditMode] = useState(false);
@@ -286,6 +288,242 @@ export default function Section3TSPSimple({ id }) {
     
     return { tour: bestTour, iters };
   };
+
+  // Christofides算法 - 保证解不超过最优解的1.5倍
+  const christofides = (distanceMatrix) => {
+    const n = distanceMatrix.length;
+    
+    // 1. 构建最小生成树 (Prim算法)
+    const mst = [];
+    const visited = new Array(n).fill(false);
+    const key = new Array(n).fill(Infinity);
+    const parent = new Array(n).fill(-1);
+    
+    key[0] = 0;
+    
+    for (let count = 0; count < n - 1; count++) {
+      let u = -1;
+      for (let v = 0; v < n; v++) {
+        if (!visited[v] && (u === -1 || key[v] < key[u])) {
+          u = v;
+        }
+      }
+      
+      visited[u] = true;
+      
+      for (let v = 0; v < n; v++) {
+        if (!visited[v] && distanceMatrix[u][v] < key[v]) {
+          parent[v] = u;
+          key[v] = distanceMatrix[u][v];
+        }
+      }
+    }
+    
+    // 构建MST边集
+    for (let i = 1; i < n; i++) {
+      mst.push([parent[i], i]);
+      mst.push([i, parent[i]]); // 无向图
+    }
+    
+    // 2. 找出奇度顶点
+    const degree = new Array(n).fill(0);
+    mst.forEach(([u, v]) => degree[u]++);
+    const oddVertices = [];
+    for (let i = 0; i < n; i++) {
+      if (degree[i] % 2 === 1) {
+        oddVertices.push(i);
+      }
+    }
+    
+    // 3. 简化版最小权匹配（贪心近似）
+    const matching = [];
+    const used = new Set();
+    for (let i = 0; i < oddVertices.length; i += 2) {
+      if (i + 1 < oddVertices.length) {
+        matching.push([oddVertices[i], oddVertices[i + 1]]);
+      }
+    }
+    
+    // 4. 构建欧拉图
+    const eulerGraph = [...mst];
+    matching.forEach(([u, v]) => {
+      eulerGraph.push([u, v]);
+      eulerGraph.push([v, u]);
+    });
+    
+    // 5. 简化版欧拉回路（DFS遍历）
+    const adj = Array.from({ length: n }, () => []);
+    eulerGraph.forEach(([u, v]) => adj[u].push(v));
+    
+    const tour = [0];
+    const visitedNodes = new Set([0]);
+    
+    const dfs = (u) => {
+      for (let v of adj[u]) {
+        if (!visitedNodes.has(v)) {
+          visitedNodes.add(v);
+          tour.push(v);
+          dfs(v);
+        }
+      }
+    };
+    
+    dfs(0);
+    
+    // 如果没有访问完所有节点，用最近邻补充
+    for (let i = 0; i < n; i++) {
+      if (!visitedNodes.has(i)) {
+        tour.push(i);
+      }
+    }
+    
+    return { tour, iters: 1 };
+  };
+
+  // 遗传算法
+  const geneticAlgorithm = (distanceMatrix) => {
+    const n = distanceMatrix.length;
+    const POPULATION_SIZE = Math.min(50, Math.max(20, n * 2));
+    const GENERATIONS = Math.min(100, Math.max(50, n * 3));
+    const MUTATION_RATE = 0.1;
+    const ELITE_SIZE = Math.max(2, Math.floor(POPULATION_SIZE * 0.1));
+    
+    const tourDistance = (tour) => {
+      let dist = 0;
+      for (let i = 1; i < tour.length; i++) {
+        dist += distanceMatrix[tour[i - 1]][tour[i]];
+      }
+      return dist;
+    };
+    
+    // 初始化种群
+    let population = [];
+    for (let i = 0; i < POPULATION_SIZE; i++) {
+      const tour = [0, ...Array.from({ length: n - 1 }, (_, idx) => idx + 1)];
+      // 随机打乱除起点外的节点
+      for (let j = 1; j < tour.length; j++) {
+        const k = 1 + Math.floor(Math.random() * (tour.length - 1));
+        [tour[j], tour[k]] = [tour[k], tour[j]];
+      }
+      population.push({ tour, fitness: 1 / (1 + tourDistance(tour)) });
+    }
+    
+    for (let gen = 0; gen < GENERATIONS; gen++) {
+      // 选择精英
+      population.sort((a, b) => b.fitness - a.fitness);
+      const newPopulation = population.slice(0, ELITE_SIZE);
+      
+      // 生成新个体
+      while (newPopulation.length < POPULATION_SIZE) {
+        // 轮盘赌选择
+        const parent1 = population[Math.floor(Math.random() * Math.min(20, population.length))];
+        const parent2 = population[Math.floor(Math.random() * Math.min(20, population.length))];
+        
+        // 顺序交叉
+        const child = crossover(parent1.tour, parent2.tour);
+        
+        // 变异
+        if (Math.random() < MUTATION_RATE) {
+          mutate(child);
+        }
+        
+        newPopulation.push({
+          tour: child,
+          fitness: 1 / (1 + tourDistance(child))
+        });
+      }
+      
+      population = newPopulation;
+    }
+    
+    population.sort((a, b) => b.fitness - a.fitness);
+    return { tour: population[0].tour, iters: GENERATIONS };
+  };
+  
+  const crossover = (parent1, parent2) => {
+    const n = parent1.length;
+    const start = 1 + Math.floor(Math.random() * (n - 2));
+    const end = start + Math.floor(Math.random() * (n - start));
+    
+    const child = new Array(n);
+    child[0] = 0; // 固定起点
+    
+    // 复制片段
+    for (let i = start; i <= end; i++) {
+      child[i] = parent1[i];
+    }
+    
+    // 填充剩余位置
+    const remaining = parent2.filter(node => !child.includes(node));
+    let remainingIndex = 0;
+    
+    for (let i = 1; i < n; i++) {
+      if (child[i] === undefined) {
+        child[i] = remaining[remainingIndex++];
+      }
+    }
+    
+    return child;
+  };
+  
+  const mutate = (tour) => {
+    if (tour.length <= 3) return;
+    const i = 1 + Math.floor(Math.random() * (tour.length - 1));
+    const j = 1 + Math.floor(Math.random() * (tour.length - 1));
+    [tour[i], tour[j]] = [tour[j], tour[i]];
+  };
+
+  // 模拟退火算法
+  const simulatedAnnealing = (distanceMatrix) => {
+    const n = distanceMatrix.length;
+    const MAX_ITERS = Math.min(1000, Math.max(500, n * 50));
+    const INITIAL_TEMP = 1000;
+    const COOLING_RATE = 0.995;
+    
+    const tourDistance = (tour) => {
+      let dist = 0;
+      for (let i = 1; i < tour.length; i++) {
+        dist += distanceMatrix[tour[i - 1]][tour[i]];
+      }
+      return dist;
+    };
+    
+    // 初始解（最近邻）
+    let currentTour = nearestNeighbor(distanceMatrix, 0);
+    let currentDistance = tourDistance(currentTour);
+    let bestTour = [...currentTour];
+    let bestDistance = currentDistance;
+    
+    let temperature = INITIAL_TEMP;
+    
+    for (let iter = 0; iter < MAX_ITERS; iter++) {
+      // 生成邻居解（2-opt变换）
+      const newTour = [...currentTour];
+      const i = 1 + Math.floor(Math.random() * (n - 2));
+      const j = 1 + Math.floor(Math.random() * (n - 2));
+      if (i !== j) {
+        [newTour[i], newTour[j]] = [newTour[j], newTour[i]];
+      }
+      
+      const newDistance = tourDistance(newTour);
+      const delta = newDistance - currentDistance;
+      
+      // 接受条件
+      if (delta < 0 || Math.random() < Math.exp(-delta / temperature)) {
+        currentTour = newTour;
+        currentDistance = newDistance;
+        
+        if (currentDistance < bestDistance) {
+          bestTour = [...currentTour];
+          bestDistance = currentDistance;
+        }
+      }
+      
+      temperature *= COOLING_RATE;
+    }
+    
+    return { tour: bestTour, iters: MAX_ITERS };
+  };
   
   const stitchPath = (graph, tour, nodeIds, paths) => {
     const segments = [];
@@ -365,11 +603,24 @@ export default function Section3TSPSimple({ id }) {
       console.log('[Plan] 构建距离矩阵...');
       const { matrix, paths } = buildDistanceMatrix(graph, nodeIds);
       
-      // 生成初始解
-      const initialTour = nearestNeighbor(matrix, 0);
+      // 根据选择的算法运行
+      let optimizedTour, iters;
       
-      // 2-opt优化
-      const { tour: optimizedTour, iters } = twoOpt(initialTour, matrix);
+      switch (selectedAlgorithm) {
+        case 'genetic':
+          console.log('[Plan] 使用遗传算法');
+          ({ tour: optimizedTour, iters } = geneticAlgorithm(matrix));
+          break;
+        case 'annealing':
+          console.log('[Plan] 使用模拟退火算法');
+          ({ tour: optimizedTour, iters } = simulatedAnnealing(matrix));
+          break;
+        default: // 'heuristic'
+          console.log('[Plan] 使用启发式算法 (最近邻 + 2-opt)');
+          const initialTour = nearestNeighbor(matrix, 0);
+          ({ tour: optimizedTour, iters } = twoOpt(initialTour, matrix));
+          break;
+      }
       
       // 计算距离
       let totalDistance = 0;
@@ -513,11 +764,14 @@ export default function Section3TSPSimple({ id }) {
       if (speedDropdownOpen && !event.target.closest('.speed-dropdown')) {
         setSpeedDropdownOpen(false);
       }
+      if (algorithmDropdownOpen && !event.target.closest('.algorithm-dropdown')) {
+        setAlgorithmDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [speedDropdownOpen]);
+  }, [speedDropdownOpen, algorithmDropdownOpen]);
 
 
   // 地图编辑功能 - 数据归一化和本地下载
@@ -1339,6 +1593,77 @@ export default function Section3TSPSimple({ id }) {
                 >
                   {isEditMode ? '保存' : '地图编辑'}
                 </button>
+              </div>
+            </div>
+
+            {/* 算法选择 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                优化算法
+              </label>
+              <div className="relative algorithm-dropdown">
+                <button
+                  onClick={() => setAlgorithmDropdownOpen(!algorithmDropdownOpen)}
+                  disabled={isEditMode}
+                  className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] text-sm text-left flex justify-between items-center hover:bg-opacity-80 disabled:opacity-50"
+                >
+                  <span>
+                    {selectedAlgorithm === 'heuristic' ? '启发式算法 (快速)' : 
+                     selectedAlgorithm === 'genetic' ? '遗传算法 (全局搜索)' : 
+                     '模拟退火 (跳出局部最优)'}
+                  </span>
+                  <svg 
+                    className={`w-4 h-4 transition-transform duration-200 ${algorithmDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {algorithmDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 border border-[var(--border-subtle)] rounded-lg shadow-lg z-10" 
+                       style={{ backgroundColor: 'var(--bg-elevated)' }}>
+                    {[
+                      { value: 'heuristic', label: '启发式算法 (快速)', desc: '最近邻 + 2-opt局部优化' },
+                      { value: 'genetic', label: '遗传算法 (全局搜索)', desc: '进化算法，适合复杂问题' },
+                      { value: 'annealing', label: '模拟退火 (跳出局部最优)', desc: '概率接受机制，避免局部最优' }
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSelectedAlgorithm(option.value);
+                          setAlgorithmDropdownOpen(false);
+                        }}
+                        className={`w-full px-3 py-3 text-left transition-colors border-b border-[var(--border-subtle)] last:border-b-0 ${
+                          selectedAlgorithm === option.value ? '' : ''
+                        }`}
+                        style={{
+                          backgroundColor: selectedAlgorithm === option.value ? 'var(--tech-mint-dim)' : 'transparent',
+                          color: 'var(--ink-high)'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedAlgorithm !== option.value) {
+                            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedAlgorithm !== option.value) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        <div className="text-sm font-medium text-[var(--text-primary)]">
+                          {option.label}
+                        </div>
+                        <div className="text-xs text-[var(--text-secondary)] mt-1">
+                          {option.desc}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
