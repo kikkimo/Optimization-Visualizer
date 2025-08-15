@@ -19,6 +19,37 @@ export default function Section3TSPSimple({ id }) {
   const [courierPosition, setCourierPosition] = useState(null);
   const [animationSpeed, setAnimationSpeed] = useState('medium');
   const [speedDropdownOpen, setSpeedDropdownOpen] = useState(false);
+  
+  // 地图编辑状态
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [draggedNode, setDraggedNode] = useState(null);
+  const [connectingNode, setConnectingNode] = useState(null);
+  const [tempEdge, setTempEdge] = useState(null);
+  const [selectedNodeForEdit, setSelectedNodeForEdit] = useState(null);
+  const [hoveredNode, setHoveredNode] = useState(null);
+
+  // 数据反归一化 - 从0-1坐标转换为Canvas尺寸
+  const denormalizeGraphData = (graphData) => {
+    const CANVAS_WIDTH = 1200;
+    const CANVAS_HEIGHT = 800;
+    
+    return {
+      ...graphData,
+      nodes: graphData.nodes.map(node => ({
+        ...node,
+        x: node.x * CANVAS_WIDTH,
+        y: node.y * CANVAS_HEIGHT
+      })),
+      edges: graphData.edges.map(edge => ({
+        ...edge,
+        polyline: edge.polyline.map(point => ({
+          x: point.x * CANVAS_WIDTH,
+          y: point.y * CANVAS_HEIGHT
+        })),
+        length: edge.length * CANVAS_WIDTH // 距离也需要反归一化
+      }))
+    };
+  };
 
   // 加载固定路网数据
   useEffect(() => {
@@ -39,9 +70,23 @@ export default function Section3TSPSimple({ id }) {
           startId: data.startId
         });
         
+        // 检查数据是否需要反归一化（判断坐标是否在0-1范围内）
+        const isNormalized = data.nodes.every(node => 
+          node.x >= 0 && node.x <= 1 && node.y >= 0 && node.y <= 1
+        );
+        
+        let processedData;
+        if (isNormalized) {
+          console.log('[Graph] 🔄 检测到归一化数据，转换为Canvas尺寸');
+          processedData = denormalizeGraphData(data);
+        } else {
+          console.log('[Graph] 📏 使用原始Canvas尺寸数据');
+          processedData = data;
+        }
+        
         setGraph({
-          ...data,
-          startId: data.startId || 0
+          ...processedData,
+          startId: processedData.startId || 0
         });
       })
       .catch(error => {
@@ -76,7 +121,7 @@ export default function Section3TSPSimple({ id }) {
     window.addEventListener('resize', resizeCanvas);
     
     return () => window.removeEventListener('resize', resizeCanvas);
-  }, [graph, selectedNodes, planResult, visitedPaths, courierPosition]);
+  }, [graph, selectedNodes, planResult, visitedPaths, courierPosition, tempEdge, connectingNode, selectedNodeForEdit, hoveredNode, draggedNode, isEditMode]);
 
   // TSP算法实现
   const distance = (p1, p2) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
@@ -358,11 +403,37 @@ export default function Section3TSPSimple({ id }) {
     }
   };
 
+  // 编辑模式动画循环（用于橡皮筋效果、节点高亮和拖拽实时显示）
+  useEffect(() => {
+    if (!isEditMode || (!connectingNode && !selectedNodeForEdit && !draggedNode)) return;
+    
+    let animationId;
+    const animate = () => {
+      // 触发重绘以显示动画效果
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const container = canvas.parentElement;
+        const rect = container.getBoundingClientRect();
+        const ctx = canvas.getContext('2d');
+        draw(ctx, rect.width, rect.height);
+      }
+      animationId = requestAnimationFrame(animate);
+    };
+    
+    animationId = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [isEditMode, connectingNode, selectedNodeForEdit, draggedNode, tempEdge]);
+
   // 动画更新
   useEffect(() => {
     if (!isAnimating || !planResult?.stitchedPath) return;
     // 速度控制
-    const speedMap = { slow: 0.075, medium: 0.15, fast: 0.3 };
+    const speedMap = { slow: 0.06, medium: 0.1, fast: 0.2 };
     const speed = speedMap[animationSpeed];
     
     const animate = () => {
@@ -446,6 +517,125 @@ export default function Section3TSPSimple({ id }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [speedDropdownOpen]);
+
+
+  // 地图编辑功能 - 数据归一化和本地下载
+  const normalizeGraphData = (graphData) => {
+    // 将坐标归一化到0-1范围内（基于1200x800画布）
+    const normalizedGraph = {
+      ...graphData,
+      nodes: graphData.nodes.map(node => ({
+        ...node,
+        x: Math.max(0, Math.min(1, node.x / 1200)),
+        y: Math.max(0, Math.min(1, node.y / 800))
+      })),
+      edges: graphData.edges.map(edge => ({
+        ...edge,
+        polyline: edge.polyline.map(point => ({
+          x: Math.max(0, Math.min(1, point.x / 1200)),
+          y: Math.max(0, Math.min(1, point.y / 800))
+        })),
+        length: edge.length / 1200 // 距离也归一化
+      }))
+    };
+    
+    return normalizedGraph;
+  };
+
+  const saveEditedGraph = () => {
+    try {
+      // 归一化数据
+      const normalizedGraph = normalizeGraphData(graph);
+      
+      // 创建JSON字符串
+      const jsonString = JSON.stringify(normalizedGraph, null, 2);
+      
+      // 创建Blob并下载
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tsp_fixed_graph.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      URL.revokeObjectURL(url);
+      
+      console.log('[Edit] 地图数据已下载（坐标归一化到0-1范围）');
+      setIsEditMode(false);
+      
+    } catch (error) {
+      console.error('[Edit] 保存错误:', error);
+    }
+  };
+
+  // 边相交检测
+  const doLinesIntersect = (line1, line2) => {
+    const [p1, p2] = line1;
+    const [p3, p4] = line2;
+    
+    // 检查端点重合（允许共享端点）
+    const tolerance = 5; // 5像素容差
+    const shareEndpoint = (
+      Math.hypot(p1.x - p3.x, p1.y - p3.y) < tolerance ||
+      Math.hypot(p1.x - p4.x, p1.y - p4.y) < tolerance ||
+      Math.hypot(p2.x - p3.x, p2.y - p3.y) < tolerance ||
+      Math.hypot(p2.x - p4.x, p2.y - p4.y) < tolerance
+    );
+    
+    if (shareEndpoint) {
+      return false; // 共享端点不算相交
+    }
+    
+    const denominator = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+    
+    if (Math.abs(denominator) < 1e-10) {
+      return false; // 平行线
+    }
+    
+    const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denominator;
+    const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denominator;
+    
+    // 严格在线段内部相交才算相交（不包括端点）
+    return ua > 0.001 && ua < 0.999 && ub > 0.001 && ub < 0.999;
+  };
+
+  // 检查新边是否与现有边相交
+  const checkEdgeIntersection = (newEdge) => {
+    const newLine = [newEdge.start, newEdge.end];
+    console.log('[Edit] 🔍 检查边相交:', {
+      newEdge: {
+        start: { x: Math.round(newEdge.start.x), y: Math.round(newEdge.start.y) },
+        end: { x: Math.round(newEdge.end.x), y: Math.round(newEdge.end.y) }
+      },
+      totalEdges: graph.edges.length
+    });
+    
+    for (const edge of graph.edges) {
+      if (edge.polyline.length < 2) continue;
+      
+      for (let i = 0; i < edge.polyline.length - 1; i++) {
+        const existingLine = [edge.polyline[i], edge.polyline[i + 1]];
+        
+        if (doLinesIntersect(newLine, existingLine)) {
+          console.log('[Edit] ❌ 发现相交:', {
+            existingEdge: edge.id,
+            segment: i,
+            existingLine: {
+              start: { x: Math.round(existingLine[0].x), y: Math.round(existingLine[0].y) },
+              end: { x: Math.round(existingLine[1].x), y: Math.round(existingLine[1].y) }
+            }
+          });
+          return true;
+        }
+      }
+    }
+    
+    console.log('[Edit] ✅ 无相交，可以添加边');
+    return false;
+  };
 
   // 绘制函数
   const draw = (ctx, width, height) => {
@@ -548,6 +738,42 @@ export default function Section3TSPSimple({ id }) {
       const y = node.y * scaleY;
       const isSelected = selectedNodes.has(node.id);
       const isVisited = visitedNodes.has(node.id);
+      const isEditSelected = selectedNodeForEdit?.id === node.id;
+      const isConnecting = connectingNode?.id === node.id;
+      const isHovered = hoveredNode?.id === node.id;
+      
+      // 编辑模式下的特殊高亮
+      if (isEditMode) {
+        if (isEditSelected || isConnecting) {
+          // 选中或连线起点的高亮背景
+          ctx.fillStyle = 'rgba(245, 178, 72, 0.3)';
+          ctx.beginPath();
+          ctx.arc(x, y, 25, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = '#F5B248';
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.7 + 0.3 * Math.sin(Date.now() * 0.008);
+          ctx.beginPath();
+          ctx.arc(x, y, 22, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        } else if (isHovered && connectingNode) {
+          // 连线目标节点的捕捉高亮
+          ctx.fillStyle = 'rgba(60, 230, 192, 0.4)';
+          ctx.beginPath();
+          ctx.arc(x, y, 20, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = '#3CE6C0';
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.8 + 0.2 * Math.sin(Date.now() * 0.01);
+          ctx.beginPath();
+          ctx.arc(x, y, 17, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
       
       if (node.id === graph.startId) {
         // 起点标记S
@@ -564,8 +790,8 @@ export default function Section3TSPSimple({ id }) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('S', x, y);
-      } else if (isSelected) {
-        // 配送点 - 闪烁效果
+      } else if (isSelected && !isEditMode) {
+        // 配送点 - 闪烁效果（仅在非编辑模式）
         ctx.fillStyle = 'rgba(60, 230, 192, 0.2)';
         ctx.beginPath();
         ctx.arc(x, y, 18, 0, Math.PI * 2);
@@ -607,10 +833,19 @@ export default function Section3TSPSimple({ id }) {
         }
       } else {
         // 普通节点
-        ctx.fillStyle = 'rgba(107, 114, 128, 0.6)';
+        const nodeSize = isEditMode ? 8 : 6;
+        const nodeAlpha = isEditMode ? 0.8 : 0.6;
+        ctx.fillStyle = `rgba(107, 114, 128, ${nodeAlpha})`;
         ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.arc(x, y, nodeSize, 0, Math.PI * 2);
         ctx.fill();
+        
+        // 编辑模式下节点的边框
+        if (isEditMode) {
+          ctx.strokeStyle = '#6B7280';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
       }
     });
     
@@ -633,51 +868,323 @@ export default function Section3TSPSimple({ id }) {
       ctx.textBaseline = 'middle';
       ctx.fillText('🚗', x, y);
     }
-  };
-
-  // 点击处理
-  const handleCanvasClick = (event) => {
-    if (!graph || isPlanning || isAnimating) return;
     
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    
-    const dpr = window.devicePixelRatio || 1;
-    const canvasX = (event.clientX - rect.left) * dpr;
-    const canvasY = (event.clientY - rect.top) * dpr;
-    
-    const scaleX = (rect.width * dpr) / 1200;
-    const scaleY = (rect.height * dpr) / 800;
-    
-    // 查找点击的节点
-    let foundNode = null;
-    let minDistance = Infinity;
-    
-    for (const node of graph.nodes) {
-      const nodeX = node.x * scaleX;
-      const nodeY = node.y * scaleY;
-      const dist = Math.sqrt((canvasX - nodeX) ** 2 + (canvasY - nodeY) ** 2);
+    // 绘制编辑模式的临时边（橡皮筋效果）
+    if (isEditMode && tempEdge) {
+      console.log('[Draw] 🔗 绘制橡皮筋:', {
+        start: tempEdge.start,
+        end: tempEdge.end,
+        snapped: tempEdge.snapped
+      });
+      const isSnapped = tempEdge.snapped;
       
-      if (dist < 35 && node.id !== graph.startId && dist < minDistance) {
-        foundNode = node;
-        minDistance = dist;
+      ctx.strokeStyle = isSnapped ? '#3CE6C0' : '#F5B248';
+      ctx.lineWidth = isSnapped ? 4 : 3;
+      ctx.setLineDash(isSnapped ? [8, 4] : [12, 6]);
+      ctx.globalAlpha = isSnapped ? 0.9 : 0.7;
+      
+      ctx.beginPath();
+      ctx.moveTo(tempEdge.start.x * scaleX, tempEdge.start.y * scaleY);
+      ctx.lineTo(tempEdge.end.x * scaleX, tempEdge.end.y * scaleY);
+      ctx.stroke();
+      
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      
+      // 如果捕捉到节点，在端点绘制连接指示器
+      if (isSnapped) {
+        ctx.fillStyle = '#3CE6C0';
+        ctx.beginPath();
+        ctx.arc(tempEdge.end.x * scaleX, tempEdge.end.y * scaleY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 额外的高亮环
+        ctx.strokeStyle = '#3CE6C0';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(tempEdge.end.x * scaleX, tempEdge.end.y * scaleY, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       }
     }
     
-    if (foundNode) {
-      setSelectedNodes(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(foundNode.id)) {
-          newSet.delete(foundNode.id);
-        } else if (newSet.size < 10) {
-          newSet.add(foundNode.id);
-        }
-        return newSet;
-      });
+    // 绘制连线状态指示 - 连线起点的动画高亮
+    if (isEditMode && connectingNode) {
+      console.log('[Draw] 🎯 连线模式激活, connectingNode:', connectingNode.id);
+      const x = connectingNode.x * scaleX;
+      const y = connectingNode.y * scaleY;
       
-      setPlanResult(null);
+      // 外圈动画
+      ctx.strokeStyle = '#F5B248';
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.5 + 0.5 * Math.sin(Date.now() * 0.008);
+      ctx.beginPath();
+      ctx.arc(x, y, 28, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // 内圈固定
+      ctx.strokeStyle = '#F5B248';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(x, y, 20, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
   };
+
+  // 鼠标事件处理
+  const getMousePosition = (event) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    const x = (event.clientX - rect.left) / rect.width * 1200;
+    const y = (event.clientY - rect.top) / rect.height * 800;
+    
+    return { x, y };
+  };
+
+  const findNodeAt = (position) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width / 1200;
+    const scaleY = rect.height / 800;
+    
+    for (const node of graph.nodes) {
+      const dist = Math.sqrt(
+        Math.pow((position.x - node.x) * scaleX, 2) + 
+        Math.pow((position.y - node.y) * scaleY, 2)
+      );
+      
+      if (dist < 20) {
+        return node;
+      }
+    }
+    return null;
+  };
+
+  const handleMouseDown = (event) => {
+    console.log('[MouseDown] 触发鼠标按下事件', { 
+      isEditMode, 
+      shiftKey: event.shiftKey, 
+      ctrlKey: event.ctrlKey,
+      button: event.button,
+      type: event.type
+    });
+    
+    if (!graph || isPlanning || isAnimating) {
+      console.log('[MouseDown] 状态阻止操作:', { graph: !!graph, isPlanning, isAnimating });
+      return;
+    }
+    
+    const mousePos = getMousePosition(event);
+    const clickedNode = findNodeAt(mousePos);
+    console.log('[MouseDown] 鼠标位置和节点:', { mousePos, clickedNode: clickedNode?.id });
+    
+    if (isEditMode) {
+      console.log('[MouseDown] 编辑模式处理');
+      if (clickedNode) {
+        if (event.shiftKey) {
+          // Shift+点击时的连线模式
+          console.log(`[Edit] ✨ Shift+点击节点 ${clickedNode.id}, 当前连线状态:`, connectingNode?.id);
+          event.preventDefault(); // 防止其他事件干扰
+          
+          if (!connectingNode) {
+            // 开始连线
+            console.log(`[Edit] 🎯 开始连线模式，起点: ${clickedNode.id}`);
+            setConnectingNode(clickedNode);
+            setSelectedNodeForEdit(clickedNode);
+            setTempEdge(null); // 清空临时边
+          } else if (connectingNode.id !== clickedNode.id) {
+            // 完成连线
+            console.log(`[Edit] 🔗 尝试连接: ${connectingNode.id} -> ${clickedNode.id}`);
+            const newEdge = {
+              start: { x: connectingNode.x, y: connectingNode.y },
+              end: { x: clickedNode.x, y: clickedNode.y }
+            };
+            
+            if (!checkEdgeIntersection(newEdge)) {
+              const edgeId = Math.max(...graph.edges.map(e => e.id)) + 1;
+              const newGraphEdge = {
+                id: edgeId,
+                a: connectingNode.id,
+                b: clickedNode.id,
+                level: 'secondary',
+                polyline: [newEdge.start, newEdge.end],
+                length: Math.hypot(newEdge.end.x - newEdge.start.x, newEdge.end.y - newEdge.start.y)
+              };
+              
+              setGraph(prev => ({
+                ...prev,
+                edges: [...prev.edges, newGraphEdge],
+                adjacency: {
+                  ...prev.adjacency,
+                  [connectingNode.id]: [...(prev.adjacency[connectingNode.id] || []), edgeId],
+                  [clickedNode.id]: [...(prev.adjacency[clickedNode.id] || []), edgeId]
+                }
+              }));
+              
+              console.log(`[Edit] ✅ 完成连线: ${connectingNode.id} -> ${clickedNode.id}`);
+            } else {
+              console.log('[Edit] ❌ 边相交，无法添加');
+            }
+            
+            // 清理连线状态
+            setConnectingNode(null);
+            setTempEdge(null);
+            setSelectedNodeForEdit(null);
+          } else {
+            console.log('[Edit] ⚠️ 点击了同一个节点，取消连线');
+            setConnectingNode(null);
+            setTempEdge(null);
+            setSelectedNodeForEdit(null);
+          }
+        } else {
+          // 普通拖拽模式 - 只有在没有按Shift键时才拖拽
+          console.log(`[Edit] 🖱️ 开始拖拽节点: ${clickedNode.id}`);
+          // 先清理连线状态
+          setConnectingNode(null);
+          setTempEdge(null);
+          // 开始拖拽
+          setDraggedNode(clickedNode);
+          setSelectedNodeForEdit(clickedNode);
+        }
+      } else {
+        console.log('[Edit] 点击空白区域，清理所有编辑状态');
+        // 点击空白区域，清理所有状态
+        setConnectingNode(null);
+        setTempEdge(null);
+        setSelectedNodeForEdit(null);
+        setDraggedNode(null);
+      }
+    } else {
+      console.log('[MouseDown] 非编辑模式处理配送点选择');
+      // 非编辑模式 - 处理配送点选择
+      if (clickedNode && clickedNode.id !== graph.startId) {
+        setSelectedNodes(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(clickedNode.id)) {
+            newSet.delete(clickedNode.id);
+            console.log(`[Select] 取消选择配送点: ${clickedNode.id}`);
+          } else if (newSet.size < 12) {
+            newSet.add(clickedNode.id);
+            console.log(`[Select] 选择配送点: ${clickedNode.id}`);
+          }
+          return newSet;
+        });
+        
+        setPlanResult(null);
+      }
+    }
+  };
+
+  const handleMouseMove = (event) => {
+    if (!isEditMode) return;
+    
+    const mousePos = getMousePosition(event);
+    
+    // 检查鼠标悬停的节点
+    const hoveredNodeAtPos = findNodeAt(mousePos);
+    setHoveredNode(hoveredNodeAtPos);
+    
+    console.log('[MouseMove] 移动状态:', { 
+      mousePos: { x: Math.round(mousePos.x), y: Math.round(mousePos.y) },
+      draggedNode: draggedNode?.id, 
+      connectingNode: connectingNode?.id,
+      hoveredNode: hoveredNodeAtPos?.id
+    });
+    
+    if (draggedNode) {
+      // 实时更新拖拽节点位置
+      console.log(`[Edit] 拖拽节点 ${draggedNode.id} 到位置:`, mousePos);
+      setGraph(prev => ({
+        ...prev,
+        nodes: prev.nodes.map(node => 
+          node.id === draggedNode.id 
+            ? { ...node, x: mousePos.x, y: mousePos.y }
+            : node
+        ),
+        edges: prev.edges.map(edge => {
+          // 如果边连接了被拖拽的节点，需要更新对应的端点
+          if (edge.a === draggedNode.id || edge.b === draggedNode.id) {
+            const newPolyline = [...edge.polyline];
+            
+            // 更新起点
+            if (edge.a === draggedNode.id && newPolyline.length > 0) {
+              newPolyline[0] = { x: mousePos.x, y: mousePos.y };
+            }
+            
+            // 更新终点
+            if (edge.b === draggedNode.id && newPolyline.length > 0) {
+              newPolyline[newPolyline.length - 1] = { x: mousePos.x, y: mousePos.y };
+            }
+            
+            // 重新计算边长度
+            let newLength = 0;
+            for (let i = 1; i < newPolyline.length; i++) {
+              const dist = Math.hypot(
+                newPolyline[i].x - newPolyline[i-1].x,
+                newPolyline[i].y - newPolyline[i-1].y
+              );
+              newLength += dist;
+            }
+            
+            return {
+              ...edge,
+              polyline: newPolyline,
+              length: newLength
+            };
+          }
+          return edge;
+        })
+      }));
+      
+      setDraggedNode({ ...draggedNode, x: mousePos.x, y: mousePos.y });
+    } else if (connectingNode) {
+      // 连线模式的橡皮筋效果
+      console.log('[Edit] 🎯 橡皮筋效果更新, connectingNode:', connectingNode.id, 'hoveredNode:', hoveredNodeAtPos?.id);
+      const targetNode = hoveredNodeAtPos && hoveredNodeAtPos.id !== connectingNode.id ? hoveredNodeAtPos : null;
+      
+      const newTempEdge = {
+        start: { x: connectingNode.x, y: connectingNode.y },
+        end: targetNode ? { x: targetNode.x, y: targetNode.y } : mousePos,
+        snapped: !!targetNode
+      };
+      
+      console.log('[Edit] 🔗 设置临时边:', newTempEdge);
+      setTempEdge(newTempEdge);
+    }
+  };
+
+  const handleMouseUp = () => {
+    console.log('[MouseUp] 鼠标释放', { 
+      draggedNode: draggedNode?.id, 
+      connectingNode: connectingNode?.id 
+    });
+    
+    if (draggedNode) {
+      console.log(`[Edit] ✅ 节点 ${draggedNode.id} 移动完成，清理选择状态`);
+      setDraggedNode(null);
+      setSelectedNodeForEdit(null); // 清除节点选择高亮
+      
+      // 强制触发重绘确保高亮立即清除
+      setTimeout(() => {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const container = canvas.parentElement;
+          const rect = container.getBoundingClientRect();
+          const ctx = canvas.getContext('2d');
+          draw(ctx, rect.width, rect.height);
+        }
+      }, 10);
+    }
+    
+    // 不要在鼠标释放时清理连线状态，因为连线模式需要保持到下次点击
+    // 只清理悬停状态
+    setHoveredNode(null);
+  };
+
 
   // 控制函数
   const handleRandomSelect = () => {
@@ -688,7 +1195,7 @@ export default function Section3TSPSimple({ id }) {
     setPlanResult(null);
     
     const available = graph.nodes.filter(n => n.id !== graph.startId);
-    const count = 5 + Math.floor(Math.random() * 6);
+    const count = Math.min(6 + Math.floor(Math.random() * 7), available.length, 12); // 6-12个，不超过可用节点数
     const shuffled = [...available].sort(() => Math.random() - 0.5);
     
     setSelectedNodes(new Set(shuffled.slice(0, count).map(n => n.id)));
@@ -736,7 +1243,9 @@ export default function Section3TSPSimple({ id }) {
           <canvas
             ref={canvasRef}
             className="w-full h-full cursor-pointer rounded-xl"
-            onClick={handleCanvasClick}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
             style={{ display: 'block' }}
           />
         </div>
@@ -750,7 +1259,7 @@ export default function Section3TSPSimple({ id }) {
                 🚚 外卖员最佳配送路径
               </h3>
               <p className="text-sm text-[var(--text-secondary)]">
-                智能优化算法 - 点击选择配送点，规划最优路径
+                请选择配送点（最多12个），规划最优路径
               </p>
             </div>
 
@@ -759,7 +1268,7 @@ export default function Section3TSPSimple({ id }) {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleRandomSelect}
-                  disabled={isPlanning || isAnimating}
+                  disabled={isPlanning || isAnimating || isEditMode}
                   className="px-4 py-2 bg-[var(--accent-orange)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
                 >
                   随机选择
@@ -767,7 +1276,7 @@ export default function Section3TSPSimple({ id }) {
                 
                 <button
                   onClick={runTSPPlanning}
-                  disabled={!graph || selectedNodes.size === 0 || isPlanning || isAnimating}
+                  disabled={!graph || selectedNodes.size === 0 || isPlanning || isAnimating || isEditMode}
                   className="px-4 py-2 bg-[var(--accent-amber)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
                 >
                   {isPlanning ? '规划中...' : '路径规划'}
@@ -777,7 +1286,7 @@ export default function Section3TSPSimple({ id }) {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleStartAnimation}
-                  disabled={!planResult || isAnimating}
+                  disabled={!planResult || isAnimating || isEditMode}
                   className="px-4 py-2 bg-[var(--accent-green)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
                 >
                   开始配送
@@ -785,20 +1294,51 @@ export default function Section3TSPSimple({ id }) {
                 
                 <button
                   onClick={handlePauseResume}
-                  disabled={!planResult}
+                  disabled={!planResult || isEditMode}
                   className="px-4 py-2 bg-[var(--accent-blue)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
                 >
                   {isAnimating ? '暂停' : '继续'}
                 </button>
               </div>
               
-              <button
-                onClick={handleReset}
-                disabled={!planResult}
-                className="w-full px-4 py-2 bg-[var(--text-secondary)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
-              >
-                重置
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleReset}
+                  disabled={!planResult}
+                  className="px-4 py-2 bg-[var(--text-secondary)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
+                >
+                  重置
+                </button>
+                
+                <button
+                  onClick={() => {
+                    if (isEditMode) {
+                      saveEditedGraph();
+                    } else {
+                      // 进入编辑模式时完全重置状态
+                      setIsEditMode(true);
+                      setIsAnimating(false);
+                      setPlanResult(null);
+                      setSelectedNodes(new Set());
+                      setVisitedNodes(new Set());
+                      setVisitedPaths([]);
+                      setCourierPosition(null);
+                      setAnimationProgress(0);
+                      // 重置编辑状态
+                      setDraggedNode(null);
+                      setConnectingNode(null);
+                      setTempEdge(null);
+                      setSelectedNodeForEdit(null);
+                      setHoveredNode(null);
+                      console.log('[Edit] 进入编辑模式，已重置所有状态');
+                    }
+                  }}
+                  disabled={isPlanning || isAnimating}
+                  className="px-4 py-2 bg-[var(--tech-mint)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
+                >
+                  {isEditMode ? '保存' : '地图编辑'}
+                </button>
+              </div>
             </div>
 
             {/* 速度控制 */}
@@ -809,7 +1349,8 @@ export default function Section3TSPSimple({ id }) {
               <div className="relative speed-dropdown">
                 <button
                   onClick={() => setSpeedDropdownOpen(!speedDropdownOpen)}
-                  className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] text-sm text-left flex justify-between items-center hover:bg-opacity-80"
+                  disabled={isEditMode}
+                  className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] text-sm text-left flex justify-between items-center hover:bg-opacity-80 disabled:opacity-50"
                 >
                   <span>
                     {animationSpeed === 'slow' ? '慢速' : 
@@ -898,7 +1439,10 @@ export default function Section3TSPSimple({ id }) {
             {/* 说明 */}
             <div className="mt-auto pt-4 border-t border-[var(--border-subtle)]">
               <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
-                点击地图上的节点选择配送点，使用TSP算法计算最优配送路径。动画展示外卖车沿路径配送的过程。
+                {isEditMode 
+                  ? '编辑模式：直接拖拽节点移动位置，Shift+点击两个节点创建连线。新边不能与现有边相交。'
+                  : '点击地图上的节点选择配送点，使用TSP算法计算最优配送路径。动画展示外卖车沿路径配送的过程。'
+                }
               </p>
             </div>
           </div>
