@@ -18,6 +18,7 @@ export default function Section3TSPSimple({ id }) {
   const [visitedPaths, setVisitedPaths] = useState([]);
   const [courierPosition, setCourierPosition] = useState(null);
   const [animationSpeed, setAnimationSpeed] = useState('medium');
+  const [speedDropdownOpen, setSpeedDropdownOpen] = useState(false);
 
   // 加载固定路网数据
   useEffect(() => {
@@ -360,8 +361,8 @@ export default function Section3TSPSimple({ id }) {
   // 动画更新
   useEffect(() => {
     if (!isAnimating || !planResult?.stitchedPath) return;
-    
-    const speedMap = { slow: 0.5, medium: 1, fast: 2 };
+    // 速度控制
+    const speedMap = { slow: 0.075, medium: 0.15, fast: 0.3 };
     const speed = speedMap[animationSpeed];
     
     const animate = () => {
@@ -370,6 +371,25 @@ export default function Section3TSPSimple({ id }) {
         const maxProgress = planResult.stitchedPath.length - 1;
         
         if (newProgress >= maxProgress) {
+          // 确保配送车到达最终位置
+          setCourierPosition(planResult.stitchedPath[planResult.stitchedPath.length - 1]);
+          // 确保完整路径被标记为已访问
+          setVisitedPaths(planResult.stitchedPath);
+          
+          // 确保所有配送点都被标记为已访问
+          const deliveryNodes = planResult.order.slice(1);
+          setVisitedNodes(prev => {
+            const newSet = new Set(prev);
+            deliveryNodes.forEach(nodeId => {
+              if (!newSet.has(nodeId)) {
+                newSet.add(nodeId);
+                console.log(`[Animation] 🚩 终点确保送达配送点 ${nodeId}`);
+              }
+            });
+            return newSet;
+          });
+          
+          console.log(`[Animation] ✅ 配送车已到达终点！`);
           setIsAnimating(false);
           return maxProgress;
         }
@@ -389,12 +409,13 @@ export default function Section3TSPSimple({ id }) {
           for (const nodeId of deliveryNodes) {
             if (!visitedNodes.has(nodeId)) {
               const node = graph.nodes.find(n => n.id === nodeId);
-              if (node && distance(currentPos, node) < 15) {
+              if (node && distance(currentPos, node) < 25) { // 增加检测距离
                 setVisitedNodes(prev => new Set([...prev, nodeId]));
                 console.log(`[Animation] 🚩 已送达配送点 ${nodeId}`);
               }
             }
           }
+          
         }
         
         return newProgress;
@@ -413,6 +434,18 @@ export default function Section3TSPSimple({ id }) {
       }
     };
   }, [isAnimating, animationSpeed, planResult, graph, visitedNodes]);
+
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (speedDropdownOpen && !event.target.closest('.speed-dropdown')) {
+        setSpeedDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [speedDropdownOpen]);
 
   // 绘制函数
   const draw = (ctx, width, height) => {
@@ -650,13 +683,15 @@ export default function Section3TSPSimple({ id }) {
   const handleRandomSelect = () => {
     if (!graph) return;
     
+    // 先重置所有状态
+    handleReset();
+    setPlanResult(null);
+    
     const available = graph.nodes.filter(n => n.id !== graph.startId);
     const count = 5 + Math.floor(Math.random() * 6);
     const shuffled = [...available].sort(() => Math.random() - 0.5);
     
     setSelectedNodes(new Set(shuffled.slice(0, count).map(n => n.id)));
-    setPlanResult(null);
-    setIsAnimating(false);
   };
 
   const handleStartAnimation = () => {
@@ -771,15 +806,58 @@ export default function Section3TSPSimple({ id }) {
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                 配送速度
               </label>
-              <select
-                value={animationSpeed}
-                onChange={(e) => setAnimationSpeed(e.target.value)}
-                className="w-full px-3 py-2 bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] text-sm"
-              >
-                <option value="slow">慢速</option>
-                <option value="medium">中速</option>
-                <option value="fast">快速</option>
-              </select>
+              <div className="relative speed-dropdown">
+                <button
+                  onClick={() => setSpeedDropdownOpen(!speedDropdownOpen)}
+                  className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] text-sm text-left flex justify-between items-center hover:bg-opacity-80"
+                >
+                  <span>
+                    {animationSpeed === 'slow' ? '慢速' : 
+                     animationSpeed === 'medium' ? '中速' : '快速'}
+                  </span>
+                  <span className={`transform transition-transform ${speedDropdownOpen ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
+                </button>
+                
+                {speedDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg shadow-lg z-50 backdrop-blur-sm" style={{ backgroundColor: 'var(--bg-card)' }}>
+                    <button
+                      onClick={() => {
+                        setAnimationSpeed('slow');
+                        setSpeedDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-primary)] ${
+                        animationSpeed === 'slow' ? 'bg-[var(--bg-primary)] text-[var(--accent-amber)]' : 'text-[var(--text-primary)] bg-[var(--bg-card)]'
+                      }`}
+                    >
+                      慢速
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAnimationSpeed('medium');
+                        setSpeedDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-primary)] ${
+                        animationSpeed === 'medium' ? 'bg-[var(--bg-primary)] text-[var(--accent-amber)]' : 'text-[var(--text-primary)] bg-[var(--bg-card)]'
+                      }`}
+                    >
+                      中速
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAnimationSpeed('fast');
+                        setSpeedDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-primary)] ${
+                        animationSpeed === 'fast' ? 'bg-[var(--bg-primary)] text-[var(--accent-amber)]' : 'text-[var(--text-primary)] bg-[var(--bg-card)]'
+                      }`}
+                    >
+                      快速
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* KPI显示 */}
@@ -796,7 +874,7 @@ export default function Section3TSPSimple({ id }) {
                   <div className="flex justify-between">
                     <span className="text-[var(--text-secondary)]">总距离:</span>
                     <span className="text-[var(--text-primary)] font-medium">
-                      {planResult.distance?.toFixed(0)}px
+                      {(planResult.distance * 3)?.toFixed(0)} m
                     </span>
                   </div>
                   
