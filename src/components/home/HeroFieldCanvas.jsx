@@ -30,12 +30,14 @@ export default function HeroFieldCanvas() {
       ];
 
       // 初始化粒子
-      particlesRef.current = Array.from({ length: 30 }, () => ({
-        x: Math.random(),
-        y: Math.random(),
-        vx: 0,
-        vy: 0,
-        trail: []
+      particlesRef.current = Array.from({ length: 60 }, () => ({
+        x: 0.3 + Math.random() * 0.4,
+        y: 0.3 + Math.random() * 0.4,
+        vx: (Math.random() - 0.5) * 0.002,
+        vy: (Math.random() - 0.5) * 0.002,
+        trail: [],
+        life: 0,  // 生命周期计数器
+        maxLife: 60 + Math.random() * 60  // 1-2秒的生命周期（60fps）
       }));
 
       // 初始化约束多边形
@@ -133,33 +135,49 @@ export default function HeroFieldCanvas() {
       }
     };
 
+    // 重置粒子函数
+    const resetParticle = (particle) => {
+      particle.x = 0.3 + Math.random() * 0.4;
+      particle.y = 0.3 + Math.random() * 0.4;
+      particle.vx = (Math.random() - 0.5) * 0.002;
+      particle.vy = (Math.random() - 0.5) * 0.002;
+      particle.trail = [];
+      particle.life = 0;
+      particle.maxLife = 60 + Math.random() * 60;  // 1-2秒生命周期
+    };
+
     // 更新粒子
     const updateParticles = () => {
       particlesRef.current.forEach(particle => {
+        // 更新生命周期
+        particle.life++;
+        
+        // 检查粒子是否需要重置（生命周期结束或到达边缘）
+        if (particle.life >= particle.maxLife || 
+            particle.x < 0 || particle.x > 1 || 
+            particle.y < 0 || particle.y > 1) {
+          resetParticle(particle);
+          return;
+        }
+
         // 计算负梯度（下降方向）
         const { gx, gy } = gradient(particle.x, particle.y);
         const speed = 0.002;
         
-        particle.vx = particle.vx * 0.9 - gx * speed;
-        particle.vy = particle.vy * 0.9 - gy * speed;
+        // 计算生命周期衰减因子（随着时间推移速度逐渐减慢）
+        const lifeFactor = Math.max(0.1, 1 - (particle.life / particle.maxLife) * 0.7);
+        
+        particle.vx = particle.vx * 0.9 - gx * speed * lifeFactor;
+        particle.vy = particle.vy * 0.9 - gy * speed * lifeFactor;
         
         particle.x += particle.vx;
         particle.y += particle.vy;
-
-        // 边界处理
-        if (particle.x < 0 || particle.x > 1 || particle.y < 0 || particle.y > 1) {
-          particle.x = Math.random();
-          particle.y = Math.random();
-          particle.vx = 0;
-          particle.vy = 0;
-          particle.trail = [];
-        }
 
         // 更新尾迹
         particle.trail.push({ 
           x: particle.x, 
           y: particle.y, 
-          alpha: 1 
+          alpha: lifeFactor  // 透明度也随生命周期衰减
         });
         
         particle.trail = particle.trail.slice(-20).map(point => ({

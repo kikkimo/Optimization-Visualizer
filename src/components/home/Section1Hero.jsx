@@ -33,10 +33,20 @@ export default function Section1Hero({ id }) {
             lineHeight: 'var(--leading-tight)'
           }}
         >
-          <span className="block font-extrabold mb-2" style={{ color: 'var(--ink-high)' }}>
+          <span className="block font-extrabold mb-2" 
+                style={{ 
+                  background: 'linear-gradient(135deg, #3CE6C0, #F5B248)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
             数学优化问题
           </span>
-          <span className="block font-bold opacity-90" style={{ color: 'var(--ink-high)' }}>
+          <span className="block font-bold opacity-90" 
+                style={{ 
+                  color: 'var(--ink-high)',
+                  fontSize: 'clamp(18px, 3vw, 36px)'
+                }}>
             及其在测绘领域的应用
           </span>
         </h1>

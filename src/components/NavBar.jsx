@@ -93,19 +93,7 @@ const NavBar = () => {
       isScrolled ? 'glass-effect shadow-xl' : 'bg-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div 
-            onClick={scrollToTop}
-            className="flex items-center space-x-2 cursor-pointer hover:scale-105 transition-transform"
-          >
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">优</span>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-              数学优化
-            </span>
-          </div>
-
+        <div className="flex justify-center items-center h-16">
           <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => (
               <button
@@ -113,26 +101,42 @@ const NavBar = () => {
                 onClick={() => handleNavClick(item)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   activeSection === item.id
-                    ? 'bg-blue-500 text-white shadow-lg'
+                    ? 'text-white shadow-lg'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700'
                 }`}
+                style={activeSection === item.id ? {
+                  background: 'var(--tech-mint)',
+                  boxShadow: '0 4px 14px 0 rgba(60, 230, 192, 0.3)'
+                } : {}}
               >
                 {item.label}
               </button>
             ))}
           </div>
 
-          <button
-            onClick={scrollToTop}
-            className={`p-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 ${
-              isScrolled ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
-            title="回到顶部"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          </button>
+          <div className="absolute right-4">
+            <button
+              onClick={scrollToTop}
+              className={`p-2 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 ${
+                isScrolled ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+              }`}
+              style={{
+                background: 'linear-gradient(135deg, var(--tech-mint), var(--amber-signal))',
+                boxShadow: '0 4px 14px 0 rgba(60, 230, 192, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = 'var(--shadow-glow-mint)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(60, 230, 192, 0.3)';
+              }}
+              title="回到顶部"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -144,9 +148,12 @@ const NavBar = () => {
               onClick={() => handleNavClick(item)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                 activeSection === item.id
-                  ? 'bg-blue-500 text-white'
+                  ? 'text-white'
                   : 'text-gray-300 hover:text-white hover:bg-gray-700'
               }`}
+              style={activeSection === item.id ? {
+                background: 'var(--tech-mint)'
+              } : {}}
             >
               {item.label}
             </button>

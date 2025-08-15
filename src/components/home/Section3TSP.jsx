@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DownHint from './DownHint';
 
 // TSP配送路径规划组件 - 简化版本（无Worker）
 export default function Section3TSPSimple({ id }) {
@@ -1448,6 +1449,9 @@ export default function Section3TSPSimple({ id }) {
           </div>
         </div>
       </div>
+
+      {/* 底部提示 */}
+      <DownHint targetSection={3} />
     </section>
   );
 }

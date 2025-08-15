@@ -126,7 +126,7 @@ export default function Section2Bridge({ id }) {
       </div>
 
       {/* 底部提示 */}
-      <DownHint targetSection={2} text="查看TSP示例" />
+      <DownHint targetSection={2} />
     </section>
   );
 }

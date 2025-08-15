@@ -25,7 +25,11 @@
   }
   
   .section-title {
-    @apply text-4xl md:text-5xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent;
+    @apply text-4xl md:text-5xl font-bold mb-8 text-center;
+    background: linear-gradient(135deg, var(--tech-mint), var(--amber-signal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   
   .method-card {
@@ -33,7 +37,14 @@
   }
   
   .cta-button {
-    @apply bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 shadow-lg hover:shadow-xl;
+    @apply px-8 py-3 rounded-full font-medium transition-all duration-300 shadow-lg hover:shadow-xl text-white;
+    background: linear-gradient(135deg, var(--tech-mint), var(--amber-signal));
+    box-shadow: 0 4px 14px 0 rgba(60, 230, 192, 0.3);
+  }
+  
+  .cta-button:hover {
+    background: linear-gradient(135deg, var(--amber-signal), var(--tech-mint));
+    box-shadow: var(--shadow-glow-mint);
   }
   
   .param-slider {
@@ -41,11 +52,13 @@
   }
   
   .param-slider::-webkit-slider-thumb {
-    @apply appearance-none w-5 h-5 bg-blue-500 rounded-full cursor-pointer shadow-lg;
+    @apply appearance-none w-5 h-5 rounded-full cursor-pointer shadow-lg;
+    background-color: var(--tech-mint);
   }
   
   .param-slider::-moz-range-thumb {
-    @apply w-5 h-5 bg-blue-500 rounded-full cursor-pointer border-0 shadow-lg;
+    @apply w-5 h-5 rounded-full cursor-pointer border-0 shadow-lg;
+    background-color: var(--tech-mint);
   }
 }
 

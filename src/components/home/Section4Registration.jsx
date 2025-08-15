@@ -94,8 +94,8 @@ export default function Section4Registration({ id }) {
           ref={containerRef}
           className="relative mx-auto overflow-hidden rounded-lg select-none"
           style={{ 
-            width: '791px', 
-            height: '506px',
+            width: '632px', 
+            height: '404px',
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--carbon-line)'
           }}
@@ -163,12 +163,13 @@ export default function Section4Registration({ id }) {
         </div>
 
         {/* 说明文字 */}
-        <p className="text-center mt-8" style={{ color: 'var(--ink-mid)' }}>
-          拖动中线对比左右图像，使用键盘左右键微调位置
+        <p className="text-center mt-6 mb-16" style={{ color: 'var(--ink-mid)' }}>
+          拖动中线对比左右图像
         </p>
       </div>
 
-      <DownHint targetSection={4} text="查看总结" />
+      {/* 底部提示 */}
+      <DownHint targetSection={4} />
     </section>
   );
 }
