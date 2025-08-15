@@ -15,6 +15,7 @@ export default function Section3TSPSimple({ id }) {
   const [isPlanning, setIsPlanning] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationProgress, setAnimationProgress] = useState(0);
+  const [animationCompleted, setAnimationCompleted] = useState(false);
   const [visitedNodes, setVisitedNodes] = useState(new Set());
   const [visitedPaths, setVisitedPaths] = useState([]);
   const [courierPosition, setCourierPosition] = useState(null);
@@ -593,8 +594,16 @@ export default function Section3TSPSimple({ id }) {
       return;
     }
     
-    setIsPlanning(true);
+    // 清空上一次规划的路径和配送路径
     setPlanResult(null);
+    setVisitedNodes(new Set());
+    setVisitedPaths([]);
+    setCourierPosition(null);
+    setAnimationProgress(0);
+    setAnimationCompleted(false);
+    setIsAnimating(false);
+    
+    setIsPlanning(true);
     
     try {
       // 构建节点集合
@@ -714,6 +723,7 @@ export default function Section3TSPSimple({ id }) {
           
           console.log(`[Animation] ✅ 配送车已到达终点！`);
           setIsAnimating(false);
+          setAnimationCompleted(true);
           return maxProgress;
         }
         
@@ -1446,7 +1456,7 @@ export default function Section3TSPSimple({ id }) {
     if (!graph) return;
     
     // 先重置所有状态
-    handleReset();
+    handleClearDelivery();
     setPlanResult(null);
     
     const available = graph.nodes.filter(n => n.id !== graph.startId);
@@ -1456,30 +1466,55 @@ export default function Section3TSPSimple({ id }) {
     setSelectedNodes(new Set(shuffled.slice(0, count).map(n => n.id)));
   };
 
-  const handleStartAnimation = () => {
+  // 合并的开始/暂停/继续按钮处理函数
+  const handleStartPauseResume = () => {
     if (!planResult?.stitchedPath) return;
     
-    setAnimationProgress(0);
-    setVisitedNodes(new Set());
-    setVisitedPaths([planResult.stitchedPath[0]]);
-    
-    if (planResult.stitchedPath.length > 0) {
-      setCourierPosition(planResult.stitchedPath[0]);
+    if (animationCompleted || (!isAnimating && animationProgress === 0)) {
+      // 开始配送（首次或动画完成后重新开始）
+      setAnimationProgress(0);
+      setVisitedNodes(new Set());
+      setVisitedPaths([planResult.stitchedPath[0]]);
+      setAnimationCompleted(false);
+      
+      if (planResult.stitchedPath.length > 0) {
+        setCourierPosition(planResult.stitchedPath[0]);
+      }
+      
+      setIsAnimating(true);
+    } else {
+      // 暂停/继续
+      setIsAnimating(!isAnimating);
     }
-    
-    setIsAnimating(true);
   };
 
-  const handlePauseResume = () => {
-    setIsAnimating(!isAnimating);
+  // 获取开始/暂停/继续按钮的文本
+  const getStartButtonText = () => {
+    if (animationCompleted) return '开始配送';
+    if (!isAnimating && animationProgress === 0) return '开始配送';
+    return isAnimating ? '暂停' : '继续';
   };
 
-  const handleReset = () => {
+  // 清空配送路线（原重置按钮功能）
+  const handleClearDelivery = () => {
     setIsAnimating(false);
     setAnimationProgress(0);
     setVisitedNodes(new Set());
     setVisitedPaths([]);
     setCourierPosition(null);
+    setAnimationCompleted(false);
+  };
+
+  // 新的完全重置按钮
+  const handleFullReset = () => {
+    setIsAnimating(false);
+    setAnimationProgress(0);
+    setVisitedNodes(new Set());
+    setVisitedPaths([]);
+    setCourierPosition(null);
+    setAnimationCompleted(false);
+    setPlanResult(null);
+    setSelectedNodes(new Set());
   };
 
   return (
@@ -1540,26 +1575,26 @@ export default function Section3TSPSimple({ id }) {
               
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={handleStartAnimation}
-                  disabled={!planResult || isAnimating || isEditMode}
+                  onClick={handleStartPauseResume}
+                  disabled={!planResult || isEditMode}
                   className="px-4 py-2 bg-[var(--accent-green)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
                 >
-                  开始配送
+                  {getStartButtonText()}
                 </button>
                 
                 <button
-                  onClick={handlePauseResume}
+                  onClick={handleClearDelivery}
                   disabled={!planResult || isEditMode}
                   className="px-4 py-2 bg-[var(--accent-blue)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
                 >
-                  {isAnimating ? '暂停' : '继续'}
+                  清空配送路线
                 </button>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={handleReset}
-                  disabled={!planResult}
+                  onClick={handleFullReset}
+                  disabled={isEditMode}
                   className="px-4 py-2 bg-[var(--text-secondary)] text-white rounded-lg hover:bg-opacity-90 disabled:opacity-50 text-sm font-medium"
                 >
                   重置
@@ -1579,6 +1614,7 @@ export default function Section3TSPSimple({ id }) {
                       setVisitedPaths([]);
                       setCourierPosition(null);
                       setAnimationProgress(0);
+                      setAnimationCompleted(false);
                       // 重置编辑状态
                       setDraggedNode(null);
                       setConnectingNode(null);
