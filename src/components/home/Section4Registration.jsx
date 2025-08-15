@@ -18,7 +18,7 @@ export default function Section4Registration({ id }) {
   const handleModeChange = (newMode) => {
     if (newMode !== mode) {
       setMode(newMode);
-      setSplitPosition(50);
+      // 移除 setSplitPosition(50); 保持当前卷帘位置不变
     }
   };
 
