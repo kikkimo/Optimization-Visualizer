@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Section1Hero from './Section1Hero';
+import Section2MindBarrage from './Section2MindBarrage';
 import Section2Bridge from './Section2Bridge';
 import Section3TSP from './Section3TSP';
 import Section4Registration from './Section4Registration';
@@ -19,7 +20,7 @@ export default function HomePage() {
     const hash = location.hash;
     if (hash && hash.includes('section-')) {
       const sectionNumber = parseInt(hash.replace('#section-', ''));
-      if (!isNaN(sectionNumber) && sectionNumber >= 0 && sectionNumber < 5) {
+      if (!isNaN(sectionNumber) && sectionNumber >= 0 && sectionNumber < 6) {
         setTimeout(() => {
           scrollToSection(sectionNumber);
         }, 200); // 给更多时间确保DOM准备好
@@ -34,7 +35,7 @@ export default function HomePage() {
         case 'PageDown':
         case 'ArrowDown':
           e.preventDefault();
-          if (currentSection < 4) {
+          if (currentSection < 5) {
             scrollToSection(currentSection + 1);
           }
           break;
@@ -73,10 +74,11 @@ export default function HomePage() {
         />
         
         <Section1Hero id="section-0" />
-        <Section2Bridge id="section-1" />
-        <Section3TSP id="section-2" />
-        <Section4Registration id="section-3" />
-        <Section5Summary id="section-4" />
+        <Section2MindBarrage id="section-1" />
+        <Section2Bridge id="section-2" />
+        <Section3TSP id="section-3" />
+        <Section4Registration id="section-4" />
+        <Section5Summary id="section-5" />
       </div>
     </div>
   );
