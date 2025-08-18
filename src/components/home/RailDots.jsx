@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 const sectionTitles = [
   '首屏 Hero',
   '内心弹幕',
+  '小时候的优化题',
   '优化无处不在',
   'TSP 配送路径',
   '图像配准对比',

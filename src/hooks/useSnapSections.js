@@ -33,7 +33,7 @@ export default function useSnapSections() {
     );
 
     // 观察所有段落
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       const section = document.getElementById(`section-${i}`);
       if (section) {
         observer.observe(section);

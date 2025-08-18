@@ -126,7 +126,7 @@ export default function Section2Bridge({ id }) {
       </div>
 
       {/* 底部提示 */}
-      <DownHint targetSection={2} />
+      <DownHint targetSection={4} />
     </section>
   );
 }
