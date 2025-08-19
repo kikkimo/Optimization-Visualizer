@@ -82,6 +82,18 @@ export default function HomePage() {
         <Section6Registration id="section-5" />
         <Section7Summary id="section-6" />
       </div>
+      
+      <style jsx global>{`
+        /* 隐藏系统滚动条但保留滚动功能 */
+        .snap-container {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
+        }
+        
+        .snap-container::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+      `}</style>
     </div>
   );
 }
