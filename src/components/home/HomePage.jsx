@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Section1Hero from './Section1Hero';
 import Section2MindBarrage from './Section2MindBarrage';
-import Section2Bridge from './Section2Bridge';
+import Section4Bridge from './Section4Bridge';
 import Section3Olympiad from './Section3Olympiad';
 import Section3TSP from './Section3TSP';
 import Section4Registration from './Section4Registration';
@@ -77,7 +77,7 @@ export default function HomePage() {
         <Section1Hero id="section-0" />
         <Section2MindBarrage id="section-1" />
         <Section3Olympiad id="section-2" />
-        <Section2Bridge id="section-3" />
+        <Section4Bridge id="section-3" scrollToSection={scrollToSection} />
         <Section3TSP id="section-4" />
         <Section4Registration id="section-5" />
         <Section5Summary id="section-6" />
