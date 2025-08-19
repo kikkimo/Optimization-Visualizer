@@ -22,13 +22,35 @@ const calculateIntersection = (A, BPrime, riverY) => {
 
 export default function Section3Olympiad({ id }) {
   const root = useRef(null);
-  const tlRef = useRef(null);
+  const openingTlRef = useRef(null);
+  const leftCardTlRef = useRef(null);
+  const rightCardTlRef = useRef(null);
 
   useLayoutEffect(() => {
     const el = root.current;
 
-    // helper
-    const buildTimeline = () => {
+    // 开场自动动画
+    const buildOpeningTimeline = () => {
+      // 初始隐藏状态
+      gsap.set("#p3-title", { autoAlpha: 0, y: 8 });
+      gsap.set(["#p3-left", "#p3-right"], { autoAlpha: 0, y: 8 });
+      
+      const tl = gsap.timeline({ paused: true });
+      
+      // 0.0–2.5s 标题入场与淡出
+      tl.to("#p3-title", { autoAlpha: 1, y: 0, duration: 0.8 })
+        .to("#p3-title", { autoAlpha: 0, y: -18, duration: 1.0 }, "+=0.8");
+
+      // 2.5–4.0s 卡片浮现（带题面内容）
+      tl.to(["#p3-left", "#p3-right"], { autoAlpha: 1, y: 0, duration: 0.6 }, 2.5)
+        .to(["#p3-left-caption", "#p3-right-caption", "#p3-color-legend"], { autoAlpha: 1, duration: 0.8 }, 3.0)
+        .to(["#p3-A", "#p3-B", "#p3-river"], { autoAlpha: 1, duration: 0.6 }, 3.2);
+
+      return tl;
+    };
+
+    // 将军饮马卡片动画
+    const buildLeftCardTimeline = () => {
       // 计算关键点坐标
       const A = { x: 120, y: 50 };
       const B = { x: 360, y: 60 };
@@ -37,26 +59,11 @@ export default function Section3Olympiad({ id }) {
       const H = calculateIntersection(A, BPrime, riverY); // 最优点P2
       const P1 = { x: 180, y: riverY }; // 随意选的点P1，往左移动拉开距离
       
-      // 初始样式
-      gsap.set(["#p3-left", "#p3-right"], { autoAlpha: 0, y: 8 });
-      gsap.set("#p3-title", { autoAlpha: 0, y: 8 });
+      // 完全重置所有动画元素到初始状态
       gsap.set([
-        "#p3-left-caption",
-        "#p3-tag-long",
-        "#p3-tag-short",
-        "#p3-right-caption",
-        "#p3-lbl-serial",
-        "#p3-lbl-parallel",
-        "#p3-saved-badge",
-        "#p3-footer",
-        "#p3-Bp",
-        "#p3-H",
-        "#p3-ABprime-line",
-        "#p3-P1",
-        "#p3-P1-label",
-        "#p3-P2",
-        "#p3-P2-label",
-        "#p3-color-legend",
+        "#p3-tag-long", "#p3-tag-short", "#p3-Bp", "#p3-Bp-label", "#p3-H",
+        "#p3-ABprime-line", "#p3-P1", "#p3-P1-label", "#p3-P2", "#p3-P2-label",
+        "#p3-mirror-line", "#p3-hint-text"
       ], { autoAlpha: 0 });
 
       // 动态更新H点位置
@@ -72,7 +79,7 @@ export default function Section3Olympiad({ id }) {
         shortPath.setAttribute("d", `M ${A.x} ${A.y} L ${H.x} ${H.y} L ${B.x} ${B.y}`);
       }
 
-      // 准备左卡 SVG 路径描边动画
+      // 准备路径描边动画
       const longPath = document.getElementById("p3-path-long");
       const abPrimeLine = document.getElementById("p3-ABprime-line");
       const prepDraw = (pathEl) => {
@@ -83,18 +90,48 @@ export default function Section3Olympiad({ id }) {
       };
       prepDraw(longPath);
       prepDraw(shortPath);
-      // AB'虚线准备
       if (abPrimeLine) {
         const len = abPrimeLine.getTotalLength();
         abPrimeLine.style.strokeDasharray = "8,4";
         abPrimeLine.style.strokeDashoffset = String(len);
       }
 
-      // 准备右卡：隐藏串行行和并行行
+      const tl = gsap.timeline({ paused: true });
+
+      // 1. 显示常规更长路径
+      tl.to(["#p3-P1", "#p3-P1-label"], { autoAlpha: 1, duration: 0.3 })
+        .to("#p3-path-long", { strokeDashoffset: 0, duration: 1.2, ease: "none" }, "+=0.3")
+        .to("#p3-tag-long", { autoAlpha: 1, duration: 0.3 }, "+=0.3")
+        
+        // 2. 显示提示文字
+        .to("#p3-hint-text", { autoAlpha: 1, duration: 0.8 }, "+=0.5")
+        
+        // 3. 模拟镜像过程：先显示BB'虚线，再显示B'点
+        .to("#p3-mirror-line", { autoAlpha: 1, duration: 0.6 }, "+=0.8")
+        .to(["#p3-Bp", "#p3-Bp-label"], { autoAlpha: 1, duration: 0.5 }, "+=0.4")
+        
+        // 4. 显示AB'辅助线
+        .to("#p3-ABprime-line", { autoAlpha: 1, strokeDashoffset: 0, duration: 1.5, ease: "none" }, "+=0.3")
+        
+        // 5. 显示最优点和最短路径
+        .to(["#p3-P2", "#p3-P2-label"], { autoAlpha: 1, duration: 0.4 }, "+=0.3")
+        .to("#p3-path-short", { strokeDashoffset: 0, duration: 1.8, ease: "none" }, "+=0.2")
+        .to("#p3-tag-short", { autoAlpha: 1, duration: 0.4 }, "+=0.3")
+        
+        // 6. 淡化辅助线突出最终结果
+        .to("#p3-ABprime-line", { autoAlpha: 0.2, duration: 0.4 }, "+=0.2")
+        .to("#p3-mirror-line", { autoAlpha: 0.3, duration: 0.4 }, "-=0.4");
+
+      return tl;
+    };
+
+    // 小明沏茶卡片动画
+    const buildRightCardTimeline = () => {
+      // 重置甘特图状态
       gsap.set("#p3-serial", { autoAlpha: 0 });
       gsap.set("#p3-parallel", { autoAlpha: 0 });
-
-      // 重置甘特条形和文字标签
+      gsap.set("#p3-footer", { autoAlpha: 0 });
+      
       gsap.set([
         "#bar-serial-water", "#bar-serial-boil", "#bar-serial-wash", "#bar-serial-prep", "#bar-serial-brew",
         "#bar-par-water", "#bar-par-boil", "#bar-par-wash", "#bar-par-prep", "#bar-par-brew"
@@ -105,118 +142,114 @@ export default function Section3Olympiad({ id }) {
         "#text-par-water", "#text-par-boil", "#text-par-wash", "#text-par-prep", "#text-par-brew"
       ], { opacity: 0 });
       
-      // 重置并行容器高度为初始的2倍高度
-      gsap.set("#p3-parallel-container", { height: "64px" }); // h-16 = 64px
+      gsap.set([
+        "#p3-lbl-serial", "#p3-lbl-parallel", "#p3-saved-badge"
+      ], { autoAlpha: 0 });
+      
+      // 重置并行容器高度
+      gsap.set("#p3-parallel-container", { height: "64px" });
 
-      const tl = gsap.timeline({ paused: true, defaults: { ease: "power1.out" } });
+      const tl = gsap.timeline({ paused: true });
+      
+      // 动画时间基础单位（1分钟实际时间对应的动画时间）
+      const timeUnit = 0.2; // 1分钟 = 0.2秒动画
 
-      // 0.0–2.5s 标题入场与淡出（类似Section2MindBarrage）
-      tl.to("#p3-title", { autoAlpha: 1, y: 0, duration: 0.8 })
-        .to("#p3-title", { autoAlpha: 0, y: -18, duration: 1.0 }, "+=0.8");
-
-      // 2.5–3.1s 卡片浮现
-      tl.to(["#p3-left", "#p3-right"], { autoAlpha: 1, y: 0, duration: 0.6 }, 2.5);
-
-      // 3.1–11.0s 左卡分镜
-      // 3.1–4.0s：显示A、B、河；字幕淡入
-      tl.to(["#p3-A", "#p3-B", "#p3-river"], { autoAlpha: 1, duration: 0.6 }, 3.1)
-        .to("#p3-left-caption", { autoAlpha: 1, duration: 0.8 }, 3.1)
+      // 串行做动画（总共16分钟）
+      tl.to("#p3-serial", { autoAlpha: 1, duration: 0.4 })
+        // 接水 1分钟 = 0.2秒
+        .to("#bar-serial-water", { width: "6.25%", duration: 1 * timeUnit }, "+=0.2")
+        .to("#text-serial-water", { opacity: 1, duration: 0.1 }, "-=0.1")
+        // 烧水 10分钟 = 2秒
+        .to("#bar-serial-boil", { width: "62.5%", duration: 10 * timeUnit }, "+=0.1")
+        .to("#text-serial-boil", { opacity: 1, duration: 0.1 }, "-=1.8")
+        // 洗茶杯 3分钟 = 0.6秒
+        .to("#bar-serial-wash", { width: "18.75%", duration: 3 * timeUnit }, "+=0.1")
+        .to("#text-serial-wash", { opacity: 1, duration: 0.1 }, "-=0.5")
+        // 准备茶叶 1分钟 = 0.2秒
+        .to("#bar-serial-prep", { width: "6.25%", duration: 1 * timeUnit }, "+=0.1")
+        .to("#text-serial-prep", { opacity: 1, duration: 0.1 }, "-=0.1")
+        // 泡茶 1分钟 = 0.2秒
+        .to("#bar-serial-brew", { width: "6.25%", duration: 1 * timeUnit }, "+=0.1")
+        .to("#text-serial-brew", { opacity: 1, duration: 0.1 }, "-=0.1")
+        .to("#p3-lbl-serial", { autoAlpha: 1, duration: 0.3 }, "+=0.2")
         
-        // 4.0–5.5s：显示随意选点P1，绘制折线路径A→P1→B
-        .to(["#p3-P1", "#p3-P1-label"], { autoAlpha: 1, duration: 0.3 }, 4.0)
-        .to("#p3-path-long", { strokeDashoffset: 0, duration: 1.2, ease: "none" }, 4.3)
-        .to("#p3-tag-long", { autoAlpha: 1, duration: 0.3 }, 5.2)
+        // 同时做动画（总共12分钟）
+        .to("#p3-parallel", { autoAlpha: 1, duration: 0.5 }, "+=0.8")
         
-        // 5.5–7.5s：显示镜像点B'，绘制虚线AB'
-        .to("#p3-Bp", { autoAlpha: 1, duration: 0.5 }, 5.5)
-        .to("#p3-ABprime-line", { autoAlpha: 1, strokeDashoffset: 0, duration: 1.5, ease: "none" }, 6.0)
+        // 接水 1分钟 = 0.2秒（第0-1分钟）
+        .to("#bar-par-water", { width: "6.25%", duration: 1 * timeUnit }, "parallel_start")
+        .to("#text-par-water", { opacity: 1, duration: 0.1 }, "parallel_start")
         
-        // 7.5–10.5s：显示交点P2(H)，绘制最优路径A→P2→B
-        .to(["#p3-P2", "#p3-P2-label"], { autoAlpha: 1, duration: 0.4 }, 7.5)
-        .to("#p3-path-short", { strokeDashoffset: 0, duration: 1.8, ease: "none" }, 7.9)
-        .to("#p3-tag-short", { autoAlpha: 1, duration: 0.4 }, 9.7)
-        .to("#p3-ABprime-line", { autoAlpha: 0.2, duration: 0.4 }, 10.1);
-
-      // 11.0–22.0s 右卡分镜
-      // 11.0–12.5s：任务条与字幕浮现
-      tl.to(["#p3-right-caption", "#p3-color-legend"], { autoAlpha: 1, duration: 0.8 }, 11.0)
+        // 烧水 10分钟 = 2秒（第1-11分钟）
+        .to("#bar-par-boil", { width: "62.5%", duration: 10 * timeUnit }, "parallel_start+=0.2")
+        .to("#text-par-boil", { opacity: 1, duration: 0.1 }, "parallel_start+=0.3")
         
-        // 12.5–16.0s：显示串行甘特
-        .to("#p3-serial", { autoAlpha: 1, duration: 0.4 }, 12.5)
-        .to("#bar-serial-water", { width: "6.25%", duration: 0.3 }, 12.7)
-        .to("#text-serial-water", { opacity: 1, duration: 0.2 }, 12.8)
-        .to("#bar-serial-boil",  { width: "62.5%", duration: 1.0 }, 13.0)
-        .to("#text-serial-boil", { opacity: 1, duration: 0.2 }, 13.3)
-        .to("#bar-serial-wash",  { width: "18.75%", duration: 0.4 }, 14.2)
-        .to("#text-serial-wash", { opacity: 1, duration: 0.2 }, 14.4)
-        .to("#bar-serial-prep",  { width: "6.25%", duration: 0.2 }, 14.8)
-        .to("#text-serial-prep", { opacity: 1, duration: 0.2 }, 15.0)
-        .to("#bar-serial-brew",  { width: "6.25%", duration: 0.2 }, 15.2)
-        .to("#text-serial-brew", { opacity: 1, duration: 0.2 }, 15.4)
-        .to("#p3-lbl-serial",    { autoAlpha: 1, duration: 0.4 }, 15.5)
+        // 洗茶杯 3分钟 = 0.6秒（第1-4分钟，与烧水并行）
+        .to("#bar-par-wash", { width: "18.75%", duration: 3 * timeUnit }, "parallel_start+=0.2")
+        .to("#text-par-wash", { opacity: 1, duration: 0.1 }, "parallel_start+=0.3")
         
-        // 16.0–22.0s：切换到并行场景（保持串行完全可见）
-        .to("#p3-parallel", { autoAlpha: 1, duration: 0.5 }, 16.0)
+        // 准备茶叶 1分钟 = 0.2秒（第4-5分钟，在洗茶杯结束后立即开始）
+        .to("#bar-par-prep", { width: "6.25%", duration: 1 * timeUnit }, "parallel_start+=0.8") // 0.2 + 0.6 = 0.8
+        .to("#text-par-prep", { opacity: 1, duration: 0.1 }, "parallel_start+=0.8")
         
-        // 16.5–18.5s：并行甘特图动画（按16分钟总宽度计算）
-        .to("#bar-par-water", { width: "6.25%", duration: 0.3 }, 16.5) // 1/16
-        .to("#text-par-water", { opacity: 1, duration: 0.2 }, 16.6)
-        .to("#bar-par-boil",  { width: "62.5%", duration: 1.0 }, 16.8) // 10/16
-        .to("#text-par-boil", { opacity: 1, duration: 0.2 }, 17.1)
-        .to("#bar-par-wash",  { width: "18.75%", duration: 0.4 }, 16.8) // 3/16
-        .to("#text-par-wash", { opacity: 1, duration: 0.2 }, 16.9)
-        .to("#bar-par-prep",  { width: "6.25%", duration: 0.2 }, 17.2) // 1/16
-        .to("#text-par-prep", { opacity: 1, duration: 0.2 }, 17.3)
-        .to("#bar-par-brew",  { width: "6.25%", duration: 0.3 }, 17.8) // 1/16
-        .to("#text-par-brew", { opacity: 1, duration: 0.2 }, 17.9)
+        // 泡茶 1分钟 = 0.2秒（第11-12分钟）
+        .to("#bar-par-brew", { width: "6.25%", duration: 1 * timeUnit }, "parallel_start+=2.2") // 0.2 + 2.0 = 2.2
+        .to("#text-par-brew", { opacity: 1, duration: 0.1 }, "parallel_start+=2.2")
         
-        // 18.5–20.0s：方框融合为串行等高并显示结果
-        .to("#p3-parallel-container", { height: "32px", duration: 0.6, ease: "power2.out" }, 18.5) // 从64px(h-16)融合为32px(h-8)
-        .to("#p3-lbl-parallel", { autoAlpha: 1, duration: 0.4 }, 19.0)
-        .fromTo("#p3-saved-badge", { autoAlpha: 0, scale: 0.95 }, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)" }, 19.5);
-
-      // 22.0–23.0s：底部收束句
-      tl.to("#p3-footer", { autoAlpha: 1, y: 0, duration: 1.0 }, 22.0);
+        // 融合动画
+        .to("#p3-parallel-container", { height: "32px", duration: 0.6, ease: "power2.out" }, "+=0.3")
+        .to("#p3-lbl-parallel", { autoAlpha: 1, duration: 0.4 }, "-=0.2")
+        .fromTo("#p3-saved-badge", { autoAlpha: 0, scale: 0.95 }, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)" }, "+=0.2")
+        
+        // 显示结论文字
+        .to("#p3-footer", { autoAlpha: 1, y: 0, duration: 1.0 }, "+=0.5");
 
       return tl;
     };
 
-    // ScrollTrigger：进入播放，离开复位
+    // 手动播放函数
+    window.playLeftCardAnimation = () => {
+      leftCardTlRef.current?.kill();
+      leftCardTlRef.current = buildLeftCardTimeline();
+      leftCardTlRef.current.play(0);
+    };
+
+    window.playRightCardAnimation = () => {
+      rightCardTlRef.current?.kill();
+      rightCardTlRef.current = buildRightCardTimeline();
+      rightCardTlRef.current.play(0);
+    };
+
+    // ScrollTrigger：只播放开场动画
     const snapContainer = document.getElementById('snap-container');
     
     const st = ScrollTrigger.create({
       trigger: el,
-      scroller: snapContainer || window, // 使用snap容器作为scroller
+      scroller: snapContainer || window,
       start: "top 80%",
       end: "bottom 20%",
       invalidateOnRefresh: true,
       refreshPriority: -90,
       onEnter: () => {
-        tlRef.current?.kill();
-        tlRef.current = buildTimeline();
-        tlRef.current.play(0);
+        openingTlRef.current?.kill();
+        openingTlRef.current = buildOpeningTimeline();
+        openingTlRef.current.play(0);
       },
       onEnterBack: () => {
-        tlRef.current?.kill();
-        tlRef.current = buildTimeline();
-        tlRef.current.play(0);
-      },
-      onLeave: () => {
-        tlRef.current?.pause(0);
-      },
-      onLeaveBack: () => {
-        tlRef.current?.pause(0);
+        openingTlRef.current?.kill();
+        openingTlRef.current = buildOpeningTimeline();
+        openingTlRef.current.play(0);
       },
     });
     
-    // 添加备用的 Intersection Observer
+    // 备用的 Intersection Observer
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
-            tlRef.current?.kill();
-            tlRef.current = buildTimeline();
-            tlRef.current.play(0);
+            openingTlRef.current?.kill();
+            openingTlRef.current = buildOpeningTimeline();
+            openingTlRef.current.play(0);
           }
         });
       },
@@ -229,7 +262,6 @@ export default function Section3Olympiad({ id }) {
     
     observer.observe(el);
 
-    // 强制刷新ScrollTrigger
     setTimeout(() => {
       ScrollTrigger.refresh();
     }, 100);
@@ -237,7 +269,12 @@ export default function Section3Olympiad({ id }) {
     return () => {
       st.kill();
       observer.disconnect();
-      tlRef.current?.kill();
+      openingTlRef.current?.kill();
+      leftCardTlRef.current?.kill();
+      rightCardTlRef.current?.kill();
+      // 清理全局函数
+      delete window.playLeftCardAnimation;
+      delete window.playRightCardAnimation;
     };
   }, []); // 注意：这里是空数组，不依赖任何值！
 
@@ -258,11 +295,172 @@ export default function Section3Olympiad({ id }) {
       style={{ backgroundColor: 'var(--bg-deep)', color: 'var(--ink-high)' }}
       aria-label="其实我们小时候就做过优化题"
     >
+      {/* 数学几何背景动画 */}
+      <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 1 }}>
+        {/* 浮动的几何图形 */}
+        <div className="absolute inset-0">
+          {/* 三角形 */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={`triangle-${i}`}
+              className="absolute opacity-5"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${20 + Math.random() * 30}px`,
+                height: `${20 + Math.random() * 30}px`,
+                clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                backgroundColor: 'var(--tech-mint)',
+                animation: `mathFloat ${15 + Math.random() * 10}s linear infinite`,
+                animationDelay: `${Math.random() * 15}s`
+              }}
+            />
+          ))}
+          
+          {/* 圆形 */}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={`circle-${i}`}
+              className="absolute opacity-5 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${15 + Math.random() * 25}px`,
+                height: `${15 + Math.random() * 25}px`,
+                backgroundColor: 'var(--amber-signal)',
+                animation: `mathFloat ${12 + Math.random() * 8}s linear infinite reverse`,
+                animationDelay: `${Math.random() * 12}s`
+              }}
+            />
+          ))}
+          
+          {/* 正方形 */}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={`square-${i}`}
+              className="absolute opacity-5"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${18 + Math.random() * 22}px`,
+                height: `${18 + Math.random() * 22}px`,
+                backgroundColor: 'var(--success-green)',
+                animation: `mathRotateFloat ${18 + Math.random() * 12}s linear infinite`,
+                animationDelay: `${Math.random() * 18}s`
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* 数学符号背景 */}
+        <div className="absolute inset-0">
+          {['∑', '∫', '√', '∞', '≈', '±', '°', '∠'].map((symbol, i) => (
+            <div
+              key={`symbol-${i}`}
+              className="absolute opacity-3 font-bold text-2xl"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                color: 'var(--ink-low)',
+                animation: `symbolDrift ${20 + Math.random() * 15}s linear infinite`,
+                animationDelay: `${Math.random() * 20}s`
+              }}
+            >
+              {symbol}
+            </div>
+          ))}
+        </div>
+        
+        {/* 连接线网格 */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div
+              key={`line-${i}`}
+              className="absolute opacity-8"
+              style={{
+                width: `${100 + Math.random() * 200}px`,
+                height: '1px',
+                left: `${Math.random() * 80}%`,
+                top: `${Math.random() * 100}%`,
+                background: `linear-gradient(90deg, transparent, var(--carbon-line), transparent)`,
+                animation: `lineSlide ${25 + Math.random() * 15}s linear infinite`,
+                animationDelay: `${Math.random() * 25}s`,
+                transform: `rotate(${Math.random() * 360}deg)`
+              }}
+            />
+          ))}
+        </div>
+        
+        {/* 优化路径轨迹 */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <svg
+              key={`path-${i}`}
+              className="absolute opacity-4"
+              width="200"
+              height="200"
+              style={{
+                left: `${Math.random() * 70}%`,
+                top: `${Math.random() * 70}%`,
+                animation: `pathTrace ${30 + i * 5}s linear infinite`,
+                animationDelay: `${i * 7}s`
+              }}
+            >
+              <path
+                d={`M50,150 Q100,${50 + Math.random() * 100} 150,50`}
+                stroke="var(--tech-mint)"
+                strokeWidth="1"
+                fill="none"
+                strokeDasharray="5,10"
+                opacity="0.6"
+              />
+            </svg>
+          ))}
+        </div>
+      </div>
+
+      {/* CSS动画定义 */}
+      <style jsx>{`
+        @keyframes mathFloat {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          25% { transform: translateY(-20px) translateX(10px); }
+          50% { transform: translateY(-10px) translateX(-5px); }
+          75% { transform: translateY(-30px) translateX(-10px); }
+        }
+        
+        @keyframes mathRotateFloat {
+          0% { transform: translateY(0px) rotate(0deg); }
+          25% { transform: translateY(-15px) rotate(90deg); }
+          50% { transform: translateY(-8px) rotate(180deg); }
+          75% { transform: translateY(-25px) rotate(270deg); }
+          100% { transform: translateY(0px) rotate(360deg); }
+        }
+        
+        @keyframes symbolDrift {
+          0% { transform: translateX(-20px) translateY(0px); opacity: 0; }
+          10% { opacity: 0.3; }
+          90% { opacity: 0.3; }
+          100% { transform: translateX(20px) translateY(-10px); opacity: 0; }
+        }
+        
+        @keyframes lineSlide {
+          0% { transform: translateX(-100px) rotate(var(--rotation)); opacity: 0; }
+          50% { opacity: 0.8; }
+          100% { transform: translateX(100px) rotate(var(--rotation)); opacity: 0; }
+        }
+        
+        @keyframes pathTrace {
+          0% { stroke-dashoffset: 100; opacity: 0; }
+          10% { opacity: 0.4; }
+          90% { opacity: 0.4; }
+          100% { stroke-dashoffset: -100; opacity: 0; }
+        }
+      `}</style>
       <h1 
         id="p3-title" 
         className="absolute text-center px-6 font-bold"
         style={{ 
-          zIndex: 30,
+          zIndex: 20,
           fontSize: 'clamp(28px, 4vw, 56px)',
           color: 'var(--ink-high)',
           letterSpacing: '-0.5%',
@@ -272,17 +470,32 @@ export default function Section3Olympiad({ id }) {
         其实我们小时候就做过优化题
       </h1>
 
-      <div className="w-full max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-6">
+      <div className="w-full max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-6 relative" style={{ zIndex: 10 }}>
         {/* 左卡：将军饮马 */}
         <div 
           id="p3-left" 
-          className="rounded-xl p-4"
+          className="rounded-xl p-4 relative"
           style={{ 
             opacity: 0,
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--carbon-line)'
           }}
         >
+          {/* 播放按钮 - 右上角 */}
+          <button
+            onClick={() => window.playLeftCardAnimation?.()}
+            className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all duration-200 hover:scale-110"
+            style={{
+              backgroundColor: 'var(--tech-mint)',
+              color: 'white',
+              boxShadow: '0 1px 4px rgba(60, 230, 192, 0.3)',
+              zIndex: 50
+            }}
+            title="播放解答动画"
+          >
+            ▶️
+          </button>
+
           <h3 className="text-xl font-semibold mb-3" style={{ color: 'var(--ink-high)' }}>将军饮马</h3>
           
           <p 
@@ -332,13 +545,17 @@ export default function Section3Olympiad({ id }) {
               <circle id="p3-P1" cx={P1.x} cy={P1.y} r="5" fill="var(--ink-mid)" style={{ opacity: 0 }} />
               <text id="p3-P1-label" x={P1.x - 10} y={P1.y + 20} fontSize="12" fill="var(--ink-mid)" style={{ opacity: 0 }}>P1</text>
 
+              {/* B到B'的镜像虚线（模拟镜像过程） */}
+              <line 
+                id="p3-mirror-line"
+                x1={B.x} y1={B.y} x2={BPrime.x} y2={BPrime.y} 
+                stroke="var(--danger-red)" strokeWidth="2" strokeDasharray="4,4" 
+                style={{ opacity: 0 }}
+              />
+              
               {/* 镜像点B' */}
               <circle id="p3-Bp" cx={BPrime.x} cy={BPrime.y} r="6" fill="var(--danger-red)" fillOpacity="0.8" style={{ opacity: 0 }} />
-              <text x={BPrime.x + 10} y={BPrime.y + 20} fontSize="12" fill="var(--danger-red)">B'</text>
-              
-              {/* B到B'的镜像虚线 */}
-              <line x1={B.x} y1={B.y} x2={BPrime.x} y2={BPrime.y} 
-                stroke="var(--ink-mid)" strokeWidth="1" strokeDasharray="3,3" opacity="0.3" />
+              <text id="p3-Bp-label" x={BPrime.x + 10} y={BPrime.y + 20} fontSize="12" fill="var(--danger-red)" style={{ opacity: 0 }}>B'</text>
 
               {/* AB'虚线（用于找最优点） */}
               <path
@@ -412,22 +629,49 @@ export default function Section3Olympiad({ id }) {
             </div>
           </div>
 
-          {/* 小提示 */}
-          <p className="text-xs mt-2" style={{ color: 'var(--ink-low)' }}>
+          {/* 提示文字 */}
+          <p 
+            id="p3-hint-text"
+            className="text-xs mt-2" 
+            style={{ 
+              color: 'var(--ink-mid)', 
+              opacity: 0,
+              backgroundColor: 'rgba(61, 220, 151, 0.1)',
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid rgba(61, 220, 151, 0.3)'
+            }}
+          >
             把 B 映到河对面，连 A 到它，与河的交点就是饮马的地方。
           </p>
+
         </div>
 
         {/* 右卡：小明沏茶 */}
         <div 
           id="p3-right" 
-          className="rounded-xl p-4"
+          className="rounded-xl p-4 relative"
           style={{ 
             opacity: 0,
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--carbon-line)'
           }}
         >
+          {/* 播放按钮 - 右上角 */}
+          <button
+            onClick={() => window.playRightCardAnimation?.()}
+            className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all duration-200 hover:scale-110"
+            style={{
+              backgroundColor: 'var(--amber-signal)',
+              color: 'white',
+              boxShadow: '0 1px 4px rgba(255, 193, 7, 0.3)',
+              zIndex: 50
+            }}
+            title="播放解答动画"
+          >
+            ▶️
+          </button>
+
           <h3 className="text-xl font-semibold mb-3" style={{ color: 'var(--ink-high)' }}>小明沏茶</h3>
           
           <p 
@@ -578,6 +822,7 @@ export default function Section3Olympiad({ id }) {
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -588,7 +833,7 @@ export default function Section3Olympiad({ id }) {
         style={{ 
           opacity: 0,
           color: 'var(--ink-mid)',
-          zIndex: 30
+          zIndex: 20
         }}
       >
         数学优化问题，小时候我们就已经会解！
