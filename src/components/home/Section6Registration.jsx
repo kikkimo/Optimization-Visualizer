@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import DownHint from './DownHint';
 
-export default function Section4Registration({ id }) {
+export default function Section6Registration({ id }) {
   const [mode, setMode] = useState('before');
   const [splitPosition, setSplitPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -169,7 +169,7 @@ export default function Section4Registration({ id }) {
       </div>
 
       {/* 底部提示 */}
-      <DownHint targetSection={4} />
+      <DownHint targetSection={6} />
     </section>
   );
 }

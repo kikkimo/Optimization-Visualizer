@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-export default function Section5Summary({ id }) {
+export default function Section7Summary({ id }) {
   const sectionRef = useRef(null);
   const canvasRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import DownHint from './DownHint';
 
 // TSP配送路径规划组件 - 简化版本（无Worker）
-export default function Section3TSPSimple({ id }) {
+export default function Section5TSP({ id }) {
   // 引用
   const sectionRef = useRef(null);
   const canvasRef = useRef(null);
@@ -1793,7 +1793,7 @@ export default function Section3TSPSimple({ id }) {
       </div>
 
       {/* 底部提示 */}
-      <DownHint targetSection={3} />
+      <DownHint targetSection={5} />
     </section>
   );
 }

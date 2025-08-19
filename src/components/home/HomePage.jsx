@@ -4,9 +4,9 @@ import Section1Hero from './Section1Hero';
 import Section2MindBarrage from './Section2MindBarrage';
 import Section4Bridge from './Section4Bridge';
 import Section3Olympiad from './Section3Olympiad';
-import Section3TSP from './Section3TSP';
-import Section4Registration from './Section4Registration';
-import Section5Summary from './Section5Summary';
+import Section5TSP from './Section5TSP';
+import Section6Registration from './Section6Registration';
+import Section7Summary from './Section7Summary';
 import RailDots from './RailDots';
 import useSnapSections from '../../hooks/useSnapSections';
 import '../../styles/tokens.css';
@@ -78,9 +78,9 @@ export default function HomePage() {
         <Section2MindBarrage id="section-1" />
         <Section3Olympiad id="section-2" />
         <Section4Bridge id="section-3" scrollToSection={scrollToSection} />
-        <Section3TSP id="section-4" />
-        <Section4Registration id="section-5" />
-        <Section5Summary id="section-6" />
+        <Section5TSP id="section-4" />
+        <Section6Registration id="section-5" />
+        <Section7Summary id="section-6" />
       </div>
     </div>
   );
