@@ -6,6 +6,8 @@ export default function Section6Registration({ id }) {
   const [splitPosition, setSplitPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
 
   const leftImage = mode === 'before' 
     ? '/assets/registration/before_left.jpg'
@@ -46,12 +48,196 @@ export default function Section6Registration({ id }) {
     }
   }, [isDragging]);
 
+  // 正方形背景动画效果
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let squares = [];
+    let gridLines = [];
+    let time = 0;
+    
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    // 初始化正方形
+    const initSquares = () => {
+      // 格网线位置：垂直线在14.3%, 28.6%, 42.9%, 57.2%, 71.5%, 85.8%
+      // 水平线位置：18%, 41.33%, 64.67%, 88%
+      const vLines = [0.143, 0.286, 0.429, 0.572, 0.715, 0.858];
+      const hLines = [0.18, 0.4133, 0.6467, 0.88];
+      
+      squares = [
+        {
+          // 左上格网：竖线1-2，水平线1-2区域
+          x: canvas.width * (vLines[0] + 0.02),
+          y: canvas.height * (hLines[0] + 0.02),
+          vx: 0.3,
+          vy: 0.2,
+          size: 48,
+          borderColor: 'rgba(60, 230, 192, 0.8)',
+          minX: canvas.width * vLines[0],
+          maxX: canvas.width * vLines[1],
+          minY: canvas.height * hLines[0],
+          maxY: canvas.height * hLines[1]
+        },
+        {
+          // 右下格网：竖线5-6，水平线3-4区域  
+          x: canvas.width * (vLines[4] + 0.02),
+          y: canvas.height * (hLines[2] + 0.02),
+          vx: -0.25,
+          vy: -0.3,
+          size: 48,
+          borderColor: 'rgba(245, 178, 72, 0.8)',
+          minX: canvas.width * vLines[4],
+          maxX: canvas.width * vLines[5],
+          minY: canvas.height * hLines[2],
+          maxY: canvas.height * hLines[3]
+        }
+      ];
+    };
+
+    // 初始化黑客帝国风格格网线
+    const initGridLines = () => {
+      const vLines = [0.143, 0.286, 0.429, 0.572, 0.715, 0.858];
+      const hLines = [0.18, 0.4133, 0.6467, 0.88];
+      
+      gridLines = [];
+      
+      // 垂直线
+      vLines.forEach((x, i) => {
+        gridLines.push({
+          type: 'vertical',
+          x: canvas.width * x,
+          y1: 0,
+          y2: canvas.height,
+          opacity: 0.3,
+          pulseSpeed: Math.random() * 0.8 + 0.2, // 更快的脉动速度
+          phase: Math.random() * Math.PI * 2,
+          minOpacity: 0.05, // 几乎完全透明
+          maxOpacity: Math.random() * 0.15 + 0.1 // 黑客帝国风格低透明度
+        });
+      });
+      
+      // 水平线
+      hLines.forEach((y, i) => {
+        gridLines.push({
+          type: 'horizontal',
+          x1: 0,
+          x2: canvas.width,
+          y: canvas.height * y,
+          opacity: 0.3,
+          pulseSpeed: Math.random() * 0.8 + 0.2, // 更快的脉动速度
+          phase: Math.random() * Math.PI * 2,
+          minOpacity: 0.05, // 几乎完全透明
+          maxOpacity: Math.random() * 0.15 + 0.1 // 黑客帝国风格低透明度
+        });
+      });
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      time += 0.05; // 加快时间流逝
+      
+      // 绘制黑客帝国风格格网线
+      gridLines.forEach(line => {
+        // 更新透明度（若隐若现效果）
+        const pulse = Math.sin(time * line.pulseSpeed + line.phase);
+        line.opacity = line.minOpacity + (line.maxOpacity - line.minOpacity) * (pulse + 1) * 0.5;
+        
+        // 绘制线条 - 使用#00ff41黑客帝国绿色
+        ctx.strokeStyle = `rgba(0, 255, 65, ${line.opacity})`;
+        ctx.lineWidth = 1;
+        ctx.shadowColor = `rgba(0, 255, 65, ${line.opacity * 0.6})`;
+        ctx.shadowBlur = 4;
+        
+        ctx.beginPath();
+        if (line.type === 'vertical') {
+          ctx.moveTo(line.x, line.y1);
+          ctx.lineTo(line.x, line.y2);
+        } else {
+          ctx.moveTo(line.x1, line.y);
+          ctx.lineTo(line.x2, line.y);
+        }
+        ctx.stroke();
+        
+        // 清除阴影
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+      });
+      
+      squares.forEach(square => {
+        // 更新位置
+        square.x += square.vx;
+        square.y += square.vy;
+        
+        // 边界反弹
+        if (square.x <= square.minX || square.x + square.size >= square.maxX) {
+          square.vx *= -1;
+          square.x = Math.max(square.minX, Math.min(square.maxX - square.size, square.x));
+        }
+        if (square.y <= square.minY || square.y + square.size >= square.maxY) {
+          square.vy *= -1;
+          square.y = Math.max(square.minY, Math.min(square.maxY - square.size, square.y));
+        }
+        
+        // 绘制透明正方形（仅边框+外发光）
+        ctx.strokeStyle = square.borderColor;
+        ctx.lineWidth = 1;
+        ctx.shadowColor = square.borderColor;
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // 圆角矩形边框
+        ctx.beginPath();
+        const radius = 12;
+        ctx.roundRect(square.x, square.y, square.size, square.size, radius);
+        ctx.stroke();
+        
+        // 清除阴影设置
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+      });
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    resizeCanvas();
+    initSquares();
+    initGridLines();
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      initSquares();
+      initGridLines();
+    });
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
   return (
     <section
       id={id}
       className="snap-section relative flex flex-col items-center justify-center overflow-hidden px-8"
     >
-      <div className="w-full max-w-5xl mx-auto">
+      {/* 背景Canvas动画 */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ zIndex: 1 }}
+      />
+      
+      {/* 主内容区域 */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto">
         {/* 标题 */}
         <h2 className="text-center mb-8 font-bold"
             style={{ 
@@ -170,6 +356,7 @@ export default function Section6Registration({ id }) {
 
       {/* 底部提示 */}
       <DownHint targetSection={6} />
+      
     </section>
   );
 }
