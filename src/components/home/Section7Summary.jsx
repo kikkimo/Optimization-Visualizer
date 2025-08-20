@@ -157,7 +157,7 @@ export default function Section7Summary({ id }) {
           <p className={`text-xl leading-relaxed transition-all duration-700 transform
                        ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
              style={{ color: 'var(--ink-high)' }}>
-            从日常的路径规划到复杂的测绘数据处理，
+            从生活里的导航寻路到复杂的行业数据处理，
             <span className="inline-block w-2 h-2 mx-2 rounded-full animate-pulse" 
                   style={{ backgroundColor: 'var(--amber-signal)' }} />
           </p>
@@ -165,7 +165,7 @@ export default function Section7Summary({ id }) {
           <p className={`text-xl leading-relaxed transition-all duration-700 delay-200 transform
                        ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
              style={{ color: 'var(--ink-high)' }}>
-            数学优化算法为我们提供了寻找最佳解决方案的系统性方法。
+            数学优化为我们提供了一套寻找最佳方案的系统方法。
             <span className="inline-block w-2 h-2 mx-2 rounded-full animate-pulse" 
                   style={{ backgroundColor: 'var(--amber-signal)', animationDelay: '200ms' }} />
           </p>
@@ -173,7 +173,7 @@ export default function Section7Summary({ id }) {
           <p className={`text-xl leading-relaxed transition-all duration-700 delay-300 transform
                        ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}
              style={{ color: 'var(--ink-high)' }}>
-            接下来，让我们深入了解这些算法，并探索它们在测绘领域的精彩应用……
+            接下来，让我们深入了解数学优化的核心概念与常用方法，并探索它们在测绘领域的精彩应用。
             <span className="inline-block w-2 h-2 mx-2 rounded-full animate-pulse" 
                   style={{ backgroundColor: 'var(--amber-signal)', animationDelay: '400ms' }} />
           </p>

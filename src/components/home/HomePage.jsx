@@ -83,7 +83,7 @@ export default function HomePage() {
         <Section7Summary id="section-6" />
       </div>
       
-      <style jsx global>{`
+      <style jsx="true" global="true">{`
         /* 隐藏系统滚动条但保留滚动功能 */
         .snap-container {
           scrollbar-width: none; /* Firefox */

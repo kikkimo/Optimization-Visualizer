@@ -794,7 +794,7 @@ export default function Section4Bridge({ id, scrollToSection }) {
       <DownHint targetSection={4} />
       
       {/* 舞台聚光灯样式 */}
-      <style jsx global>{`
+      <style jsx="true" global="true">{`
         #spotlight-left, #spotlight-right {
           animation: spotlightPulse 4s ease-in-out infinite;
         }
