@@ -62,31 +62,31 @@ export default function Section4Bridge({ id, scrollToSection }) {
           const targetX = rect.left + rect.width / 2 - containerRect.left;
           const targetY = rect.top + rect.height / 2 - containerRect.top;
           
-          // 计算聚光灯位置
-          const leftSpotX = targetX - 200 - 120;
-          const leftSpotY = targetY - 200;
-          const leftBeamX = targetX - 60 - 80;
-          const leftBeamY = targetY - 60;
-          const rightSpotX = targetX - 200 + 120;
-          const rightSpotY = targetY - 200;
-          const rightBeamX = targetX - 60 + 80;
-          const rightBeamY = targetY - 60;
+          // 计算聚光灯位置 - 根据新尺寸调整(165px/132px)
+          const leftSpotX = targetX - 82.5 - 80; // 165px/2 = 82.5px
+          const leftSpotY = targetY - 82.5;
+          const leftBeamX = targetX - 66 - 80; // 132px/2 = 66px
+          const leftBeamY = targetY - 66;
+          const rightSpotX = targetX - 82.5 + 80;
+          const rightSpotY = targetY - 82.5;
+          const rightBeamX = targetX - 66 + 80;
+          const rightBeamY = targetY - 66;
           
           // 检查聚光灯是否正在移动
           const isCurrentlyAnimating = gsap.isTweening([leftSpotlight, rightSpotlight, leftBeam, rightBeam]);
           const hasRandomMovement = randomMoveTimer !== null;
           
-          // 决定动画时长 - 确保从随机位置移动时有明显的动画
+          // 决定动画时长 - 提速20%以匹配文字动画
           let animDuration;
           if (isCurrentlyAnimating || hasRandomMovement || !isAutoPlayActive) {
-            // 正在随机移动或手动操作时，使用较长的可见动画
-            animDuration = 0.6;
+            // 正在随机移动或手动操作时，使用较长的可见动画 - 提速20%
+            animDuration = 0.48; // 0.6 * 0.8 = 0.48
           } else if (duration <= 0.1) {
-            // 静止状态快速响应
-            animDuration = 0.2;
+            // 静止状态快速响应 - 提速20%
+            animDuration = 0.16; // 0.2 * 0.8 = 0.16
           } else {
-            // 自动播放时的正常时长
-            animDuration = duration;
+            // 自动播放时的正常时长 - 提速20%
+            animDuration = duration * 0.8;
           }
           
           // 使用强制可见的动画效果
@@ -130,10 +130,10 @@ export default function Section4Bridge({ id, scrollToSection }) {
             // 如果有悬浮或还在自动播放就立即停止
             if (isHovering || isAutoPlayActive) return;
             
-            const randomLeft1 = Math.random() * (el.clientWidth - 400);
-            const randomTop1 = Math.random() * (el.clientHeight - 400);
-            const randomLeft2 = Math.random() * (el.clientWidth - 400);
-            const randomTop2 = Math.random() * (el.clientHeight - 400);
+            const randomLeft1 = Math.random() * (el.clientWidth - 165);
+            const randomTop1 = Math.random() * (el.clientHeight - 165);
+            const randomLeft2 = Math.random() * (el.clientWidth - 165);
+            const randomTop2 = Math.random() * (el.clientHeight - 165);
             
             // 先停止之前的动画
             gsap.killTweensOf([leftSpotlight, rightSpotlight, leftBeam, rightBeam]);
@@ -147,26 +147,26 @@ export default function Section4Bridge({ id, scrollToSection }) {
             });
             
             gsap.to(leftBeam, {
-              left: randomLeft1 + 140,
-              top: randomTop1 + 140,
-              opacity: 0.8,
-              duration: 1.2,
+              left: randomLeft1 + 16.5, // 中心对齐：165px/2 - 132px/2 = 16.5px
+              top: randomTop1 + 16.5,
+              opacity: 0.5,
+              duration: 0.96, // 提速20%: 1.2 * 0.8 = 0.96
               ease: 'power2.inOut'
             });
             
             gsap.to(rightSpotlight, {
               left: randomLeft2,
               top: randomTop2,
-              opacity: 0.7,
-              duration: 1.5,
+              opacity: 0.4,
+              duration: 1.2, // 提速20%: 1.5 * 0.8 = 1.2
               ease: 'power2.inOut'
             });
             
             gsap.to(rightBeam, {
-              left: randomLeft2 + 140,
-              top: randomTop2 + 140,
-              opacity: 0.8,
-              duration: 1.5,
+              left: randomLeft2 + 16.5,
+              top: randomTop2 + 16.5,
+              opacity: 0.5,
+              duration: 1.2, // 提速20%: 1.5 * 0.8 = 1.2
               ease: 'power2.inOut'
             });
             
@@ -187,8 +187,8 @@ export default function Section4Bridge({ id, scrollToSection }) {
         if (isEntering) {
           isHovering = true;
           currentHoveredCard = cardElement;
-          // 立即聚焦，快速响应
-          moveSpotlights(cardElement, 0.1);
+          // 立即聚焦，快速响应 - 提速20%
+          moveSpotlights(cardElement, 0.08); // 0.1 * 0.8 = 0.08
         } else {
           isHovering = false;
           currentHoveredCard = null;
@@ -328,10 +328,61 @@ export default function Section4Bridge({ id, scrollToSection }) {
         tl.to("#p4-hero", { autoAlpha: 1, y: 0, duration: 0.8 }, 0.0)
           .call(() => {
             const heroElement = el.querySelector("#p4-hero");
-            moveSpotlights(heroElement, 0.4); // 自动播放用平滑动画
+            moveSpotlights(heroElement, 0.32); // 提速20%: 0.4 * 0.8 = 0.32
           }, null, 0.0) // 同步开始
           // 0.8–1.6s: 大字淡出
-          .to("#p4-hero", { autoAlpha: 0, y: -8, duration: 0.8 }, 0.8);
+          .to("#p4-hero", { autoAlpha: 0, y: -8, duration: 0.8 }, 0.8)
+          // 1.2s: 大字消失同步聚光灯立即散开
+          .call(() => {
+            const leftSpotlight = el.querySelector('#spotlight-left');
+            const rightSpotlight = el.querySelector('#spotlight-right');
+            const leftBeam = el.querySelector('#spotlight-left-beam');
+            const rightBeam = el.querySelector('#spotlight-right-beam');
+            
+            if (leftSpotlight && rightSpotlight && leftBeam && rightBeam) {
+              // 立即停止所有聚光灯动画
+              gsap.killTweensOf([leftSpotlight, rightSpotlight, leftBeam, rightBeam]);
+              
+              // 生成随机散开位置
+              const randomLeft1 = Math.random() * (el.clientWidth - 165);
+              const randomTop1 = Math.random() * (el.clientHeight - 165);
+              const randomLeft2 = Math.random() * (el.clientWidth - 165);
+              const randomTop2 = Math.random() * (el.clientHeight - 165);
+              
+              // 舒缓散开动画
+              gsap.to(leftSpotlight, {
+                left: randomLeft1,
+                top: randomTop1,
+                opacity: 0.4,
+                duration: 1.6,
+                ease: 'power2.out'
+              });
+              
+              gsap.to(leftBeam, {
+                left: randomLeft1 + 16.5, // 中心对齐
+                top: randomTop1 + 16.5,
+                opacity: 0.3,
+                duration: 1.6,
+                ease: 'power2.out'
+              });
+              
+              gsap.to(rightSpotlight, {
+                left: randomLeft2,
+                top: randomTop2,
+                opacity: 0.4,
+                duration: 1.6,
+                ease: 'power2.out'
+              });
+              
+              gsap.to(rightBeam, {
+                left: randomLeft2 + 16.5,
+                top: randomTop2 + 16.5,
+                opacity: 0.3,
+                duration: 1.6,
+                ease: 'power2.out'
+              });
+            }
+          }, null, 1.2);
 
         // 1.6–3.2s: 左侧卡片从左飞入
         tl.to(leftCards, {
@@ -696,23 +747,23 @@ export default function Section4Bridge({ id, scrollToSection }) {
           id="spotlight-left"
           className="absolute pointer-events-none"
           style={{
-            width: '400px',
-            height: '400px',
+            width: '165px', // 增大10%: 150 * 1.1 = 165
+            height: '165px',
             left: '2%',
             bottom: '8%',
             background: `
-              radial-gradient(ellipse at center, 
-                rgba(60, 230, 192, 0.4) 0%, 
-                rgba(60, 230, 192, 0.25) 30%, 
-                rgba(60, 230, 192, 0.1) 60%, 
+              radial-gradient(circle at center, 
+                rgba(60, 230, 192, 0.06) 0%, 
+                rgba(60, 230, 192, 0.03) 50%, 
+                rgba(60, 230, 192, 0.015) 80%, 
                 transparent 100%
               )
             `,
             borderRadius: '50%',
-            filter: 'blur(8px)',
-            transition: 'all 0.6s ease-out',
+            filter: 'blur(4px)',
+            transition: 'all 0.48s ease-out', // 提速20%: 0.6 * 0.8 = 0.48
             opacity: 0,
-            boxShadow: '0 0 80px rgba(60, 230, 192, 0.3)'
+            boxShadow: '0 0 15px rgba(60, 230, 192, 0.05)'
           }}
         />
         
@@ -721,22 +772,23 @@ export default function Section4Bridge({ id, scrollToSection }) {
           id="spotlight-left-beam"
           className="absolute pointer-events-none"
           style={{
-            width: '120px',
-            height: '120px',
+            width: '132px', // 增大10%: 120 * 1.1 = 132
+            height: '132px',
             left: '8%',
             bottom: '18%',
             background: `
               radial-gradient(circle, 
-                rgba(60, 230, 192, 0.8) 0%, 
-                rgba(60, 230, 192, 0.4) 50%, 
+                rgba(60, 230, 192, 0.4) 0%, 
+                rgba(60, 230, 192, 0.25) 40%, 
+                rgba(60, 230, 192, 0.08) 80%, 
                 transparent 100%
               )
             `,
             borderRadius: '50%',
             filter: 'blur(2px)',
-            transition: 'all 0.6s ease-out',
+            transition: 'all 0.48s ease-out', // 提速20%: 0.6 * 0.8 = 0.48
             opacity: 0,
-            boxShadow: '0 0 40px rgba(60, 230, 192, 0.6)'
+            boxShadow: '0 0 20px rgba(60, 230, 192, 0.3)'
           }}
         />
         
@@ -745,23 +797,23 @@ export default function Section4Bridge({ id, scrollToSection }) {
           id="spotlight-right"
           className="absolute pointer-events-none"
           style={{
-            width: '400px',
-            height: '400px',
+            width: '165px', // 增大10%: 150 * 1.1 = 165
+            height: '165px',
             right: '2%',
             bottom: '8%',
             background: `
-              radial-gradient(ellipse at center, 
-                rgba(245, 178, 72, 0.4) 0%, 
-                rgba(245, 178, 72, 0.25) 30%, 
-                rgba(245, 178, 72, 0.1) 60%, 
+              radial-gradient(circle at center, 
+                rgba(245, 178, 72, 0.06) 0%, 
+                rgba(245, 178, 72, 0.03) 50%, 
+                rgba(245, 178, 72, 0.015) 80%, 
                 transparent 100%
               )
             `,
             borderRadius: '50%',
-            filter: 'blur(8px)',
-            transition: 'all 0.6s ease-out',
+            filter: 'blur(4px)',
+            transition: 'all 0.48s ease-out', // 提速20%: 0.6 * 0.8 = 0.48
             opacity: 0,
-            boxShadow: '0 0 80px rgba(245, 178, 72, 0.3)'
+            boxShadow: '0 0 15px rgba(245, 178, 72, 0.05)'
           }}
         />
         
@@ -770,22 +822,23 @@ export default function Section4Bridge({ id, scrollToSection }) {
           id="spotlight-right-beam"
           className="absolute pointer-events-none"
           style={{
-            width: '120px',
-            height: '120px',
+            width: '132px', // 增大10%: 120 * 1.1 = 132
+            height: '132px',
             right: '8%',
             bottom: '18%',
             background: `
               radial-gradient(circle, 
-                rgba(245, 178, 72, 0.8) 0%, 
-                rgba(245, 178, 72, 0.4) 50%, 
+                rgba(245, 178, 72, 0.4) 0%, 
+                rgba(245, 178, 72, 0.25) 40%, 
+                rgba(245, 178, 72, 0.08) 80%, 
                 transparent 100%
               )
             `,
             borderRadius: '50%',
             filter: 'blur(2px)',
-            transition: 'all 0.6s ease-out',
+            transition: 'all 0.48s ease-out', // 提速20%: 0.6 * 0.8 = 0.48
             opacity: 0,
-            boxShadow: '0 0 40px rgba(245, 178, 72, 0.6)'
+            boxShadow: '0 0 20px rgba(245, 178, 72, 0.3)'
           }}
         />
       </div>
@@ -805,10 +858,10 @@ export default function Section4Bridge({ id, scrollToSection }) {
         
         @keyframes spotlightPulse {
           0%, 100% {
-            filter: blur(8px);
+            filter: blur(4px);
           }
           50% {
-            filter: blur(12px);
+            filter: blur(5px);
           }
         }
         
@@ -818,12 +871,12 @@ export default function Section4Bridge({ id, scrollToSection }) {
             transform: scale(1);
           }
           25% {
-            filter: blur(1px);
-            transform: scale(1.05);
+            filter: blur(1.5px);
+            transform: scale(1.03);
           }
           75% {
-            filter: blur(3px);
-            transform: scale(0.95);
+            filter: blur(2.5px);
+            transform: scale(0.97);
           }
         }
         
