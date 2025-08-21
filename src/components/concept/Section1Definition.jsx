@@ -62,7 +62,6 @@ const Section1Definition = ({ id }) => {
     // 如果是带动画的术语，重置动画
     const animatedTerms = ['equality', 'feasible-region', 'feasible-solution', 'optimal-solution'];
     if (animatedTerms.includes(termId)) {
-      console.log(`🔄 重置动画: ${termId}, 重置键从`, animationResetKey, '到', animationResetKey + 1);
       setAnimationResetKey(prev => prev + 1);
     }
     
@@ -86,11 +85,8 @@ const Section1Definition = ({ id }) => {
       setHoverTimeout(null);
     }
     
-    console.log(`🚫 鼠标离开标签, 当前重置键: ${animationResetKey}`);
-    
     // 清除悬停状态和动画
     setHoveredTerm(null);
-    console.log(`🏁 标签状态已清除`);
     
     // 立即隐藏气泡
     if (tooltipTimeout) {
@@ -479,10 +475,26 @@ const Section1Definition = ({ id }) => {
           animation: fade-in 0.3s ease-out;
         }
         
+          animation: float-medium 8s ease-in-out infinite;
+        }
+        
+        .animate-path-draw {
+          animation: path-draw infinite linear;
+        }
         /* 无障碍支持 */
         @media (prefers-reduced-motion: reduce) {
           .animate-fade-in {
             animation: none;
+          }
+          
+          .animate-float-slow,
+          .animate-float-medium,
+          .animate-path-draw {
+            animation: none !important;
+          }
+          
+          .floating-math-symbol {
+            opacity: 0.02 !important;
           }
           
           * {
@@ -498,12 +510,9 @@ const Section1Definition = ({ id }) => {
 const EqualityAnimatedDrone = ({ pathId, resetKey }) => {
   const circleRef = useRef(null);
   
-  console.log(`🚁 等式约束无人机重新创建, pathId: ${pathId}, resetKey: ${resetKey}`);
-  
   // 每次resetKey变化时强制重启动画
   useEffect(() => {
     if (circleRef.current) {
-      console.log(`🔄 强制重启动画, resetKey: ${resetKey}`);
       
       // 获取所有动画元素
       const animations = circleRef.current.querySelectorAll('animateMotion, animate');
@@ -514,10 +523,8 @@ const EqualityAnimatedDrone = ({ pathId, resetKey }) => {
           anim.endElement(); // 停止动画
           setTimeout(() => {
             anim.beginElement(); // 重新开始动画
-            console.log(`✅ 动画已重启:`, anim.tagName);
           }, 10);
         } catch (error) {
-          console.log(`⚠️ 动画重启失败:`, error);
         }
       });
     }
@@ -543,11 +550,8 @@ const EqualityAnimatedDrone = ({ pathId, resetKey }) => {
 const FeasibleRegionAnimatedDrone = ({ pathId, color, duration, resetKey, index }) => {
   const circleRef = useRef(null);
   
-  console.log(`🌈 可行域无人机${index}重新创建, pathId: ${pathId}, resetKey: ${resetKey}`);
-  
   useEffect(() => {
     if (circleRef.current) {
-      console.log(`🔄 可行域无人机${index}强制重启动画, resetKey: ${resetKey}`);
       
       const animations = circleRef.current.querySelectorAll('animateMotion, animate');
       animations.forEach(anim => {
@@ -555,10 +559,8 @@ const FeasibleRegionAnimatedDrone = ({ pathId, color, duration, resetKey, index 
           anim.endElement();
           setTimeout(() => {
             anim.beginElement();
-            console.log(`✅ 可行域无人机${index}动画已重启:`, anim.tagName);
           }, 10);
         } catch (error) {
-          console.log(`⚠️ 可行域无人机${index}动画重启失败:`, error);
         }
       });
     }
@@ -585,11 +587,8 @@ const FeasibleRegionAnimatedDrone = ({ pathId, color, duration, resetKey, index 
 const FeasibleSolutionAnimatedDrone = ({ pathId, resetKey }) => {
   const circleRef = useRef(null);
   
-  console.log(`⭐ 可行解无人机重新创建, pathId: ${pathId}, resetKey: ${resetKey}`);
-  
   useEffect(() => {
     if (circleRef.current) {
-      console.log(`🔄 可行解无人机强制重启动画, resetKey: ${resetKey}`);
       
       const animations = circleRef.current.querySelectorAll('animateMotion, animate');
       animations.forEach(anim => {
@@ -597,10 +596,8 @@ const FeasibleSolutionAnimatedDrone = ({ pathId, resetKey }) => {
           anim.endElement();
           setTimeout(() => {
             anim.beginElement();
-            console.log(`✅ 可行解无人机动画已重启:`, anim.tagName);
           }, 10);
         } catch (error) {
-          console.log(`⚠️ 可行解无人机动画重启失败:`, error);
         }
       });
     }
@@ -627,11 +624,8 @@ const FeasibleSolutionAnimatedDrone = ({ pathId, resetKey }) => {
 const OptimalSolutionAnimatedDrone = ({ pathId, resetKey, objectiveType }) => {
   const droneRef = useRef(null);
   
-  console.log(`🎯 最优解无人机重新创建, pathId: ${pathId}, resetKey: ${resetKey}, type: ${objectiveType}`);
-  
   useEffect(() => {
     if (droneRef.current) {
-      console.log(`🔄 最优解无人机强制重启动画, resetKey: ${resetKey}`);
       
       const animations = droneRef.current.querySelectorAll('animateMotion');
       animations.forEach(anim => {
@@ -1136,9 +1130,15 @@ const UavSceneSvg = ({ currentActiveTerm, objectiveType, constraintStates, anima
 // DownHint 组件
 const DownHint = ({ targetSection, text = '向下滚动继续' }) => {
   const handleClick = () => {
-    const target = document.getElementById(`concept-${targetSection}`);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 获取snap容器
+    const snapContainer = document.getElementById('snap-container');
+    if (snapContainer) {
+      // 计算目标位置（每个section是100vh）
+      const targetY = targetSection * window.innerHeight;
+      snapContainer.scrollTo({
+        top: targetY,
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -1146,7 +1146,7 @@ const DownHint = ({ targetSection, text = '向下滚动继续' }) => {
     <button
       onClick={handleClick}
       className="absolute bottom-8 left-1/2 flex flex-col items-center gap-2 
-                 transition-colors duration-300 group"
+                 transition-colors duration-300 group z-50"
       style={{
         transform: 'translateX(-50%)',
         color: 'var(--ink-mid)'
