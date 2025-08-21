@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
+
 const Section1Definition = ({ id }) => {
   // 核心状态管理
   const [isMinimization, setIsMinimization] = useState(true);
@@ -156,14 +157,128 @@ const Section1Definition = ({ id }) => {
     return metrics[objective] || metrics.time;
   };
 
+
+
   return (
     <section
       id={id}
       className="snap-section relative flex items-center justify-center overflow-hidden"
       style={{ backgroundColor: 'var(--bg-deep)' }}
     >
-      {/* 背景区域 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-deep)]" />
+      {/* 数学优化主题背景动画 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-deep)]">
+        {/* 动态等高线 - 表示目标函数的等值线 */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.32]" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="contourGradient1" cx="30%" cy="40%">
+              <stop offset="0%" style={{ stopColor: 'rgb(34, 197, 94)', stopOpacity: 0.6 }} />
+              <stop offset="50%" style={{ stopColor: 'rgb(59, 130, 246)', stopOpacity: 0.3 }} />
+              <stop offset="100%" style={{ stopColor: 'transparent', stopOpacity: 0 }} />
+            </radialGradient>
+            <radialGradient id="contourGradient2" cx="70%" cy="60%">
+              <stop offset="0%" style={{ stopColor: 'rgb(168, 85, 247)', stopOpacity: 0.5 }} />
+              <stop offset="50%" style={{ stopColor: 'rgb(236, 72, 153)', stopOpacity: 0.3 }} />
+              <stop offset="100%" style={{ stopColor: 'transparent', stopOpacity: 0 }} />
+            </radialGradient>
+            <linearGradient id="searchGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{ stopColor: 'rgb(60, 230, 192)', stopOpacity: 0.8 }} />
+              <stop offset="100%" style={{ stopColor: 'rgb(34, 197, 94)', stopOpacity: 0.4 }} />
+            </linearGradient>
+          </defs>
+          
+          {/* 等高线椭圆 - 动态缩放 */}
+          <ellipse cx="420" cy="320" rx="200" ry="120" 
+                   fill="url(#contourGradient1)" 
+                   className="animate-contour-pulse" 
+                   style={{ animationDelay: '0s' }} />
+          <ellipse cx="420" cy="320" rx="150" ry="90" 
+                   fill="none" 
+                   stroke="rgba(34, 197, 94, 0.5)" 
+                   strokeWidth="2" 
+                   strokeDasharray="8,4"
+                   className="animate-contour-pulse" 
+                   style={{ animationDelay: '1s' }} />
+          
+          <ellipse cx="980" cy="480" rx="180" ry="100" 
+                   fill="url(#contourGradient2)" 
+                   className="animate-contour-pulse" 
+                   style={{ animationDelay: '2s' }} />
+          <ellipse cx="980" cy="480" rx="130" ry="75" 
+                   fill="none" 
+                   stroke="rgba(168, 85, 247, 0.5)" 
+                   strokeWidth="2" 
+                   strokeDasharray="6,3"
+                   className="animate-contour-pulse" 
+                   style={{ animationDelay: '3s' }} />
+          
+          {/* 优化搜索轨迹 - 梯度下降路径 */}
+          <path d="M 200 600 Q 350 500, 420 320 Q 500 200, 650 180 Q 800 160, 980 180 Q 1100 200, 1200 150"
+                fill="none" 
+                stroke="url(#searchGradient)" 
+                strokeWidth="3"
+                strokeDasharray="0 2000"
+                className="animate-search-path"
+                style={{ animationDuration: '15s' }} />
+          
+          {/* 搜索粒子 - 沿路径运动 */}
+          <circle r="5" fill="rgb(60, 230, 192)" className="animate-search-particle">
+            <animateMotion dur="15s" repeatCount="indefinite" begin="1s">
+              <mpath href="#particle-path" />
+            </animateMotion>
+            <animate attributeName="r" values="5;8;5" dur="1s" repeatCount="indefinite" />
+          </circle>
+          
+          {/* 辅助搜索粒子 */}
+          <circle r="3" fill="rgb(34, 197, 94)" opacity="0.7" className="animate-search-particle">
+            <animateMotion dur="18s" repeatCount="indefinite" begin="3s">
+              <mpath href="#particle-path" />
+            </animateMotion>
+            <animate attributeName="r" values="3;6;3" dur="0.8s" repeatCount="indefinite" />
+          </circle>
+          
+          {/* 隐藏路径定义 */}
+          <path id="particle-path" d="M 200 600 Q 350 500, 420 320 Q 500 200, 650 180 Q 800 160, 980 180 Q 1100 200, 1200 150" fill="none" stroke="none" />
+        </svg>
+        
+        {/* 数学符号群 - 增强版 */}
+        <div className="absolute inset-0 opacity-[0.32]">
+          {/* 梯度符号群 */}
+          <div className="floating-math-symbol absolute top-[15%] left-[8%] text-5xl text-teal-400 animate-math-float-enhanced">∇</div>
+          <div className="floating-math-symbol absolute top-[25%] right-[12%] text-4xl text-blue-400 animate-math-float-enhanced" style={{ animationDelay: '2s' }}>∂</div>
+          <div className="floating-math-symbol absolute bottom-[30%] left-[15%] text-6xl text-green-400 animate-math-float-enhanced" style={{ animationDelay: '4s' }}>∫</div>
+          <div className="floating-math-symbol absolute bottom-[20%] right-[8%] text-4xl text-purple-400 animate-math-float-enhanced" style={{ animationDelay: '6s' }}>∑</div>
+          <div className="floating-math-symbol absolute top-[60%] left-[5%] text-5xl text-yellow-400 animate-math-float-enhanced" style={{ animationDelay: '1s' }}>∞</div>
+          <div className="floating-math-symbol absolute top-[70%] right-[20%] text-4xl text-pink-400 animate-math-float-enhanced" style={{ animationDelay: '3s' }}>∈</div>
+          
+          {/* 额外的优化符号 */}
+          <div className="floating-math-symbol absolute top-[40%] left-[25%] text-3xl text-cyan-400 animate-math-float-enhanced" style={{ animationDelay: '5s' }}>min</div>
+          <div className="floating-math-symbol absolute top-[50%] right-[30%] text-3xl text-emerald-400 animate-math-float-enhanced" style={{ animationDelay: '7s' }}>max</div>
+          <div className="floating-math-symbol absolute bottom-[50%] left-[40%] text-4xl text-indigo-400 animate-math-float-enhanced" style={{ animationDelay: '8s' }}>λ</div>
+          <div className="floating-math-symbol absolute bottom-[40%] right-[45%] text-3xl text-orange-400 animate-math-float-enhanced" style={{ animationDelay: '9s' }}>∀</div>
+        </div>
+        
+        {/* 可行域脉冲网格 */}
+        <div className="absolute inset-0 opacity-[0.18]">
+          <div className="w-full h-full animate-feasible-region-pulse" style={{
+            backgroundImage: `
+              radial-gradient(circle at 25% 30%, rgba(60, 230, 192, 0.4) 2px, transparent 3px),
+              radial-gradient(circle at 75% 70%, rgba(34, 197, 94, 0.3) 2px, transparent 3px),
+              linear-gradient(45deg, transparent 48%, rgba(60, 230, 192, 0.2) 49%, rgba(60, 230, 192, 0.2) 51%, transparent 52%)
+            `,
+            backgroundSize: '80px 80px, 100px 100px, 160px 160px',
+          }} />
+        </div>
+        
+        {/* 优化收敛指示器 */}
+        <div className="absolute top-[20%] right-[15%] opacity-[0.5]">
+          <div className="flex items-center space-x-2 animate-convergence-indicator">
+            <div className="w-2 h-2 bg-teal-400 rounded-full animate-ping" style={{ animationDelay: '0s' }}></div>
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+            <span className="text-xs text-gray-300 font-mono">收敛中...</span>
+          </div>
+        </div>
+      </div>
       
       {/* 主要内容区域 - 仿照TSP页面的布局结构 */}
       <div className="relative z-10 w-full h-full flex" style={{ padding: '80px 24px' }}>
@@ -475,30 +590,145 @@ const Section1Definition = ({ id }) => {
           animation: fade-in 0.3s ease-out;
         }
         
-          animation: float-medium 8s ease-in-out infinite;
+        /* 数学优化主题背景动画 */
+        @keyframes math-float-enhanced {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg) scale(1); 
+            opacity: 0.5; 
+            filter: brightness(1);
+          }
+          25% { 
+            transform: translateY(-20px) rotate(2.5deg) scale(1.08); 
+            opacity: 0.7; 
+            filter: brightness(1.15);
+          }
+          50% { 
+            transform: translateY(-12px) rotate(-1.5deg) scale(1.04); 
+            opacity: 0.8; 
+            filter: brightness(1.3);
+          }
+          75% { 
+            transform: translateY(-25px) rotate(1.5deg) scale(1.12); 
+            opacity: 0.6; 
+            filter: brightness(1.08);
+          }
         }
         
-        .animate-path-draw {
-          animation: path-draw infinite linear;
+        @keyframes contour-pulse {
+          0%, 100% { 
+            transform: scale(1) rotate(0deg); 
+            opacity: 0.3; 
+          }
+          33% { 
+            transform: scale(1.1) rotate(1deg); 
+            opacity: 0.5; 
+          }
+          66% { 
+            transform: scale(0.95) rotate(-1deg); 
+            opacity: 0.4; 
+          }
         }
+        
+        @keyframes search-path {
+          0% { 
+            stroke-dasharray: 0 2000; 
+            opacity: 0.35; 
+            filter: brightness(1);
+          }
+          30% { 
+            stroke-dasharray: 600 2000; 
+            opacity: 0.7; 
+            filter: brightness(1.3) drop-shadow(0 0 6px currentColor);
+          }
+          70% { 
+            stroke-dasharray: 1400 2000; 
+            opacity: 0.55; 
+            filter: brightness(1.15) drop-shadow(0 0 4px currentColor);
+          }
+          100% { 
+            stroke-dasharray: 2000 2000; 
+            opacity: 0.3; 
+            filter: brightness(1);
+          }
+        }
+        
+        @keyframes feasible-region-pulse {
+          0%, 100% { 
+            transform: scale(1) rotate(0deg); 
+            opacity: 0.2; 
+          }
+          50% { 
+            transform: scale(1.02) rotate(0.5deg); 
+            opacity: 0.4; 
+          }
+        }
+        
+        @keyframes convergence-indicator {
+          0%, 100% { 
+            transform: translateX(0px); 
+            opacity: 0.6; 
+          }
+          50% { 
+            transform: translateX(5px); 
+            opacity: 1; 
+          }
+        }
+        
+        .animate-math-float-enhanced {
+          animation: math-float-enhanced 10s ease-in-out infinite;
+        }
+        
+        .animate-contour-pulse {
+          animation: contour-pulse 8s ease-in-out infinite;
+        }
+        
+        .animate-search-path {
+          animation: search-path infinite linear;
+        }
+        
+        .animate-search-particle {
+          filter: drop-shadow(0 0 6px currentColor);
+        }
+        
+        .animate-feasible-region-pulse {
+          animation: feasible-region-pulse 12s ease-in-out infinite;
+        }
+        
+        .animate-convergence-indicator {
+          animation: convergence-indicator 3s ease-in-out infinite;
+        }
+        
+        
+        .floating-math-symbol {
+          font-family: 'Times New Roman', serif;
+          user-select: none;
+          pointer-events: none;
+        }
+        
         /* 无障碍支持 */
         @media (prefers-reduced-motion: reduce) {
-          .animate-fade-in {
-            animation: none;
-          }
-          
-          .animate-float-slow,
-          .animate-float-medium,
-          .animate-path-draw {
+          .animate-fade-in,
+          .animate-math-float-enhanced,
+          .animate-contour-pulse,
+          .animate-search-path,
+          .animate-search-particle,
+          .animate-feasible-region-pulse,
+          .animate-convergence-indicator {
             animation: none !important;
           }
           
           .floating-math-symbol {
-            opacity: 0.02 !important;
+            opacity: 0.1 !important;
+            transform: none !important;
+          }
+          
+          circle[class*="animate"] {
+            animation: none !important;
           }
           
           * {
             transition: none !important;
+            filter: none !important;
           }
         }
       `}</style>
@@ -633,10 +863,8 @@ const OptimalSolutionAnimatedDrone = ({ pathId, resetKey, objectiveType }) => {
           anim.endElement();
           setTimeout(() => {
             anim.beginElement();
-            console.log(`✅ 最优解无人机动画已重启:`, anim.tagName);
           }, 10);
         } catch (error) {
-          console.log(`⚠️ 最优解无人机动画重启失败:`, error);
         }
       });
     }
@@ -1023,7 +1251,7 @@ const UavSceneSvg = ({ currentActiveTerm, objectiveType, constraintStates, anima
                   strokeWidth="1" />
             {/* 文字内容 */}
             <text x="202" y="253" textAnchor="middle" fontSize="13" 
-                  fill="white">
+              fill="rgba(191, 192, 193, 0.75)">
               f(x*) = {objectiveType === 'time' ? '最短时间' : 
                        objectiveType === 'energy' ? '最小能耗' : '最优平衡'}
             </text>
