@@ -4,6 +4,390 @@ import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { InlineMath, BlockMath } from 'react-katex';
 
+// 可行域随机点组件
+const FeasibleRegionPoints = ({ 
+  currentActiveTerm, 
+  objectiveFunction,
+  showConstraints,
+  constraintType 
+}) => {
+  const [points, setPoints] = useState([]);
+  const timeoutRef = useRef(null);
+  
+  // 生成可行域内的随机点
+  const generateRandomPoint = useCallback(() => {
+    let x, z, y;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    do {
+      // 在95%范围内随机选点
+      x = (Math.random() - 0.5) * 2 * 50 * 0.95; // X: [-47.5, 47.5]
+      z = (Math.random() - 0.5) * 2 * 30 * 0.95; // Z: [-28.5, 28.5]
+      attempts++;
+      
+      // 检查约束条件
+      if (!showConstraints) {
+        break; // 没有约束条件，直接使用
+      }
+      
+      if (constraintType === 'inequality') {
+        // 不等式约束: x^2 + z^2 ≤ 25^2
+        const distance = Math.sqrt(x * x + z * z);
+        if (distance <= 25) break;
+      } else if (constraintType === 'equality') {
+        // 等式约束: x - 2z² = 0，在抛物线附近选点
+        const targetX = 2 * z * z;
+        if (Math.abs(x - targetX) < 5 && targetX <= 47.5) {
+          x = targetX; // 投影到抛物线上
+          break;
+        }
+      }
+    } while (attempts < maxAttempts);
+    
+    y = objectiveFunction(x, z);
+    return [x, y + 0.15, z];
+  }, [objectiveFunction, showConstraints, constraintType]);
+  
+  // 管理随机点的生成和移除 - 前一个点消失后才生成下一个
+  useEffect(() => {
+    if (currentActiveTerm === 'feasible-solution') {
+      const addNextPoint = () => {
+        const newPoint = generateRandomPoint();
+        const pointId = Date.now() + Math.random();
+        
+        setPoints([{ id: pointId, position: newPoint }]); // 只保持一个点
+        
+        // 3秒后移除这个点，然后生成下一个点
+        timeoutRef.current = setTimeout(() => {
+          setPoints([]); // 移除当前点
+          // 等待0.5秒后生成下一个点
+          setTimeout(addNextPoint, 500);
+        }, 3000);
+      };
+      
+      // 立即添加第一个点
+      addNextPoint();
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    } else {
+      // 清除所有点
+      setPoints([]);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+  }, [currentActiveTerm, generateRandomPoint]);
+
+  return (
+    <>
+      {points.map(point => (
+        <BreathingBall 
+          key={point.id}
+          position={point.position}
+          size={0.9}
+          intensity={0.6}
+        />
+      ))}
+    </>
+  );
+};
+
+// 最优解点组件
+const OptimalSolutionPoint = ({ currentActiveTerm, objectiveFunction }) => {
+  if (currentActiveTerm !== 'optimal-solution') return null;
+  
+  const optimalPosition = [0, objectiveFunction(0, 0) + 0.2, 0];
+  
+  return (
+    <BreathingBall 
+      position={optimalPosition}
+      size={0.9}
+      intensity={0.8}
+    />
+  );
+};
+
+// 呼吸定义域组件
+const BreathingDomain = ({ currentActiveTerm }) => {
+  const meshRef = useRef();
+  
+  useFrame((state) => {
+    if (meshRef.current && currentActiveTerm === 'domain') {
+      const time = state.clock.getElapsedTime();
+      const breathingCycle = Math.sin(time * 1.5); // 缓慢的呼吸周期
+      
+      // 透明度变化 (0.1 到 0.6) - 渐变消失到完全出现
+      const opacity = 0.1 + 0.5 * (0.5 + 0.5 * breathingCycle);
+      
+      meshRef.current.material.opacity = opacity;
+    }
+  });
+
+  if (currentActiveTerm !== 'domain') return null;
+
+  return (
+    <mesh ref={meshRef} position={[0, 0, 0]}>
+      <boxGeometry args={[100, 0.5, 60]} />
+      <meshBasicMaterial 
+        color="#22c55e" 
+        transparent 
+        opacity={0.3}
+        wireframe
+      />
+    </mesh>
+  );
+};
+
+// 呼吸可行域组件
+const BreathingFeasibleRegion = ({ currentActiveTerm }) => {
+  const meshRef = useRef();
+  
+  useFrame((state) => {
+    if (meshRef.current && currentActiveTerm === 'feasible-region') {
+      const time = state.clock.getElapsedTime();
+      const breathingCycle = Math.sin(time * 1.5); // 缓慢的呼吸周期
+      
+      // 透明度变化 (0.1 到 0.6) - 渐变消失到完全出现
+      const opacity = 0.1 + 0.5 * (0.5 + 0.5 * breathingCycle);
+      
+      meshRef.current.material.opacity = opacity;
+    }
+  });
+
+  if (currentActiveTerm !== 'feasible-region') return null;
+
+  return (
+    <mesh ref={meshRef} position={[0, 0.05, 0]} rotation={[-Math.PI/2, 0, 0]}>
+      <planeGeometry args={[100, 60]} />
+      <meshBasicMaterial 
+        color="#3ce6c0" 
+        transparent 
+        opacity={0.3}
+      />
+    </mesh>
+  );
+};
+
+// 呼吸约束组件
+const BreathingConstraints = ({ 
+  constraintType, 
+  currentActiveTerm, 
+  objectiveFunction,
+  showConstraints 
+}) => {
+  const groupRef = useRef();
+  
+  useFrame((state) => {
+    if (groupRef.current && (currentActiveTerm === 'inequality' || currentActiveTerm === 'equality')) {
+      const time = state.clock.getElapsedTime();
+      const breathingCycle = Math.sin(time * 2);
+      
+      // 更强的透明度变化 (0.1 到 0.9) - 从几乎完全透明到几乎完全不透明
+      const opacity = 0.1 + 0.8 * (0.5 + 0.5 * breathingCycle);
+      
+      // 大小变化效果
+      const scale = 0.95 + 0.1 * (0.5 + 0.5 * breathingCycle);
+      
+      groupRef.current.children.forEach(child => {
+        if (child.material) {
+          child.material.opacity = opacity;
+        }
+        // 为线条和面片添加缩放效果
+        child.scale.setScalar(scale);
+      });
+    }
+  });
+
+  const shouldShow = currentActiveTerm === 'inequality' || currentActiveTerm === 'equality' || showConstraints;
+  if (!shouldShow) return null;
+
+  const activeConstraintType = currentActiveTerm === 'inequality' ? 'inequality' : 
+                              currentActiveTerm === 'equality' ? 'equality' : 
+                              constraintType;
+
+  return (
+    <group ref={groupRef}>
+      {activeConstraintType === 'inequality' && (
+        // 圆盘约束 x^2 + y^2 ≤ R^2
+        <>
+          {/* 填充的圆盘 */}
+          <mesh position={[0, 0.05, 0]} rotation={[-Math.PI/2, 0, 0]}>
+            <circleGeometry args={[25, 32]} />
+            <meshBasicMaterial 
+              color={currentActiveTerm === 'feasible-region' ? "#3ce6c0" : "#f59e0b"} 
+              transparent 
+              opacity={0.3}
+            />
+          </mesh>
+          
+          {/* 虚线圆圈边界 */}
+          <Line
+            points={(() => {
+              const radius = 25;
+              const points = [];
+              const numPoints = 64;
+              for (let i = 0; i <= numPoints; i++) {
+                const angle = (i / numPoints) * 2 * Math.PI;
+                const x = radius * Math.cos(angle);
+                const z = radius * Math.sin(angle);
+                points.push([x, 0.1, z]);
+              }
+              return points;
+            })()}
+            color={currentActiveTerm === 'feasible-region' ? "#3ce6c0" : "#f59e0b"}
+            lineWidth={4}
+            dashed={true}
+            dashSize={2}
+            gapSize={1}
+          />
+          
+          {/* 曲面上的约束弧线 */}
+          <Line
+            points={(() => {
+              const radius = 25;
+              const points = [];
+              const numPoints = 64;
+              for (let i = 0; i <= numPoints; i++) {
+                const angle = (i / numPoints) * 2 * Math.PI;
+                const x = radius * Math.cos(angle);
+                const z = radius * Math.sin(angle);
+                const y = objectiveFunction(x, z) + 0.2;
+                points.push([x, y, z]);
+              }
+              return points;
+            })()}
+            color={currentActiveTerm === 'feasible-region' ? "#3ce6c0" : "#f59e0b"}
+            lineWidth={4}
+            transparent
+            opacity={0.8}
+          />
+        </>
+      )}
+      
+      {activeConstraintType === 'equality' && (
+        // 抛物线约束 x - 2y² = 0
+        <>
+          {/* 平面投影抛物线 */}
+          <Line
+            points={(() => {
+              const points = [];
+              const numPoints = 100;
+              const yRange = 30;
+              for (let i = 0; i <= numPoints; i++) {
+                const z = ((i / numPoints) - 0.5) * 2 * yRange;
+                const x = 2 * z * z;
+                if (x <= 50) {
+                  points.push([x, 0.1, z]);
+                }
+              }
+              return points;
+            })()}
+            color={currentActiveTerm === 'feasible-region' ? "#3ce6c0" : "#ef4444"}
+            lineWidth={4}
+            dashed={true}
+            dashSize={2}
+            gapSize={1}
+          />
+          
+          {/* 曲面上的约束弧线 */}
+          <Line
+            points={(() => {
+              const points = [];
+              const numPoints = 80;
+              const yRange = 30;
+              for (let i = 0; i <= numPoints; i++) {
+                const z = ((i / numPoints) - 0.5) * 2 * yRange;
+                const x = 2 * z * z;
+                if (x <= 50) {
+                  const y = objectiveFunction(x, z) + 0.2;
+                  points.push([x, y, z]);
+                }
+              }
+              return points;
+            })()}
+            color={currentActiveTerm === 'feasible-region' ? "#3ce6c0" : "#ef4444"}
+            lineWidth={4}
+            transparent
+            opacity={0.8}
+          />
+        </>
+      )}
+    </group>
+  );
+};
+
+// 呼吸曲面组件
+const BreathingSurface = ({ geometry, currentActiveTerm }) => {
+  const meshRef = useRef();
+  
+  useFrame((state) => {
+    if (meshRef.current && currentActiveTerm === 'objective') {
+      const time = state.clock.getElapsedTime();
+      const breathingCycle = Math.sin(time * 2); // 呼吸周期 2Hz，稍微慢一点
+      
+      // 透明度变化 (0.1 到 1.0) - 从几乎完全透明到完全不透明
+      const opacity = 0.1 + 0.9 * (0.5 + 0.5 * breathingCycle);
+      meshRef.current.material.opacity = opacity;
+    }
+  });
+
+  return (
+    <mesh 
+      ref={meshRef}
+      geometry={geometry}
+      visible={currentActiveTerm !== 'domain'}
+    >
+      <meshPhongMaterial 
+        vertexColors 
+        transparent 
+        opacity={currentActiveTerm === 'objective' ? 0.95 : 0.85}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+};
+
+// 简单呼吸小球组件 - 基于正常小球的1.5倍大小，呼吸效果在1.2-1.5倍之间
+const BreathingBall = ({ position, size = 0.9, intensity = 0.4 }) => {
+  const meshRef = useRef();
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      const time = state.clock.getElapsedTime();
+      const breathingCycle = Math.sin(time * 2.5); // 呼吸周期
+      
+      // 呼吸缩放：基础是size，在1.2倍到1.5倍之间变化
+      const scale = 1.2 + 0.3 * (0.5 + 0.5 * breathingCycle); // 1.2 到 1.5
+      
+      // 发光强度变化
+      const currentIntensity = intensity * (0.6 + 0.4 * (0.5 + 0.5 * breathingCycle));
+      
+      meshRef.current.scale.setScalar(scale);
+      meshRef.current.material.emissiveIntensity = currentIntensity;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={position}>
+      <sphereGeometry args={[size, 32, 32]} />
+      <meshPhongMaterial 
+        color="#4facfe"      // 清新的蓝色
+        emissive="#00d4ff"   // 亮青色发光
+        emissiveIntensity={intensity}
+        shininess={80}
+        transparent={true}
+        opacity={0.85}
+      />
+    </mesh>
+  );
+};
+
 // 呼吸灯轨迹组件
 const BreathingTrajectory = ({ trajectory }) => {
   const groupRef = useRef();
@@ -281,19 +665,11 @@ const FunctionSurface = ({
 
   return (
     <>
-      {/* 函数曲面 */}
-      <mesh 
-        ref={meshRef} 
+      {/* 函数曲面 - 支持呼吸效果 */}
+      <BreathingSurface 
         geometry={surfaceGeometry}
-        visible={currentActiveTerm !== 'domain'}
-      >
-        <meshPhongMaterial 
-          vertexColors 
-          transparent 
-          opacity={currentActiveTerm === 'objective' ? 0.95 : 0.85}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+        currentActiveTerm={currentActiveTerm}
+      />
       
       {/* 曲面经纬线网格 */}
       {currentActiveTerm !== 'domain' && (
@@ -344,18 +720,8 @@ const FunctionSurface = ({
         </>
       )}
       
-      {/* 定义域边界 */}
-      {currentActiveTerm === 'domain' && (
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[100, 0.5, 60]} />
-          <meshBasicMaterial 
-            color="#22c55e" 
-            transparent 
-            opacity={0.3}
-            wireframe
-          />
-        </mesh>
-      )}
+      {/* 定义域边界 - 支持呼吸效果 */}
+      <BreathingDomain currentActiveTerm={currentActiveTerm} />
       
       {/* 可行域高亮 */}
       {currentActiveTerm === 'feasible-region' && !showConstraints && (
@@ -368,6 +734,14 @@ const FunctionSurface = ({
           />
         </mesh>
       )}
+      
+      {/* 悬浮时的呼吸约束效果 */}
+      <BreathingConstraints 
+        constraintType={constraintType}
+        currentActiveTerm={currentActiveTerm}
+        objectiveFunction={objectiveFunction}
+        showConstraints={showConstraints}
+      />
       
       {/* 约束可视化 */}
       {showConstraints && (
@@ -500,24 +874,31 @@ const FunctionSurface = ({
         </>
       )}
       
-      {/* 薄荷绿发光小球 (当前解) */}
-      <mesh 
-        ref={ballRef} 
-        position={[ballPosition[0], ballPosition[1] + 0.5, ballPosition[2]]}
-      >
-        <sphereGeometry args={[
-          currentActiveTerm === 'decision-var' ? 0.8 : 0.6, 
-          32, 32
-        ]} />
-        <meshPhongMaterial 
-          color={currentActiveTerm === 'decision-var' ? "#f59e0b" : "#00FFB3"}
-          emissive={currentActiveTerm === 'decision-var' ? "#f59e0b" : "#00FFB3"}
-          emissiveIntensity={currentActiveTerm === 'decision-var' ? 0.3 : 0.6}
-          shininess={100}
-          transparent={true}
-          opacity={0.9}
+      {/* 当前解小球 - 根据悬浮状态改变颜色 */}
+      {currentActiveTerm === 'decision-var' ? (
+        // 决策变量悬浮时的琥珀色呼吸小球
+        <BreathingBall 
+          position={[ballPosition[0], ballPosition[1] + 0.5, ballPosition[2]]}
+          size={0.9}
+          intensity={0.5}
         />
-      </mesh>
+      ) : (
+        // 正常状态的薄荷绿小球
+        <mesh 
+          ref={ballRef} 
+          position={[ballPosition[0], ballPosition[1] + 0.5, ballPosition[2]]}
+        >
+          <sphereGeometry args={[0.6, 32, 32]} />
+          <meshPhongMaterial 
+            color="#00FFB3"
+            emissive="#00FFB3"
+            emissiveIntensity={0.6}
+            shininess={100}
+            transparent={true}
+            opacity={0.9}
+          />
+        </mesh>
+      )}
       
       {/* 曲面法向量 - 从球心出发，双向显示 */}
       {showVectors && gradientVector && (
@@ -548,7 +929,7 @@ const FunctionSurface = ({
           const unitDownward = [downwardVector[0]/downLength, downwardVector[1]/downLength, downwardVector[2]/downLength];
           
           // 确定向量长度
-          const vectorLength = 3;
+          const vectorLength = 4;
           
           // 向上方向的法向量（红色N）
           const upwardNormal = [unitUpward[0] * vectorLength, unitUpward[1] * vectorLength, unitUpward[2] * vectorLength];
@@ -720,6 +1101,23 @@ const FunctionSurface = ({
           </group>
         ))}
       </group>
+      
+      {/* 可行域随机点 */}
+      <FeasibleRegionPoints 
+        currentActiveTerm={currentActiveTerm}
+        objectiveFunction={objectiveFunction}
+        showConstraints={showConstraints}
+        constraintType={constraintType}
+      />
+      
+      {/* 最优解点 */}
+      <OptimalSolutionPoint 
+        currentActiveTerm={currentActiveTerm}
+        objectiveFunction={objectiveFunction}
+      />
+      
+      {/* 呼吸可行域 */}
+      <BreathingFeasibleRegion currentActiveTerm={currentActiveTerm} />
     </>
   );
 };
@@ -744,7 +1142,6 @@ const Section2Descent3D = ({ id }) => {
   // 概念标签状态管理
   const [hoveredTerm, setHoveredTerm] = useState(null);
   const [showTooltip, setShowTooltip] = useState(null);
-  const [tooltipTimeout, setTooltipTimeout] = useState(null);
   
   // 约束演示状态
   const [showConstraints, setShowConstraints] = useState(false);
@@ -859,14 +1256,14 @@ const Section2Descent3D = ({ id }) => {
 
   // 术语提示信息
   const termTooltips = {
-    'decision-var': '决策变量 x=(x,y)：绿色小球的当前位置坐标',
+    'decision-var': '决策变量 xₖ(x,y)：绿色小球的当前位置坐标',
     'objective': '目标函数：二次强凸函数，椭圆碗形曲面，唯一最小值在(0,0)',
-    'inequality': '不等式约束：例如圆盘 x²+y²≤R² (可选演示)',
-    'equality': '等式约束：例如直线 x+y=0 (可选演示)',
+    'inequality': '不等式约束：x²+y²≤25²',
+    'equality': '等式约束：x-2y²=0',
     'domain': '定义域：展示窗口内所有可取点的集合',
     'feasible-region': '可行域：满足所有约束的决策变量集合',
     'feasible-solution': '可行解：可行域内的任意一个具体解',
-    'optimal-solution': '最优解：x*=(0,0)，使目标函数达到全局最小值'
+    'optimal-solution': '最优解：(x,y)=(0,0)，使目标函数达到全局最小值'
   };
 
   // 优化步骤
@@ -928,28 +1325,82 @@ const Section2Descent3D = ({ id }) => {
     
   }, [algorithm, stepSize, dampingFactor, showConstraints, constraintType, convergenceThreshold]);
 
-  // 悬停处理
-  const handleTermHover = (termId) => {
+  // 悬停处理 - 使用稳定的状态管理避免闪烁
+  const tooltipStateRef = useRef({
+    activeId: null,
+    hoverTimer: null,
+    leaveTimer: null,
+    isLeaving: false
+  });
+
+  const handleTermHover = useCallback((termId) => {
+    const state = tooltipStateRef.current;
+    
+    // 如果正在离开同一个元素，取消离开
+    if (state.activeId === termId && state.isLeaving) {
+      if (state.leaveTimer) {
+        clearTimeout(state.leaveTimer);
+        state.leaveTimer = null;
+      }
+      state.isLeaving = false;
+      return;
+    }
+    
+    // 清除之前的定时器
+    if (state.hoverTimer) {
+      clearTimeout(state.hoverTimer);
+      state.hoverTimer = null;
+    }
+    if (state.leaveTimer) {
+      clearTimeout(state.leaveTimer);
+      state.leaveTimer = null;
+    }
+    
+    // 更新状态
+    state.activeId = termId;
+    state.isLeaving = false;
+    
+    // 立即显示
     setHoveredTerm(termId);
     setShowTooltip(termId);
     
-    if (tooltipTimeout) {
-      clearTimeout(tooltipTimeout);
-    }
-    const newTooltipTimeout = setTimeout(() => {
-      setShowTooltip(null);
-    }, 3000);
-    setTooltipTimeout(newTooltipTimeout);
-  };
+    // 4秒后自动隐藏
+    state.hoverTimer = setTimeout(() => {
+      if (state.activeId === termId && !state.isLeaving) {
+        setShowTooltip(null);
+        state.activeId = null;
+        state.hoverTimer = null;
+      }
+    }, 4000);
+  }, []);
 
-  const handleTermLeave = () => {
-    setHoveredTerm(null);
-    if (tooltipTimeout) {
-      clearTimeout(tooltipTimeout);
-      setTooltipTimeout(null);
-    }
-    setShowTooltip(null);
-  };
+  const handleTermLeave = useCallback(() => {
+    const state = tooltipStateRef.current;
+    
+    if (!state.activeId || state.isLeaving) return;
+    
+    state.isLeaving = true;
+    
+    // 延迟清除，给用户时间重新悬浮
+    state.leaveTimer = setTimeout(() => {
+      if (state.isLeaving) {
+        setHoveredTerm(null);
+        setShowTooltip(null);
+        state.activeId = null;
+        state.isLeaving = false;
+        state.leaveTimer = null;
+      }
+    }, 200);
+  }, []);
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      const state = tooltipStateRef.current;
+      if (state.hoverTimer) clearTimeout(state.hoverTimer);
+      if (state.leaveTimer) clearTimeout(state.leaveTimer);
+    };
+  }, []);
 
   // 自动运行逻辑
   useEffect(() => {
@@ -1169,10 +1620,8 @@ const Section2Descent3D = ({ id }) => {
                       return (
                         <div key={chip.id} className="relative">
                           <button
-                            className={`w-full px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 focus:outline-none ${
-                              isActive
-                                ? 'transform scale-105'
-                                : 'hover:transform hover:scale-105'
+                            className={`concept-chip w-full px-3 py-2 rounded-lg text-xs font-medium focus:outline-none ${
+                              isActive ? 'active' : ''
                             }`}
                             style={{
                               backgroundColor: isActive ? 'var(--tech-mint)' : 'var(--bg-surface)',
@@ -1200,10 +1649,11 @@ const Section2Descent3D = ({ id }) => {
                                 left: '100%',
                                 transform: 'translateY(-50%)',
                                 marginLeft: '12px',
-                                minWidth: '200px',
-                                maxWidth: '300px',
-                                whiteSpace: 'nowrap',
-                                backdropFilter: 'blur(4px)'
+                                minWidth: 'max-content',
+                                maxWidth: '350px',
+                                whiteSpace: 'pre-line',
+                                backdropFilter: 'blur(4px)',
+                                pointerEvents: 'none' // 防止tooltip本身触发鼠标事件
                               }}
                             >
                               {termTooltips[chip.id]}
@@ -1642,16 +2092,48 @@ const Section2Descent3D = ({ id }) => {
         @keyframes fade-in {
           from {
             opacity: 0;
-            transform: translate(-50%, -40px);
+            transform: translateY(-50%) translateX(8px) scale(0.95);
           }
           to {
             opacity: 1;
-            transform: translate(-50%, 0);
+            transform: translateY(-50%) translateX(0) scale(1);
+          }
+        }
+        
+        @keyframes fade-out {
+          from {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0) scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(-50%) translateX(-8px) scale(0.95);
           }
         }
         
         .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
+          animation: fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          animation-fill-mode: both;
+        }
+        
+        .animate-fade-out {
+          animation: fade-out 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          animation-fill-mode: both;
+        }
+        
+        /* 优化按钮悬浮效果 */
+        .concept-chip {
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .concept-chip:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
+        }
+        
+        .concept-chip.active {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(34, 211, 238, 0.4);
         }
       `}</style>
     </section>
