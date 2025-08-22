@@ -209,3 +209,4 @@ docs-dist/
 *.mkv
 large-assets/
 CLAUDE.md
+/.serena
