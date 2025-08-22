@@ -1541,6 +1541,320 @@ const Section2Descent3D = ({ id }) => {
       className="snap-section relative flex items-center justify-center overflow-hidden"
       style={{ backgroundColor: 'var(--bg-deep)' }}
     >
+      {/* 九曲十八弯重力轨道背景动画 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-deep)]">
+        <svg className="absolute inset-0 w-full h-full opacity-[0.75]" viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            {/* 科幻虫洞事件视界 - 深邃高冷，中心透明到深蓝 */}
+            <radialGradient id="blackholeEventHorizon">
+              <stop offset="0%" stopColor="#000000" stopOpacity="0.0" />
+              <stop offset="10%" stopColor="#0a0f2b" stopOpacity="0.8" />
+              <stop offset="40%" stopColor="#1a1a2e" stopOpacity="0.9" />
+              <stop offset="60%" stopColor="#0d1a33" stopOpacity="0.8" />
+              <stop offset="80%" stopColor="#00a8e1" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#aaffff" stopOpacity="0.4" />
+            </radialGradient>
+            
+            {/* 虫洞核心 - 深渊未知，纯黑透明 */}
+            <radialGradient id="blackholeCore">
+              <stop offset="0%" stopColor="#000000" stopOpacity="0.0" />
+              <stop offset="30%" stopColor="#000000" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#0a0f2b" stopOpacity="0.8" />
+            </radialGradient>
+            
+            {/* 吸积盘渐变 - 外层 (深蓝到冰蓝) */}
+            <radialGradient id="accretionDisk" gradientUnits="userSpaceOnUse" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#0a0f2b" stopOpacity="0.8" />
+              <stop offset="50%" stopColor="#1a1a2e" stopOpacity="0.7" />
+              <stop offset="80%" stopColor="#00a8e1" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#aaffff" stopOpacity="0.5" />
+            </radialGradient>
+            
+            {/* 吸积盘渐变 - 中层 (深蓝到霓虹紫) */}
+            <radialGradient id="accretionDisk2" gradientUnits="userSpaceOnUse" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#0d1a33" stopOpacity="0.8" />
+              <stop offset="40%" stopColor="#00a8e1" stopOpacity="0.7" />
+              <stop offset="80%" stopColor="#a100ff" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#8a2be2" stopOpacity="0.5" />
+            </radialGradient>
+            
+            {/* 吸积盘渐变 - 内层 (深邃蓝紫到霓虹光) */}
+            <radialGradient id="accretionDisk3" gradientUnits="userSpaceOnUse" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#1a1a2e" stopOpacity="0.9" />
+              <stop offset="60%" stopColor="#6A0FAD" stopOpacity="0.7" />
+              <stop offset="100%" stopColor="#00FFFF" stopOpacity="0.5" />
+            </radialGradient>
+            
+            {/* Apple风格轨道渐变 - 低透明度版本 */}
+            <linearGradient id="trackGlow">
+              <stop offset="0%" stopColor="#007AFF" stopOpacity="0.4" />
+              <stop offset="20%" stopColor="#5856D6" stopOpacity="0.4" />
+              <stop offset="40%" stopColor="#AF52DE" stopOpacity="0.4" />
+              <stop offset="60%" stopColor="#FF2D92" stopOpacity="0.4" />
+              <stop offset="80%" stopColor="#FF9500" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#32D74B" stopOpacity="0.4" />
+            </linearGradient>
+            
+            {/* 霓虹能量光晕 - 高对比强光环 */}
+            <radialGradient id="energyGlow">
+              <stop offset="0%" stopColor="#00ffff" stopOpacity="0.0" />
+              <stop offset="70%" stopColor="#00ffff" stopOpacity="0.0" />
+              <stop offset="85%" stopColor="#00ffff" stopOpacity="0.6" />
+              <stop offset="95%" stopColor="#a100ff" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#FF1493" stopOpacity="0.4" />
+            </radialGradient>
+          </defs>
+          
+          {/* 九曲十八弯轨道 - 从高到低的蜿蜒路径，穿过各功能区域 */}
+          <path 
+            d="M 50 200 
+               C 100 220, 150 240, 200 260
+               C 250 280, 300 300, 350 280
+               C 400 260, 450 220, 500 180
+               C 550 140, 600 100, 650 120
+               C 700 140, 750 180, 800 200
+               C 850 220, 900 240, 950 220
+               C 1000 200, 1100 180, 1200 200 
+               Q 1250 160, 1300 220 
+               Q 1320 280, 1280 340 
+               Q 1240 400, 1200 360 
+               Q 1100 280, 1000 380 
+               Q 900 480, 800 420 
+               Q 700 360, 600 460 
+               Q 500 560, 400 500 
+               Q 300 440, 200 540 
+               Q 100 640, 80 680
+               Q 82 695, 80 710"
+            fill="none" 
+            stroke="url(#trackGlow)" 
+            strokeWidth="4"
+            className="animate-track-glow"
+            opacity="0.15"
+            id="curved-track" 
+          />
+          
+          {/* 轨道阴影效果 */}
+          <path 
+            d="M 50 200 
+               C 100 220, 150 240, 200 260
+               C 250 280, 300 300, 350 280
+               C 400 260, 450 220, 500 180
+               C 550 140, 600 100, 650 120
+               C 700 140, 750 180, 800 200
+               C 850 220, 900 240, 950 220
+               C 1000 200, 1100 180, 1200 200 
+               Q 1250 160, 1300 220 
+               Q 1320 280, 1280 340 
+               Q 1240 400, 1200 360 
+               Q 1100 280, 1000 380 
+               Q 900 480, 800 420 
+               Q 700 360, 600 460 
+               Q 500 560, 400 500 
+               Q 300 440, 200 540 
+               Q 100 640, 80 680
+               Q 82 695, 80 710"
+            fill="none" 
+            stroke="rgba(255, 255, 255, 0.1)" 
+            strokeWidth="8"
+            opacity="0.1"
+          />
+          
+          {/* 起点虫洞 - 科幻发射点，位于曲线起点正上方 */}
+          <g transform="translate(50,170) rotate(-25) scale(0.8, 0.4)">
+            <g className="animate-wormhole-rotation">
+              {/* 黑洞事件视界 - 侧视椭圆 */}
+              <ellipse rx="35" ry="20" fill="url(#blackholeEventHorizon)" opacity="0.85" className="animate-blackhole-event-horizon" />
+              <ellipse rx="30" ry="18" fill="none" stroke="url(#energyGlow)" strokeWidth="2" strokeDasharray="10,5" className="animate-blackhole-accretion" opacity="0.7" />
+              
+              {/* 外层霓虹能量光环 - 科幻脉冲效果 */}
+              <ellipse rx="42" ry="25" fill="none" stroke="url(#energyGlow)" strokeWidth="2" opacity="0.5" className="animate-energy-halo" strokeDasharray="6,3" />
+              
+              {/* 立体吸积盘 - 侧视多层椭圆 */}
+              <g className="animate-blackhole-disk">
+                {Array.from({ length: 2 }, (_, i) => (
+                  <ellipse key={i} rx={38 - i * 8} ry={8 - i * 2} 
+                           fill="none" 
+                           stroke="url(#accretionDisk)" 
+                           strokeWidth="3"
+                           className="animate-blackhole-disk-ring" 
+                           opacity={0.8 - i * 0.1}
+                           style={{ animationDelay: `${i * 0.4}s` }} />
+                ))}
+                {Array.from({ length: 2 }, (_, i) => (
+                  <ellipse key={`inner-${i}`} rx={28 - i * 5} ry={6 - i * 1} 
+                           fill="none" 
+                           stroke="url(#accretionDisk2)" 
+                           strokeWidth="2"
+                           className="animate-blackhole-disk" 
+                           opacity={0.9 - i * 0.1}
+                           style={{ animationDelay: `${i * 0.2}s` }} />
+                ))}
+              </g>
+              
+              {/* 黑洞核心 */}
+              <ellipse rx="15" ry="9" fill="url(#blackholeCore)" className="animate-blackhole-core" opacity="1.0" />
+              
+              {/* 霍金辐射粒子 - 较少数量 */}
+              {Array.from({ length: 6 }, (_, i) => {
+                const angle = (i * Math.PI / 3);
+                const radius = 45;
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle) * 0.5;
+                const colors = ['#00FFFF', '#a100ff', '#FF1493', '#00a8e1', '#aaffff', '#8a2be2'];
+                return (
+                  <circle key={i} r="2" fill={colors[i]} className="animate-hawking-radiation" opacity="0.9"
+                         style={{ animationDelay: `${i * 0.3}s` }}>
+                    <animateMotion dur="3s" repeatCount="indefinite" begin={`${i * 0.3}s`}>
+                      <path d={`M ${x} ${y} Q ${x*0.3} ${y*0.3} 0 0`} />
+                    </animateMotion>
+                  </circle>
+                );
+              })}
+              
+            </g>
+          </g>
+          
+          {/* 底部虫洞 - 侧视倾斜旋转视角，绚丽多彩，反向倾斜 */}
+          <g transform="translate(80,710) rotate(25) scale(1, 0.5)">
+            <g className="animate-wormhole-rotation" style={{ animationDirection: 'reverse' }}>
+              {/* 黑洞事件视界 - 侧视椭圆，更清晰更大 */}
+              <ellipse rx="48" ry="24" fill="url(#blackholeEventHorizon)" opacity="0.95" className="animate-blackhole-event-horizon" />
+              <ellipse rx="42" ry="21" fill="none" stroke="url(#energyGlow)" strokeWidth="4" strokeDasharray="12,6" className="animate-blackhole-accretion" opacity="0.85" />
+              
+              {/* 外层霓虹能量光环 - 科幻脉冲效果 */}
+              <ellipse rx="60" ry="30" fill="none" stroke="url(#energyGlow)" strokeWidth="4" opacity="0.7" className="animate-energy-halo" strokeDasharray="10,5" />
+              
+              {/* 立体吸积盘 - 侧视多层椭圆，超级绚丽彩虹色 */}
+              <g className="animate-blackhole-disk">
+                {Array.from({ length: 3 }, (_, i) => (
+                  <ellipse key={i} rx={55 - i * 10} ry={11 - i * 3} 
+                           fill="none" 
+                           stroke="url(#accretionDisk)" 
+                           strokeWidth="5"
+                           className="animate-blackhole-disk-ring" 
+                           opacity={0.95 - i * 0.1}
+                           style={{ animationDelay: `${i * 0.5}s` }} />
+                ))}
+                {Array.from({ length: 3 }, (_, i) => (
+                  <ellipse key={`inner-${i}`} rx={42 - i * 7} ry={9 - i * 2} 
+                           fill="none" 
+                           stroke="url(#accretionDisk2)" 
+                           strokeWidth="4"
+                           className="animate-blackhole-disk" 
+                           opacity={1.0 - i * 0.1}
+                           style={{ animationDelay: `${i * 0.3}s` }} />
+                ))}
+                {Array.from({ length: 2 }, (_, i) => (
+                  <ellipse key={`core-${i}`} rx={35 - i * 8} ry={6 - i * 2} 
+                           fill="none" 
+                           stroke="url(#accretionDisk3)" 
+                           strokeWidth="3"
+                           className="animate-blackhole-accretion" 
+                           opacity={1.0 - i * 0.05}
+                           style={{ animationDelay: `${i * 0.2}s` }} />
+                ))}
+              </g>
+              
+              {/* 黑洞核心 - 侧视椭圆，超清晰 */}
+              <ellipse rx="22" ry="11" fill="url(#blackholeCore)" className="animate-blackhole-core" opacity="1.0" />
+              
+              {/* 霍金辐射粒子 - 3D螺旋轨道，银河系色彩 */}
+              {Array.from({ length: 10 }, (_, i) => {
+                const angle = (i * Math.PI / 5);
+                const radius = 62;
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle) * 0.5;
+                const colors = ['#00FFFF', '#a100ff', '#FF1493', '#00a8e1', '#aaffff', '#8a2be2', '#6A0FAD', '#0a0f2b', '#1a1a2e', '#0d1a33'];
+                return (
+                  <circle key={i} r="3" fill={colors[i]} className="animate-hawking-radiation" opacity="0.95"
+                         style={{ animationDelay: `${i * 0.2}s` }}>
+                    <animateMotion dur="4s" repeatCount="indefinite" begin={`${i * 0.2}s`}>
+                      <path d={`M ${x} ${y} Q ${x*0.5} ${y*0.5} 0 0`} />
+                    </animateMotion>
+                  </circle>
+                );
+              })}
+              
+              {/* 能量波动环 - 侧视极度扁平，多彩渐变 */}
+              {Array.from({ length: 4 }, (_, i) => (
+                <ellipse key={`wave-${i}`} rx={30 + i * 10} ry={(30 + i * 10) * 0.5} fill="none" 
+                        stroke="url(#accretionDisk2)" strokeWidth="2" opacity={0.8 - i * 0.15}
+                        className="animate-wormhole-particles"
+                        style={{ animationDelay: `${i * 0.3}s` }} />
+              ))}
+              
+              {/* 虫洞深度指示线 - 创造隧道深度感，彩色 */}
+              {Array.from({ length: 8 }, (_, i) => (
+                <line key={`depth-${i}`}
+                     x1={28 * Math.cos(i * Math.PI / 4)} y1={14 * Math.sin(i * Math.PI / 4)}
+                     x2={18 * Math.cos(i * Math.PI / 4)} y2={9 * Math.sin(i * Math.PI / 4)}
+                     stroke="url(#accretionDisk3)" strokeWidth="1.5" opacity="0.7"
+                     className="animate-blackhole-accretion"
+                     style={{ animationDelay: `${i * 0.2}s` }} />
+              ))}
+              
+              {/* 额外的能量闪光层 */}
+              {Array.from({ length: 6 }, (_, i) => (
+                <ellipse key={`flash-${i}`} rx={25 + i * 5} ry={(25 + i * 5) * 0.5} fill="url(#energyGlow)" 
+                        opacity={0.4 - i * 0.05} className="animate-wormhole-pulse"
+                        style={{ animationDelay: `${i * 0.25}s` }} />
+              ))}
+            </g>
+          </g>
+          
+          {/* 统一小球 - 4阶段完整动画 */}
+          <circle r="8" fill="rgb(60, 230, 192)">
+            {/* 阶段1: 从虫洞弹出 (0-2秒) + 阶段2: 沿轨道运动 (2-10秒) + 阶段3: 被吸入 (10-12秒) */}
+            <animate attributeName="cx" 
+              values="50;50;50;50;200;350;500;650;800;950;1200;1300;1200;1000;800;600;400;200;80;80;80" 
+              dur="12s" repeatCount="indefinite" begin="0s" />
+            <animate attributeName="cy" 
+              values="170;180;190;200;260;280;180;120;200;220;200;220;360;380;420;460;500;540;680;710;710" 
+              dur="12s" repeatCount="indefinite" begin="0s" />
+            
+            {/* 透明度动画 - 4个阶段 */}
+            <animate attributeName="opacity" 
+              values="0;0.5;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;0.5;0" 
+              dur="12s" repeatCount="indefinite" begin="0s" />
+            
+            {/* 尺寸动画 - 4个阶段 */}
+            <animate attributeName="r" 
+              values="4;6;8;8;8;8;8;8;8;8;8;8;8;8;8;8;8;8;8;4;0" 
+              dur="12s" repeatCount="indefinite" begin="0s" />
+            
+            {/* 颜色动画 - 4个阶段 */}
+            <animate attributeName="fill" 
+              values="rgb(0,255,255);rgb(161,0,255);rgb(60,230,192);rgb(60,230,192);rgb(34,197,94);rgb(59,130,246);rgb(168,85,247);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(255,100,100);rgb(255,255,255)" 
+              dur="12s" repeatCount="indefinite" begin="0s" />
+          </circle>
+          
+          {/* 粒子轨迹效果 */}
+          {Array.from({ length: 8 }, (_, i) => (
+            <circle key={i} r="2" opacity="0.6">
+              <animateMotion dur="12s" repeatCount="indefinite" calcMode="linear" begin={`${i * 0.3}s`}>
+                <mpath href="#curved-track" />
+              </animateMotion>
+              <animate attributeName="fill" 
+                values="rgba(60, 230, 192, 0.5);rgba(34, 197, 94, 0.5);rgba(59, 130, 246, 0.5);rgba(168, 85, 247, 0.5);rgba(236, 72, 153, 0.5);rgba(60, 230, 192, 0.5)" 
+                dur="12s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3s" repeatCount="indefinite" />
+            </circle>
+          ))}
+        </svg>
+        
+        {/* 环境粒子效果 */}
+        <div className="absolute inset-0 opacity-[0.15]">
+          <div className="w-full h-full animate-env-particles" style={{
+            backgroundImage: `
+              radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.3) 1px, transparent 2px),
+              radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.25) 1px, transparent 2px),
+              radial-gradient(circle at 60% 70%, rgba(34, 197, 94, 0.2) 1px, transparent 2px),
+              radial-gradient(circle at 30% 80%, rgba(236, 72, 153, 0.25) 1px, transparent 2px)
+            `,
+            backgroundSize: '150px 150px, 180px 180px, 200px 200px, 160px 160px',
+          }} />
+        </div>
+      </div>
       <div className="relative z-10 w-full h-full" style={{ padding: '60px 24px' }}>
         <div className="w-full max-w-7xl mx-auto h-full">
           
@@ -2134,6 +2448,366 @@ const Section2Descent3D = ({ id }) => {
         .concept-chip.active {
           transform: scale(1.05);
           box-shadow: 0 4px 12px rgba(34, 211, 238, 0.4);
+        }
+        
+        /* 九曲十八弯重力轨道动画样式 */
+        @keyframes track-glow {
+          0%, 100% { 
+            filter: brightness(1) drop-shadow(0 0 2px currentColor); 
+            opacity: 0.8; 
+          }
+          50% { 
+            filter: brightness(1.3) drop-shadow(0 0 6px currentColor); 
+            opacity: 1; 
+          }
+        }
+        
+        @keyframes wormhole-pulse {
+          0%, 100% { 
+            transform: scale(1); 
+            opacity: 0.7; 
+          }
+          33% { 
+            transform: scale(1.15); 
+            opacity: 1; 
+          }
+          66% { 
+            transform: scale(0.9); 
+            opacity: 0.8; 
+          }
+        }
+        
+        @keyframes wormhole-rotation {
+          0% { 
+            transform: rotate(0deg) scale(1); 
+          }
+          25% { 
+            transform: rotate(90deg) scale(1.1); 
+          }
+          50% { 
+            transform: rotate(180deg) scale(1); 
+          }
+          75% { 
+            transform: rotate(270deg) scale(1.1); 
+          }
+          100% { 
+            transform: rotate(360deg) scale(1); 
+          }
+        }
+        
+        @keyframes wormhole-ring {
+          0% { 
+            transform: rotate(0deg) scale(1); 
+            opacity: 0.8; 
+          }
+          50% { 
+            transform: rotate(180deg) scale(1.2); 
+            opacity: 0.4; 
+          }
+          100% { 
+            transform: rotate(360deg) scale(1); 
+            opacity: 0.8; 
+          }
+        }
+        
+        @keyframes wormhole-outer-ring {
+          0%, 100% { 
+            transform: scale(1) rotate(0deg); 
+            opacity: 0.6; 
+          }
+          50% { 
+            transform: scale(1.1) rotate(180deg); 
+            opacity: 0.3; 
+          }
+        }
+        
+        @keyframes wormhole-core {
+          0%, 100% { 
+            transform: scale(1); 
+            opacity: 0.9; 
+          }
+          25% { 
+            transform: scale(1.3); 
+            opacity: 1; 
+          }
+          50% { 
+            transform: scale(0.8); 
+            opacity: 0.7; 
+          }
+          75% { 
+            transform: scale(1.1); 
+            opacity: 0.95; 
+          }
+        }
+        
+        @keyframes wormhole-particles {
+          0%, 100% { 
+            opacity: 0.8; 
+          }
+          50% { 
+            opacity: 0.3; 
+          }
+        }
+        
+        /* 黑洞特效动画 */
+        @keyframes blackhole-event-horizon {
+          0%, 100% { 
+            transform: scale(1); 
+            opacity: 0.6; 
+          }
+          50% { 
+            transform: scale(1.05); 
+            opacity: 0.8; 
+          }
+        }
+        
+        @keyframes blackhole-accretion {
+          0% { 
+            transform: rotate(0deg); 
+            stroke-dashoffset: 0; 
+          }
+          100% { 
+            transform: rotate(360deg); 
+            stroke-dashoffset: -54; 
+          }
+        }
+        
+        @keyframes blackhole-disk {
+          0% { 
+            transform: rotate(0deg) scale(1); 
+            opacity: 0.5; 
+          }
+          100% { 
+            transform: rotate(360deg) scale(1); 
+            opacity: 0.5; 
+          }
+        }
+        
+        @keyframes blackhole-disk-ring {
+          0% { 
+            transform: rotate(0deg) scaleY(1); 
+          }
+          25% { 
+            transform: rotate(90deg) scaleY(0.3); 
+          }
+          50% { 
+            transform: rotate(180deg) scaleY(1); 
+          }
+          75% { 
+            transform: rotate(270deg) scaleY(0.3); 
+          }
+          100% { 
+            transform: rotate(360deg) scaleY(1); 
+          }
+        }
+        
+        @keyframes blackhole-core {
+          0%, 100% { 
+            transform: scale(1); 
+            opacity: 0.95; 
+          }
+          50% { 
+            transform: scale(1.2); 
+            opacity: 0.8; 
+          }
+        }
+        
+        @keyframes hawking-radiation {
+          0%, 100% { 
+            opacity: 0.8; 
+          }
+          50% { 
+            opacity: 0.3; 
+          }
+        }
+        
+        @keyframes ball-teleport {
+          0%, 100% { 
+            filter: brightness(1) drop-shadow(0 0 4px currentColor); 
+          }
+          50% { 
+            filter: brightness(2) drop-shadow(0 0 12px currentColor); 
+          }
+        }
+        
+        @keyframes ball-freefall {
+          0% { 
+            filter: brightness(1.5) drop-shadow(0 0 6px currentColor); 
+          }
+          100% { 
+            filter: brightness(1) drop-shadow(0 0 4px currentColor); 
+          }
+        }
+        
+        @keyframes ball-journey {
+          0% { 
+            filter: brightness(1) drop-shadow(0 0 4px currentColor); 
+          }
+          50% { 
+            filter: brightness(1.4) drop-shadow(0 0 8px currentColor); 
+          }
+          100% { 
+            filter: brightness(1) drop-shadow(0 0 4px currentColor);
+          }
+        }
+        
+        /* 霓虹能量脉冲动画 */
+        @keyframes energy-pulse {
+          0%, 100% { 
+            stroke-opacity: 0.4;
+            filter: brightness(1) drop-shadow(0 0 8px currentColor);
+          }
+          50% { 
+            stroke-opacity: 0.8;
+            filter: brightness(1.5) drop-shadow(0 0 16px currentColor); 
+          }
+        }
+        
+        .animate-energy-halo {
+          animation: energy-pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes teleport-effect {
+          0% { 
+            opacity: 0; 
+            stroke-width: 3; 
+          }
+          50% { 
+            opacity: 1; 
+            stroke-width: 6; 
+            filter: drop-shadow(0 0 8px currentColor); 
+          }
+          100% { 
+            opacity: 0; 
+            stroke-width: 3; 
+          }
+        }
+        
+        @keyframes env-particles {
+          0%, 100% { 
+            transform: translateX(0px) translateY(0px) rotate(0deg); 
+            opacity: 0.15; 
+          }
+          25% { 
+            transform: translateX(3px) translateY(-2px) rotate(1deg); 
+            opacity: 0.2; 
+          }
+          50% { 
+            transform: translateX(-2px) translateY(3px) rotate(-1deg); 
+            opacity: 0.18; 
+          }
+          75% { 
+            transform: translateX(2px) translateY(-1px) rotate(0.5deg); 
+            opacity: 0.22; 
+          }
+        }
+        
+        .animate-track-glow {
+          animation: track-glow 8s ease-in-out infinite;
+        }
+        
+        .animate-wormhole-pulse {
+          animation: wormhole-pulse 4s ease-in-out infinite;
+        }
+        
+        .animate-wormhole-rotation {
+          animation: wormhole-rotation 6s linear infinite;
+        }
+        
+        .animate-wormhole-ring {
+          animation: wormhole-ring 3s linear infinite;
+        }
+        
+        .animate-wormhole-outer-ring {
+          animation: wormhole-outer-ring 8s ease-in-out infinite;
+        }
+        
+        .animate-wormhole-core {
+          animation: wormhole-core 1.5s ease-in-out infinite;
+        }
+        
+        .animate-wormhole-particles {
+          animation: wormhole-particles 1s ease-in-out infinite;
+        }
+        
+        .animate-blackhole-event-horizon {
+          animation: blackhole-event-horizon 3s ease-in-out infinite;
+        }
+        
+        .animate-blackhole-accretion {
+          animation: blackhole-accretion 4s linear infinite;
+        }
+        
+        .animate-blackhole-disk {
+          animation: blackhole-disk 8s linear infinite;
+        }
+        
+        .animate-blackhole-disk-ring {
+          animation: blackhole-disk-ring 6s linear infinite;
+        }
+        
+        .animate-blackhole-core {
+          animation: blackhole-core 2s ease-in-out infinite;
+        }
+        
+        .animate-hawking-radiation {
+          animation: hawking-radiation 1.5s ease-in-out infinite;
+        }
+        
+        .animate-ball-teleport {
+          animation: ball-teleport 0.5s ease-in-out infinite;
+        }
+        
+        .animate-ball-freefall {
+          animation: ball-freefall 1.3s ease-out infinite;
+        }
+        
+        .animate-ball-journey {
+          animation: ball-journey 2s ease-in-out infinite;
+        }
+        
+        .animate-teleport-effect {
+          animation: teleport-effect 0.5s ease-in-out;
+        }
+        
+        .animate-env-particles {
+          animation: env-particles 20s ease-in-out infinite;
+        }
+        
+        .floating-math-symbol {
+          font-family: 'Times New Roman', serif;
+          user-select: none;
+          pointer-events: none;
+        }
+        
+        /* 无障碍支持 - 减少动画 */
+        @media (prefers-reduced-motion: reduce) {
+          .animate-fade-in,
+          .animate-fade-out,
+          .animate-track-glow,
+          .animate-wormhole-pulse,
+          .animate-wormhole-rotation,
+          .animate-wormhole-ring,
+          .animate-wormhole-outer-ring,
+          .animate-wormhole-core,
+          .animate-wormhole-particles,
+          .animate-ball-journey,
+          .animate-env-particles {
+            animation: none !important;
+          }
+          
+          circle[class*="animate"] {
+            animation: none !important;
+          }
+          
+          animateTransform {
+            animation: none !important;
+          }
+          
+          * {
+            transition: none !important;
+            filter: none !important;
+          }
         }
       `}</style>
     </section>
