@@ -1603,6 +1603,30 @@ const Section2Descent3D = ({ id }) => {
               <stop offset="95%" stopColor="#a100ff" stopOpacity="0.8" />
               <stop offset="100%" stopColor="#FF1493" stopOpacity="0.4" />
             </radialGradient>
+            
+            {/* 完整小球动画路径 - 4阶段连续路径 */}
+            <path id="ballCompletePath" d="
+              M 50 170 
+              L 50 175 L 50 180 L 50 185 L 50 190 L 50 195 L 50 200
+              C 100 220, 150 240, 200 260
+              C 250 280, 300 300, 350 280
+              C 400 260, 450 220, 500 180
+              C 550 140, 600 100, 650 120
+              C 700 140, 750 180, 800 200
+              C 850 220, 900 240, 950 220
+              C 1000 200, 1100 180, 1200 200 
+              Q 1250 160, 1300 220 
+              Q 1320 280, 1280 340 
+              Q 1240 400, 1200 360 
+              Q 1100 280, 1000 380 
+              Q 900 480, 800 420 
+              Q 700 360, 600 460 
+              Q 500 560, 400 500 
+              Q 300 440, 200 540 
+              Q 100 640, 80 680
+              Q 82 695, 80 710
+              L 80 710 L 80 710 L 80 710
+            " fill="none" />
           </defs>
           
           {/* 九曲十八弯轨道 - 从高到低的蜿蜒路径，穿过各功能区域 */}
@@ -1802,30 +1826,33 @@ const Section2Descent3D = ({ id }) => {
             </g>
           </g>
           
-          {/* 统一小球 - 4阶段完整动画 */}
+          {/* 统一小球 - animateMotion方案解决路径贴合问题 */}
           <circle r="8" fill="rgb(60, 230, 192)">
-            {/* 阶段1: 从虫洞弹出 (0-2秒) + 阶段2: 沿轨道运动 (2-10秒) + 阶段3: 被吸入 (10-12秒) */}
-            <animate attributeName="cx" 
-              values="50;50;50;50;200;350;500;650;800;950;1200;1300;1200;1000;800;600;400;200;80;80;80" 
-              dur="12s" repeatCount="indefinite" begin="0s" />
-            <animate attributeName="cy" 
-              values="170;180;190;200;260;280;180;120;200;220;200;220;360;380;420;460;500;540;680;710;710" 
-              dur="12s" repeatCount="indefinite" begin="0s" />
+            {/* 主要路径动画 - 使用精确的SVG路径 */}
+            <animateMotion dur="10s" repeatCount="indefinite" 
+                          calcMode="linear" 
+                          keyTimes="0;0.07;0.93;1" 
+                          keyPoints="0;0;1;1">
+              <mpath href="#ballCompletePath" />
+            </animateMotion>
             
-            {/* 透明度动画 - 4个阶段 */}
+            {/* 透明度动画 - 4个关键阶段 */}
             <animate attributeName="opacity" 
-              values="0;0.5;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;0.5;0" 
-              dur="12s" repeatCount="indefinite" begin="0s" />
+              values="0;1;1;0" 
+              keyTimes="0;0.07;0.93;1"
+              dur="10s" repeatCount="indefinite" />
             
-            {/* 尺寸动画 - 4个阶段 */}
+            {/* 尺寸动画 - 弹出和吸入时的缩放效果 */}
             <animate attributeName="r" 
-              values="4;6;8;8;8;8;8;8;8;8;8;8;8;8;8;8;8;8;8;4;0" 
-              dur="12s" repeatCount="indefinite" begin="0s" />
+              values="2;8;8;2" 
+              keyTimes="0;0.07;0.93;1"
+              dur="10s" repeatCount="indefinite" />
             
-            {/* 颜色动画 - 4个阶段 */}
+            {/* 颜色动画 - 不同阶段的颜色变化 */}
             <animate attributeName="fill" 
-              values="rgb(0,255,255);rgb(161,0,255);rgb(60,230,192);rgb(60,230,192);rgb(34,197,94);rgb(59,130,246);rgb(168,85,247);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(236,72,153);rgb(255,100,100);rgb(255,255,255)" 
-              dur="12s" repeatCount="indefinite" begin="0s" />
+              values="rgb(0,255,255);rgb(60,230,192);rgb(236,72,153);rgb(255,100,100)" 
+              keyTimes="0;0.07;0.93;1"
+              dur="10s" repeatCount="indefinite" />
           </circle>
           
           {/* 粒子轨迹效果 */}
