@@ -1891,14 +1891,7 @@ const Section2Descent3D = ({ id }) => {
             {/* 左侧：标题 + 函数公式 + 实时信息 + 核心概念 */}
             <div className="flex-shrink-0 flex flex-col space-y-4" style={{ width: '235px' }}>
               
-              {/* 1. 页面标题 */}
-              <div className="text-center flex-shrink-0">
-                <h1 className="text-base font-bold mb-1" style={{ color: 'var(--ink-high)' }}>
-                  交互式优化算法演示
-                </h1>
-              </div>
-              
-              {/* 2. 目标函数公式 */}
+              {/* 1. 目标函数公式 */}
               <div className="flex-shrink-0">
                 <div className="p-3 rounded-lg border text-center" style={{
                   backgroundColor: 'var(--bg-elevated)',
@@ -1914,7 +1907,7 @@ const Section2Descent3D = ({ id }) => {
                 </div>
               </div>
               
-              {/* 3. 实时信息 HUD */}
+              {/* 2. 实时信息 HUD */}
               <div className="flex-shrink-0">
                 <div className="p-3 rounded-lg border" style={{
                   backgroundColor: 'var(--bg-elevated)',
@@ -1952,7 +1945,7 @@ const Section2Descent3D = ({ id }) => {
                 </div>
               </div>
               
-              {/* 4. 核心概念按钮 */}
+              {/* 3. 核心概念按钮 */}
               <div className="flex-1 flex flex-col justify-start">
                 <div className="flex-1 flex flex-col justify-between">
                     {termChips.map((chip, index) => {
