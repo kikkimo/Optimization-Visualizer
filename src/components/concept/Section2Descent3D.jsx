@@ -1189,44 +1189,6 @@ const FunctionSurface = ({
     return geometry;
   }, []);
 
-  // 创建等高线 - 基于二次型 f(x,y) = 0.01*x^2 + 0.02*xy + 0.04*y^2 = L 的椭圆
-  const contourLines = useMemo(() => {
-    const lines = [];
-    const levels = [0.02, 0.06, 0.12, 0.20, 0.30, 0.42, 0.56, 0.72, 0.90, 1.10, 1.32, 1.56, 1.82, 2.10]; // 扩大等高线范围适配新显示范围
-    
-    // H的特征值：λ1 = (5-√13)/100 ≈ 0.01394, λ2 = (5+√13)/100 ≈ 0.08606
-    const lambda1 = (5 - Math.sqrt(13)) / 100; // 较小特征值
-    const lambda2 = (5 + Math.sqrt(13)) / 100; // 较大特征值
-    
-    // 特征向量对应的旋转角度：H = [[1,1],[1,4]]/50 的主轴
-    const theta = Math.atan(2 * 1 / (4 - 1)) / 2; // ≈ 0.3398 rad ≈ 19.47°
-    
-    levels.forEach(level => {
-      const points = [];
-      const numPoints = 64;
-      
-      // 椭圆半轴长度：ri = sqrt(2*L/λi)
-      const r1 = Math.sqrt(2 * level / lambda1); // 长轴
-      const r2 = Math.sqrt(2 * level / lambda2); // 短轴
-      
-      for (let i = 0; i <= numPoints; i++) {
-        const angle = (i / numPoints) * 2 * Math.PI;
-        // 标准椭圆参数方程
-        const u = r1 * Math.cos(angle);
-        const v = r2 * Math.sin(angle);
-        
-        // 旋转到主轴方向
-        const x = u * Math.cos(theta) - v * Math.sin(theta);
-        const z = u * Math.sin(theta) + v * Math.cos(theta);
-        
-        points.push([x, 0.02, z]);
-      }
-      
-      lines.push({ points, level });
-    });
-    
-    return lines;
-  }, []);
 
   return (
     <>
@@ -1431,22 +1393,6 @@ const FunctionSurface = ({
               opacity={0.8}
             />
           )}
-        </>
-      )}
-      
-      {/* 等高线投影 */}
-      {(currentActiveTerm === 'objective' || showTrajectory) && (
-        <>
-          {contourLines.map((line, index) => (
-            <Line
-              key={index}
-              points={line.points}
-              color="#6b7280"
-              lineWidth={1}
-              transparent
-              opacity={0.4}
-            />
-          ))}
         </>
       )}
       
