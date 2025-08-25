@@ -850,14 +850,28 @@ const FeasibleSolutionAnimatedDrone = ({ pathId, resetKey }) => {
   );
 };
 
-// 最优解动画无人机组件
+// 最优解动画无人机组件 - 显示emoji但模仿可行解的路径跟踪实现
 const OptimalSolutionAnimatedDrone = ({ pathId, resetKey, objectiveType }) => {
   const droneRef = useRef(null);
+  
+  // 根据目标函数类型调整动画时长
+  const getAnimationDuration = () => {
+    switch (objectiveType) {
+      case 'time':
+        return '3.06s'; // 最短时间：4.375s × 70% = 3.06秒
+      case 'energy':
+        return '3.97s'; // 最优能耗：5.67s × 70% = 3.97秒
+      case 'balanced':
+        return '3.43s'; // 平衡模式：4.9s × 70% = 3.43秒
+      default:
+        return '3.43s';
+    }
+  };
   
   useEffect(() => {
     if (droneRef.current) {
       
-      const animations = droneRef.current.querySelectorAll('animateMotion');
+      const animations = droneRef.current.querySelectorAll('animateMotion, animate');
       animations.forEach(anim => {
         try {
           anim.endElement();
@@ -878,7 +892,7 @@ const OptimalSolutionAnimatedDrone = ({ pathId, resetKey, objectiveType }) => {
       dominantBaseline="middle"
     >
       🚁
-      <animateMotion dur="6s" repeatCount="indefinite" begin="0s">
+      <animateMotion dur={getAnimationDuration()} repeatCount="indefinite" calcMode="linear">
         <mpath href={`#${pathId}`} />
       </animateMotion>
     </text>
@@ -1236,7 +1250,7 @@ const UavSceneSvg = ({ currentActiveTerm, objectiveType, constraintStates, anima
           strokeWidth={currentActiveTerm === 'optimal-solution' ? '6' : '3'}
           filter={currentActiveTerm === 'optimal-solution' ? 'url(#glow)' : 'none'}
           className="transition-all duration-300"
-          id="optimal-path-main"
+          id={`optimal-path-main-${animationResetKey}`}
         />
         
         
@@ -1258,11 +1272,18 @@ const UavSceneSvg = ({ currentActiveTerm, objectiveType, constraintStates, anima
           </g>
         )}
         
-        {/* 无人机emoji动画（当悬浮最优解标签时） */}
+        {/* 无人机emoji动画（当悬浮最优解标签时） - 完全模仿可行解实现 */}
         {currentActiveTerm === 'optimal-solution' && (
-          <g className="animate-fade-in" key={`optimal-solution-container-${animationResetKey}`}>
+          <g key={`optimal-solution-container-${animationResetKey}`}>
+            <path d={getOptimalPath()} 
+                  fill="none" 
+                  stroke="transparent" 
+                  strokeWidth="4"
+                  id={`optimal-solution-path-${animationResetKey}`} />
+            
+            {/* 最优解无人机动画 - 使用emoji */}
             <OptimalSolutionAnimatedDrone
-              pathId="optimal-path-main"
+              pathId={`optimal-solution-path-${animationResetKey}`}
               resetKey={animationResetKey}
               objectiveType={objectiveType}
             />
