@@ -323,17 +323,34 @@ const BreathingConstraints = ({
 };
 
 // 呼吸曲面组件
-const BreathingSurface = ({ geometry, currentActiveTerm }) => {
+const BreathingSurface = ({ geometry, currentActiveTerm, showGradientField }) => {
   const meshRef = useRef();
   
   useFrame((state) => {
-    if (meshRef.current && currentActiveTerm === 'objective') {
-      const time = state.clock.getElapsedTime();
-      const breathingCycle = Math.sin(time * 2); // 呼吸周期 2Hz，稍微慢一点
-      
-      // 透明度变化 (0.1 到 1.0) - 从几乎完全透明到完全不透明
-      const opacity = 0.1 + 0.9 * (0.5 + 0.5 * breathingCycle);
-      meshRef.current.material.opacity = opacity;
+    if (meshRef.current) {
+      // 梯度场模式下：原曲面呼吸闪烁（完全透明到半透明）
+      if (showGradientField) {
+        const time = state.clock.getElapsedTime();
+        const breathingCycle = Math.sin(time * 1); // 降低呼吸频率 1Hz
+        
+        // 透明度变化 (0.0 到 0.5) - 从完全透明到半透明
+        // 使用 (1 + sin(t)) / 2 确保范围是 0 到 1，然后乘以 0.5
+        const opacity = 0.5 * (1 + breathingCycle) / 2;
+        meshRef.current.material.opacity = opacity;
+      }
+      // 普通模式下：原有的objective呼吸效果
+      else if (currentActiveTerm === 'objective') {
+        const time = state.clock.getElapsedTime();
+        const breathingCycle = Math.sin(time * 2); // 呼吸周期 2Hz，稍微慢一点
+        
+        // 透明度变化 (0.1 到 1.0) - 从几乎完全透明到完全不透明
+        const opacity = 0.1 + 0.9 * (0.5 + 0.5 * breathingCycle);
+        meshRef.current.material.opacity = opacity;
+      }
+      // 关闭梯度场后，恢复默认透明度
+      else {
+        meshRef.current.material.opacity = currentActiveTerm === 'objective' ? 0.95 : 0.85;
+      }
     }
   });
 
@@ -509,11 +526,558 @@ const BreathingTrajectory = ({ trajectory }) => {
   );
 };
 
+// 梯度场组件 - 在XOY平面显示等值线和梯度向量，以及切平面
+const GradientField = ({ ballPosition, algorithm, stepSize, dampingFactor }) => {
+  const groupRef = useRef();
+  
+  // 目标函数定义
+  const targetFunction = (x, z) => {
+    return 0.01 * x * x + 0.02 * x * z + 0.04 * z * z;
+  };
+
+  // 梯度计算 - f(x,y) = 0.01x² + 0.02xy + 0.04y²
+  // 注意：Three.js中Y是垂直轴，我们的函数中y对应Three.js的z轴
+  const computeGradient = (x, y) => {
+    // ∂f/∂x = 0.02x + 0.02y
+    // ∂f/∂y = 0.02x + 0.08y
+    const gradX = 0.02 * x + 0.02 * y;
+    const gradY = 0.02 * x + 0.08 * y;
+    return [gradX, gradY]; // 返回XOY平面的梯度向量
+  };
+
+  // 生成等值线数据 - f(x,y) = 常数，Z从0到60，间隔5
+  // 考虑到显示范围，只显示合理大小的等值线
+  const contourLevels = Array.from({length: 10}, (_, i) => (i + 1) * 5); // [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+  const gridSize = 200;
+  const range = 60;
+  
+  // 基于最外层等值线边界的格网梯度向量场
+  const generateGradientVectorsOnGrid = () => {
+    const vectors = [];
+    const scale = 1.0; // 缩放系数，使向量长度合适
+    const gridStep = 5; // 格网大小参数（可修改：2=密集，4=适中，6=稀疏）
+    
+    // 找到最外层等值线的边界
+    const maxLevel = Math.max(...contourLevels);
+    
+    // 计算最外层椭圆的参数
+    const a = 0.01, b = 0.01, c = 0.04;
+    const trace = a + c;
+    const det = a * c - b * b;
+    
+    const discriminant = Math.sqrt(trace * trace - 4 * det);
+    const lambda1 = (trace + discriminant) / 2;
+    const lambda2 = (trace - discriminant) / 2;
+    
+    const semiAxisA = Math.sqrt(maxLevel / lambda1);
+    const semiAxisB = Math.sqrt(maxLevel / lambda2);
+    
+    // 旋转角度
+    let rotationAngle = 0;
+    if (Math.abs(b) > 1e-10) {
+      rotationAngle = Math.atan2(lambda1 - a, b);
+    }
+    
+    // 计算最外层椭圆的XY边界范围
+    // 对于旋转椭圆，需要计算包围框
+    const cosAngle = Math.cos(rotationAngle);
+    const sinAngle = Math.sin(rotationAngle);
+    
+    // 椭圆包围框计算
+    const xExtent = Math.sqrt((semiAxisA * cosAngle) ** 2 + (semiAxisB * sinAngle) ** 2);
+    const yExtent = Math.sqrt((semiAxisA * sinAngle) ** 2 + (semiAxisB * cosAngle) ** 2);
+    
+    const xMin = Math.floor(-xExtent);
+    const xMax = Math.ceil(xExtent);
+    const yMin = Math.floor(-yExtent);
+    const yMax = Math.ceil(yExtent);
+    
+    // 在边界矩形内按格网生成梯度向量
+    for (let x = xMin; x <= xMax; x += gridStep) {
+      for (let y = yMin; y <= yMax; y += gridStep) {
+        // 计算该点的梯度
+        const [gradX, gradY] = computeGradient(x, y);
+        const magnitude = Math.sqrt(gradX * gradX + gradY * gradY);
+        
+        if (magnitude > 0.001) {
+          vectors.push({
+            startPosition: [x, 0.1, y], // Three.js坐标：(x, 0.1, z)对应数学坐标(x, y)
+            endPosition: [x + gradX * scale, 0.1, y + gradY * scale], // 向量终点
+            direction: [gradX, 0, gradY], // Three.js中的方向向量
+            magnitude: magnitude
+          });
+        }
+      }
+    }
+    
+    return vectors;
+  };
+
+  const vectors = useMemo(() => generateGradientVectorsOnGrid(), []);
+
+  // 梯度场模式：梯度向量和等值线始终显示，不呼吸闪烁
+
+  return (
+    <group ref={groupRef}>
+      {/* 等值线 - 呼吸效果 */}
+      {contourLevels.map((level, index) => (
+        <ContourLine key={index} level={level} showGradientField={true} />
+      ))}
+      
+      {/* 梯度向量箭头 - 始终显示 */}
+      {vectors.map((vector, index) => (
+        <GradientArrow
+          key={index}
+          startPosition={vector.startPosition}
+          endPosition={vector.endPosition}
+          direction={vector.direction}
+          magnitude={vector.magnitude}
+        />
+      ))}
+      
+      {/* 切平面和交线 */}
+      <TangentPlaneAndIntersection ballPosition={ballPosition} />
+      
+      {/* 修正向量 */}
+      <CorrectionVector 
+        ballPosition={ballPosition}
+        algorithm={algorithm}
+        stepSize={stepSize}
+        dampingFactor={dampingFactor}
+      />
+    </group>
+  );
+};
+
+// 切平面和交线组件
+// 修正向量组件
+const CorrectionVector = ({ ballPosition, algorithm, stepSize, dampingFactor }) => {
+  if (!ballPosition) return null;
+  
+  const x0 = ballPosition[0];       // x0
+  const y0 = ballPosition[2];       // y0 (Three.js中z对应数学y)
+  
+  // 计算当前点的梯度 ∇f(x0,y0)
+  const computeGradient = (x, y) => {
+    const gradX = 0.02 * x + 0.02 * y;
+    const gradY = 0.02 * x + 0.08 * y;
+    return [gradX, gradY];
+  };
+  
+  // 计算海塞矩阵 H(x0,y0)
+  const computeHessian = () => {
+    // f(x,y) = 0.01(x² + 2xy + 4y²)
+    // ∂²f/∂x² = 0.02, ∂²f/∂x∂y = 0.02, ∂²f/∂y² = 0.08
+    return [[0.02, 0.02], [0.02, 0.08]];
+  };
+  
+  // 矩阵求逆函数 (2x2矩阵)
+  const invertMatrix2x2 = (matrix) => {
+    const [[a, b], [c, d]] = matrix;
+    const det = a * d - b * c;
+    if (Math.abs(det) < 1e-10) return null; // 矩阵奇异
+    return [[d / det, -b / det], [-c / det, a / det]];
+  };
+  
+  // 矩阵向量乘法
+  const multiplyMatrixVector = (matrix, vector) => {
+    const [x, y] = vector;
+    return [
+      matrix[0][0] * x + matrix[0][1] * y,
+      matrix[1][0] * x + matrix[1][1] * y
+    ];
+  };
+  
+  const [gradX, gradY] = computeGradient(x0, y0);
+  let correctionX, correctionY;
+  
+  if (algorithm === 'gradient') {
+    // 梯度下降法：修正向量 = -α∇f(x0,y0)
+    correctionX = -stepSize * gradX;
+    correctionY = -stepSize * gradY;
+  } else if (algorithm === 'newton' || algorithm === 'damped-newton') {
+    // 牛顿法：修正向量 = -η H^(-1)∇f(x0,y0)
+    // 注意：牛顿法也使用阻尼系数（dampingFactor）
+    const hessian = computeHessian();
+    const hessianInverse = invertMatrix2x2(hessian);
+    
+    if (hessianInverse) {
+      const hInvGrad = multiplyMatrixVector(hessianInverse, [gradX, gradY]);
+      // 牛顿法和阻尼牛顿法都使用阻尼系数
+      correctionX = -dampingFactor * hInvGrad[0];
+      correctionY = -dampingFactor * hInvGrad[1];
+    } else {
+      // 如果海塞矩阵奇异，回退到梯度下降
+      correctionX = -stepSize * gradX;
+      correctionY = -stepSize * gradY;
+    }
+  }
+  
+  // 向量起点是当前点(x0, y0)，终点是(x0 + correctionX, y0 + correctionY)
+  const startPoint = new THREE.Vector3(x0, 0.1, y0); // 在XOY平面稍高处
+  const endPoint = new THREE.Vector3(x0 + correctionX, 0.1, y0 + correctionY);
+  
+  // 计算向量方向和长度
+  const direction = new THREE.Vector3().subVectors(endPoint, startPoint);
+  const length = direction.length();
+  
+  if (length < 1e-6) return null; // 向量太短，不绘制
+  
+  direction.normalize();
+  
+  return (
+    <group>
+      {/* 使用ArrowHelper绘制蓝色箭头 */}
+      <primitive 
+        object={new THREE.ArrowHelper(
+          direction,          // 方向
+          startPoint,         // 起点
+          length,            // 长度
+          0x0066ff,          // 蓝色
+          length * 0.2,      // 箭头头部长度
+          length * 0.1       // 箭头头部宽度
+        )}
+      />
+    </group>
+  );
+};
+const TangentPlaneAndIntersection = ({ ballPosition }) => {
+  if (!ballPosition) return null;
+  
+  const x0 = ballPosition[0];       // x0
+  const y0 = ballPosition[2];       // y0 (Three.js中z对应数学y)
+  const z0 = ballPosition[1];       // z0 = f(x0,y0) 曲面高度
+  
+  // 根据公式：f(x,y) = 0.01(x² + 2xy + 4y²)
+  // 切平面方程：z = 0.02(x0+y0)x + (0.02x0+0.08y0)y - 0.01x0² - 0.02x0y0 - 0.04y0²
+  
+  const A = 0.02 * (x0 + y0);           // x的系数
+  const B = 0.02 * x0 + 0.08 * y0;     // y的系数  
+  const C = 0.01 * x0 * x0 + 0.02 * x0 * y0 + 0.04 * y0 * y0; // 常数项
+  
+  // 切平面法向量：[A, B, -1] -> Three.js坐标系 [A, -1, B]
+  const normal = new THREE.Vector3(A, -1, B);
+  normal.normalize();
+  
+  // 交线方程（z=0时）：2(x0+y0)x + (2x0+8y0)y = x0²+2x0y0+4y0²
+  const intersectionA = 2 * (x0 + y0);        // x的系数
+  const intersectionB = 2 * x0 + 8 * y0;      // y的系数
+  const intersectionC = x0 * x0 + 2 * x0 * y0 + 4 * y0 * y0; // 右边常数
+  
+  const planeSize = 60; // 增大平面尺寸，确保穿过XOY平面
+  
+  // 创建旋转矩阵来设置平面方向
+  const meshRef = useRef();
+  
+  useEffect(() => {
+    if (meshRef.current) {
+      // 设置平面朝向法向量方向
+      const lookAtTarget = new THREE.Vector3(x0 + normal.x, z0 + normal.y, y0 + normal.z);
+      meshRef.current.lookAt(lookAtTarget);
+    }
+  }, [x0, y0, z0, normal.x, normal.y, normal.z]);
+  
+  return (
+    <group>
+      {/* 半透明切平面 */}
+      <mesh ref={meshRef} position={[x0, z0, y0]}>
+        <planeGeometry args={[planeSize, planeSize]} />
+        <meshBasicMaterial 
+          color="#87ceeb" 
+          transparent 
+          opacity={0.3}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      
+      {/* 切平面与XOY平面的交线（琥珀色虚线） */}
+      <IntersectionLine 
+        A={intersectionA} 
+        B={intersectionB} 
+        C={intersectionC} 
+      />
+    </group>
+  );
+};
+
+// 交线组件
+const IntersectionLine = ({ A, B, C }) => {
+  const points = useMemo(() => {
+    const linePoints = [];
+    
+    if (Math.abs(B) > 1e-6) {
+      // 如果B != 0，用x参数化：y = (C - A*x) / B
+      for (let x = -50; x <= 50; x += 2) {
+        const y = (C - A * x) / B;
+        if (Math.abs(y) <= 50) { // 限制在合理范围内
+          linePoints.push(new THREE.Vector3(x, 0.2, y)); // 稍高于XOY平面
+        }
+      }
+    } else if (Math.abs(A) > 1e-6) {
+      // 如果A != 0，用y参数化：x = C / A
+      const x = C / A;
+      if (Math.abs(x) <= 50) {
+        for (let y = -50; y <= 50; y += 2) {
+          linePoints.push(new THREE.Vector3(x, 0.2, y));
+        }
+      }
+    }
+    
+    return linePoints;
+  }, [A, B, C]);
+
+  if (points.length < 2) return null;
+
+  return (
+    <Line
+      points={points.map(p => [p.x, p.y, p.z])}
+      color="#00ff00" // 绿色
+      lineWidth={3}
+      transparent
+      opacity={0.8}
+      dashed={true}
+      dashSize={0.5}
+      gapSize={0.3}
+    />
+  );
+};
+
+// 等值线组件 - 基于二次型的椭圆等值线
+const ContourLine = ({ level, showGradientField }) => {
+  const [breathingOpacity, setBreathingOpacity] = useState(0.8);
+  
+  // 呼吸效果动画
+  useFrame((state) => {
+    if (showGradientField) {
+      const time = state.clock.getElapsedTime();
+      const opacity = 0.4 + 0.4 * (1 + Math.sin(time * 1)) / 2; // 降低频率到1Hz，透明度0.4-0.8之间
+      setBreathingOpacity(opacity);
+    } else {
+      setBreathingOpacity(0.8); // 默认透明度
+    }
+  });
+  
+  const points = useMemo(() => {
+    if (level === 0) {
+      // level=0时，只有原点(0,0)满足条件
+      return [new THREE.Vector3(0, 0.05, 0)];
+    }
+    
+    const contourPoints = [];
+    const resolution = 360; // 增加分辨率获得更光滑的曲线
+    
+    // 对于二次型 f(x,y) = 0.01x² + 0.02xy + 0.04y² = level
+    // 矩阵形式 A = [[0.01, 0.01], [0.01, 0.04]]
+    
+    // 计算特征值
+    const a = 0.01, b = 0.01, c = 0.04;
+    const trace = a + c; // 0.05
+    const det = a * c - b * b; // 0.0003
+    
+    const discriminant = Math.sqrt(trace * trace - 4 * det);
+    const lambda1 = (trace + discriminant) / 2; // ≈ 0.0447
+    const lambda2 = (trace - discriminant) / 2; // ≈ 0.0053
+    
+    // 椭圆的半轴长度
+    const semiAxisA = Math.sqrt(level / lambda1);
+    const semiAxisB = Math.sqrt(level / lambda2);
+    
+    // 检查椭圆是否过大（避免显示过大的椭圆）
+    const maxRadius = Math.max(semiAxisA, semiAxisB);
+    if (maxRadius > 100) {
+      return []; // 椭圆太大，不显示
+    }
+    
+    // 旋转角度 - 第一特征向量的角度
+    let rotationAngle = 0;
+    if (Math.abs(b) > 1e-10) {
+      rotationAngle = Math.atan2(lambda1 - a, b);
+    }
+    
+    // 生成完整的椭圆点
+    for (let i = 0; i <= resolution; i++) {
+      const t = (i / resolution) * 2 * Math.PI;
+      
+      // 标准椭圆上的点
+      const u = semiAxisA * Math.cos(t);
+      const v = semiAxisB * Math.sin(t);
+      
+      // 旋转变换
+      const x = u * Math.cos(rotationAngle) - v * Math.sin(rotationAngle);
+      const y = u * Math.sin(rotationAngle) + v * Math.cos(rotationAngle);
+      
+      contourPoints.push(new THREE.Vector3(x, 0.05, y));
+    }
+    
+    return contourPoints;
+  }, [level]);
+
+  if (points.length <= 1) return null;
+
+  // 根据等值线级别设置颜色 - 更明显的颜色区分
+  const getColorByLevel = (level) => {
+    if (level === 0) return "#ffffff";
+    const intensity = Math.min(level / 50, 1); // 归一化到0-1
+    const hue = 180 + intensity * 80; // 从青色(180)到紫色(260)
+    return `hsl(${hue}, 80%, 65%)`;
+  };
+
+  return (
+    <line>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={points.length}
+          array={new Float32Array(points.flatMap(p => [p.x, p.y, p.z]))}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <lineBasicMaterial 
+        color={getColorByLevel(level)}
+        transparent
+        opacity={breathingOpacity}
+        linewidth={2}
+      />
+    </line>
+  );
+};
+
+// 梯度箭头组件 - 使用THREE.ArrowHelper绘制XOY平面内的梯度向量
+// 带呼吸效果的坐标轴组件
+const BreathingAxes = ({ showGradientField }) => {
+  const groupRef = useRef();
+  
+  useFrame((state) => {
+    if (groupRef.current) {
+      if (showGradientField) {
+        const time = state.clock.getElapsedTime();
+        const breathingCycle = Math.sin(time * 1); // 降低呼吸频率 1Hz
+        
+        // 透明度变化 (0.0 到 0.5) - 从完全透明到半透明
+        // 使用 (1 + sin(t)) / 2 确保范围是 0 到 1，然后乘以 0.5
+        const opacity = 0.5 * (1 + breathingCycle) / 2;
+        
+        // 遍历所有子对象更新材质
+        groupRef.current.traverse((child) => {
+          if (child.material) {
+            child.material.opacity = opacity;
+            child.material.transparent = true;
+          }
+        });
+      } else {
+        // 非梯度场模式，恢复正常显示（完全不透明）
+        groupRef.current.traverse((child) => {
+          if (child.material) {
+            child.material.opacity = 1.0;
+            child.material.transparent = false;
+          }
+        });
+      }
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {/* X轴 */}
+      <Line
+        points={[[-60, 0, 0], [60, 0, 0]]}
+        color="#ffffff"
+        lineWidth={2}
+      />
+      {/* X轴箭头 */}
+      <mesh position={[60, 0, 0]} rotation={[0, 0, -Math.PI/2]}>
+        <coneGeometry args={[1, 3, 8]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      {/* X轴标签 */}
+      <Text
+        position={[63, 0, 0]}
+        fontSize={1.5}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+      >
+        X
+      </Text>
+      
+      {/* Y轴 (在XOY平面中，Y对应Z方向) */}
+      <Line
+        points={[[0, 0, -35], [0, 0, 35]]}
+        color="#ffffff"
+        lineWidth={2}
+      />
+      {/* Y轴箭头 */}
+      <mesh position={[0, 0, 35]} rotation={[Math.PI/2, 0, 0]}>
+        <coneGeometry args={[1, 3, 8]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      {/* Y轴标签 */}
+      <Text
+        position={[0, 0, 38]}
+        fontSize={1.5}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Y
+      </Text>
+    </group>
+  );
+};
+const GradientArrow = ({ startPosition, endPosition, direction, magnitude }) => {
+  const arrowRef = useRef();
+  
+  // 提取XOY平面的起点和终点坐标
+  const startX = startPosition[0];    // x
+  const startZ = startPosition[2];    // y (Three.js中z对应数学y)
+  const endX = endPosition[0];        // x + Δx
+  const endZ = endPosition[2];        // y + Δy
+  
+  // 计算梯度向量
+  const gradientVector = [endX - startX, 0, endZ - startZ]; // XOY平面内的向量
+  const vectorLength = Math.sqrt(gradientVector[0] * gradientVector[0] + gradientVector[2] * gradientVector[2]);
+  
+  if (vectorLength < 0.1) return null; // 太短的向量不显示
+  
+  // 单位向量
+  const unitVector = [
+    gradientVector[0] / vectorLength,
+    0, // Y方向为0，保持在XOY平面内
+    gradientVector[2] / vectorLength
+  ];
+  
+  // 根据梯度大小设置颜色
+  const intensity = Math.min(magnitude * 15, 1);
+  const red = 255;
+  const green = Math.floor(100 * (1 - intensity));
+  const blue = Math.floor(100 * (1 - intensity));
+  
+  // 将RGB转换为十六进制颜色值
+  const hexColor = (red << 16) | (green << 8) | blue;
+
+  return (
+    <group position={[startX, 0.1, startZ]} ref={arrowRef}>
+      {/* 使用THREE.ArrowHelper绘制梯度向量箭头 */}
+      <primitive
+        object={new THREE.ArrowHelper(
+          new THREE.Vector3(unitVector[0], unitVector[1], unitVector[2]), // 方向向量
+          new THREE.Vector3(0, 0, 0), // 起点（相对于group位置）
+          vectorLength, // 箭头总长度
+          hexColor, // 颜色
+          vectorLength * 0.2, // 箭头头部长度
+          vectorLength * 0.1  // 箭头头部宽度
+        )}
+      />
+    </group>
+  );
+};
+
 // 3D函数曲面组件
 const FunctionSurface = ({ 
   currentActiveTerm, 
   algorithm, 
   stepSize, 
+  dampingFactor,
   showTrajectory, 
   ballPosition, 
   setBallPosition, 
@@ -523,7 +1087,8 @@ const FunctionSurface = ({
   constraintType,
   isOptimal,
   gradientVector,
-  showVectors
+  showVectors,
+  showGradientField
 }) => {
   const meshRef = useRef();
   const ballRef = useRef();
@@ -665,14 +1230,25 @@ const FunctionSurface = ({
 
   return (
     <>
-      {/* 函数曲面 - 支持呼吸效果 */}
+      {/* 梯度场显示模式 */}
+      {showGradientField && (
+        <GradientField 
+          ballPosition={ballPosition} 
+          algorithm={algorithm}
+          stepSize={stepSize}
+          dampingFactor={dampingFactor || 1.0}
+        />
+      )}
+      
+      {/* 函数曲面 - 始终显示，根据模式调整呼吸效果 */}
       <BreathingSurface 
         geometry={surfaceGeometry}
         currentActiveTerm={currentActiveTerm}
+        showGradientField={showGradientField}
       />
       
-      {/* 曲面经纬线网格 */}
-      {currentActiveTerm !== 'domain' && (
+      {/* 曲面经纬线网格 - 梯度场模式时隐藏 */}
+      {currentActiveTerm !== 'domain' && !showGradientField && (
         <>
           {/* 经线 (X方向的曲线) */}
           {Array.from({ length: 51 }, (_, i) => {
@@ -1014,93 +1590,8 @@ const FunctionSurface = ({
         />
       </mesh>
       
-      {/* XOY平面坐标轴 */}
-      <group>
-        {/* X轴 */}
-        <Line
-          points={[[-60, 0, 0], [60, 0, 0]]}
-          color="#ffffff"
-          lineWidth={2}
-        />
-        {/* X轴箭头 */}
-        <mesh position={[60, 0, 0]} rotation={[0, 0, -Math.PI/2]}>
-          <coneGeometry args={[1, 3, 8]} />
-          <meshBasicMaterial color="#ffffff" />
-        </mesh>
-        {/* X轴标签 */}
-        <Text
-          position={[63, 0, 0]}
-          fontSize={1.5}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-        >
-          X
-        </Text>
-        
-        {/* Y轴 (在XOY平面中，Y对应Z方向) */}
-        <Line
-          points={[[0, 0, -35], [0, 0, 35]]}
-          color="#ffffff"
-          lineWidth={2}
-        />
-        {/* Y轴箭头 */}
-        <mesh position={[0, 0, 35]} rotation={[Math.PI/2, 0, 0]}>
-          <coneGeometry args={[1, 3, 8]} />
-          <meshBasicMaterial color="#ffffff" />
-        </mesh>
-        {/* Y轴标签 */}
-        <Text
-          position={[0, 0, 38]}
-          fontSize={1.5}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-        >
-          Y
-        </Text>
-        
-        {/* 坐标轴刻度 */}
-        {/* X轴刻度 */}
-        {[-40, -20, 20, 40].map(x => (
-          <group key={`x-tick-${x}`}>
-            <Line
-              points={[[x, 0, -1], [x, 0, 1]]}
-              color="#ffffff"
-              lineWidth={1}
-            />
-            <Text
-              position={[x, 0, -3]}
-              fontSize={1}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="middle"
-            >
-              {x}
-            </Text>
-          </group>
-        ))}
-        
-        {/* Y轴刻度 */}
-        {[-20, -10, 10, 20].map(y => (
-          <group key={`y-tick-${y}`}>
-            <Line
-              points={[[-1, 0, y], [1, 0, y]]}
-              color="#ffffff"
-              lineWidth={1}
-            />
-            <Text
-              position={[-3, 0, y]}
-              fontSize={1}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="middle"
-            >
-              {y}
-            </Text>
-          </group>
-        ))}
-      </group>
+      {/* XOY平面坐标轴 - 带呼吸效果 */}
+      <BreathingAxes showGradientField={showGradientField} />
       
       {/* 可行域随机点 */}
       <FeasibleRegionPoints 
@@ -1147,6 +1638,9 @@ const Section2Descent3D = ({ id }) => {
   const [showConstraints, setShowConstraints] = useState(false);
   const [constraintType, setConstraintType] = useState('inequality'); // inequality, equality
   const [constraintDropdownOpen, setConstraintDropdownOpen] = useState(false);
+  
+  // 梯度场显示状态
+  const [showGradientField, setShowGradientField] = useState(false);
   const [algorithmDropdownOpen, setAlgorithmDropdownOpen] = useState(false);
   
   // 收敛阈值状态 (范围: 0.001 ~ 0.00000001)
@@ -2016,11 +2510,26 @@ const Section2Descent3D = ({ id }) => {
             </div>
             
             {/* 中间：3D可视化区域 */}
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 relative">
               <div className="h-full rounded-xl border" style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--carbon-line)'
               }}>
+                
+                {/* 右上角梯度场显示按钮 */}
+                <button
+                  className="absolute top-0 right-0 z-10 px-3 py-2 text-xs font-medium rounded-tl-none rounded-br-none rounded-tr-xl rounded-bl-lg transition-all duration-200 hover:scale-105"
+                  style={{
+                    backgroundColor: showGradientField ? 'var(--tech-mint)' : 'var(--bg-elevated)',
+                    color: showGradientField ? 'var(--bg-deep)' : 'var(--ink-high)',
+                    border: `1px solid ${showGradientField ? 'var(--tech-mint)' : 'var(--carbon-line)'}`,
+                    boxShadow: showGradientField ? '0 0 12px rgba(34, 211, 238, 0.4)' : 'none'
+                  }}
+                  onClick={() => setShowGradientField(!showGradientField)}
+                >
+                  {showGradientField ? '关闭梯度场' : '显示梯度场'}
+                </button>
+                
                 <Canvas camera={{ position: [80, 50, 80], fov: 60 }}>
                   <ambientLight intensity={0.5} />
                   <pointLight position={[8, 8, 8]} intensity={1.0} />
@@ -2030,6 +2539,7 @@ const Section2Descent3D = ({ id }) => {
                     currentActiveTerm={currentActiveTerm}
                     algorithm={algorithm}
                     stepSize={stepSize}
+                    dampingFactor={dampingFactor}
                     showTrajectory={showTrajectory}
                     ballPosition={ballPosition}
                     setBallPosition={setBallPosition}
@@ -2040,6 +2550,7 @@ const Section2Descent3D = ({ id }) => {
                     isOptimal={isOptimal}
                     gradientVector={gradientVector}
                     showVectors={showVectors}
+                    showGradientField={showGradientField}
                   />
                   
                   <OrbitControls
