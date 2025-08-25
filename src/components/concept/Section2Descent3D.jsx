@@ -1589,6 +1589,15 @@ const Section2Descent3D = ({ id }) => {
   const [showGradientField, setShowGradientField] = useState(false);
   const [algorithmDropdownOpen, setAlgorithmDropdownOpen] = useState(false);
   
+  // 深度思考状态
+  const [showThinkingBubble, setShowThinkingBubble] = useState(false);
+  
+  // 思考问题内容
+  const thinkingQuestions = [
+    '为什么目标函数是二次函数时，牛顿法的迭代点在 XOY 平面上是一条直线？',
+    '既然牛顿迭代法迭代效率高，求解速度快，为什么在很多具体的优化问题中（如深度学习领域）仍然使用一阶梯度下降法？'
+    ];
+  
   // 收敛阈值状态 (范围: 0.001 ~ 0.00000001)
   const [convergenceThreshold, setConvergenceThreshold] = useState(0.001);
   
@@ -2462,19 +2471,64 @@ const Section2Descent3D = ({ id }) => {
                 borderColor: 'var(--carbon-line)'
               }}>
                 
-                {/* 右上角梯度场显示按钮 */}
-                <button
-                  className="absolute top-0 right-0 z-10 px-3 py-2 text-xs font-medium rounded-tl-none rounded-br-none rounded-tr-xl rounded-bl-lg transition-all duration-200 hover:scale-105"
-                  style={{
-                    backgroundColor: showGradientField ? 'var(--tech-mint)' : 'var(--bg-elevated)',
-                    color: showGradientField ? 'var(--bg-deep)' : 'var(--ink-high)',
-                    border: `1px solid ${showGradientField ? 'var(--tech-mint)' : 'var(--carbon-line)'}`,
-                    boxShadow: showGradientField ? '0 0 12px rgba(34, 211, 238, 0.4)' : 'none'
-                  }}
-                  onClick={() => setShowGradientField(!showGradientField)}
-                >
-                  {showGradientField ? '关闭梯度场' : '显示梯度场'}
-                </button>
+                {/* 右上角深度思考和梯度场按钮 */}
+                <div className="absolute top-0 right-0 z-10 flex">
+                  {/* 深度思考按钮 */}
+                  <div className="relative">
+                    <button
+                      className="px-3 py-2 text-xs font-medium rounded-tl-none rounded-br-none rounded-tr-none rounded-bl-lg transition-all duration-200 hover:scale-105"
+                      style={{
+                        backgroundColor: 'var(--tech-mint)',
+                        color: 'var(--bg-deep)',
+                        border: `1px solid var(--tech-mint)`,
+                        borderRight: 'none',
+                        boxShadow: showThinkingBubble ? '0 0 12px rgba(34, 211, 238, 0.4)' : '0 0 6px rgba(34, 211, 238, 0.2)'
+                      }}
+                      onMouseEnter={() => setShowThinkingBubble(true)}
+                      onMouseLeave={() => setShowThinkingBubble(false)}
+                    >
+                      💭 深度思考
+                    </button>
+                    
+                    {/* 思考问题气泡 */}
+                    {showThinkingBubble && (
+                      <div 
+                        className="absolute top-full left-0 mt-2 w-80 p-4 rounded-lg shadow-lg z-20"
+                        style={{
+                          backgroundColor: 'var(--bg-elevated)',
+                          border: '1px solid var(--tech-mint)',
+                          boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+                        }}
+                      >
+                        <div className="text-sm font-semibold mb-3" style={{ color: 'var(--ink-high)' }}>
+                          🤔 优化算法深度思考
+                        </div>
+                        <ul className="space-y-2 text-xs" style={{ color: 'var(--ink-medium)' }}>
+                          {thinkingQuestions.map((question, index) => (
+                            <li key={index} className="flex items-start space-x-2">
+                              <span className="font-bold mt-0.5" style={{ color: 'var(--tech-mint)' }}>•</span>
+                              <span>{question}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 梯度场显示按钮 */}
+                  <button
+                    className="px-3 py-2 text-xs font-medium rounded-tl-none rounded-br-none rounded-tr-xl rounded-bl-none transition-all duration-200 hover:scale-105"
+                    style={{
+                      backgroundColor: showGradientField ? 'var(--tech-mint)' : 'var(--bg-elevated)',
+                      color: showGradientField ? 'var(--bg-deep)' : 'var(--ink-high)',
+                      border: `1px solid ${showGradientField ? 'var(--tech-mint)' : 'var(--carbon-line)'}`,
+                      boxShadow: showGradientField ? '0 0 12px rgba(34, 211, 238, 0.4)' : 'none'
+                    }}
+                    onClick={() => setShowGradientField(!showGradientField)}
+                  >
+                    {showGradientField ? '关闭梯度场' : '显示梯度场'}
+                  </button>
+                </div>
                 
                 <Canvas camera={{ position: [80, 50, 80], fov: 60 }}>
                   <ambientLight intensity={0.5} />
