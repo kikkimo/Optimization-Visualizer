@@ -15,7 +15,8 @@ export default function DownHint({ targetSection, text = '向下滚动继续' })
                  transition-colors duration-300 group"
       style={{
         transform: 'translateX(-50%)',
-        color: 'var(--ink-mid)'
+        color: 'var(--ink-mid)',
+        zIndex: 100
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.color = 'var(--tech-mint)';
