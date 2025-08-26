@@ -86,7 +86,10 @@ const Section3Mindmap = ({ id }) => {
     console.log('Setting focused node from search:', focusNodeData.name);
     setCurrentPath(result.path);
     setFocusedNode(focusNodeData);
-    setViewMode('focus');
+    // 搜索结果选择时，如果在全景Tab，则进入聚焦视图；如果在路径Tab，保持路径视图
+    if (viewMode !== 'path') {
+      setViewMode('focus');
+    }
     setShowSearchResults(false);
     setSearchQuery(result.name);
     
@@ -104,9 +107,12 @@ const Section3Mindmap = ({ id }) => {
       setZoomLevel(Math.max(zoomLevel / 1.5, 0.5));
     } else if (direction === 'reset') {
       setZoomLevel(1);
-      setViewMode('overview');
-      setFocusedNode(null);
-      setCurrentPath(['数学优化方法的分类']);
+      // 只有在全景Tab或聚焦模式时，才回到全局视图
+      if (viewMode !== 'path') {
+        setViewMode('overview');
+        setFocusedNode(null);
+        setCurrentPath(['数学优化方法的分类']);
+      }
     }
   };
 
@@ -1642,11 +1648,15 @@ const Section3Mindmap = ({ id }) => {
         }
         
         setFocusedNode(fullNodeData);
-        setViewMode('focus');
         
-        // 更新当前路径
-        const pathToNode = getPathToNode(d);
-        setCurrentPath(pathToNode);
+        // 只有在全景Tab中才切换到聚焦视图，路径Tab保持路径视图
+        if (viewMode !== 'path') {
+          setViewMode('focus');
+          
+          // 更新当前路径
+          const pathToNode = getPathToNode(d);
+          setCurrentPath(pathToNode);
+        }
         
         // 滚动到对应章节
         if (d.sectionId) {
@@ -1763,24 +1773,24 @@ const Section3Mindmap = ({ id }) => {
                 {/* 视图模式切换 */}
                 <div className="flex bg-black/20 rounded-lg p-1">
                   <button
-                    onClick={() => handleZoom('reset')}
+                    onClick={() => {
+                      if (viewMode === 'path') {
+                        // 从路径Tab切换到全景Tab，默认显示overview模式
+                        setViewMode('overview');
+                        setFocusedNode(null);
+                        setCurrentPath(['数学优化方法的分类']);
+                      } else {
+                        // 在全景Tab内，回到全局视图
+                        handleZoom('reset');
+                      }
+                    }}
                     className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                      viewMode === 'overview' 
+                      viewMode === 'overview' || viewMode === 'focus'
                         ? 'bg-teal-500 text-white' 
                         : 'text-gray-300 hover:text-white hover:bg-white/10'
                     }`}
                   >
                     全景
-                  </button>
-                  <button
-                    onClick={() => setViewMode('focus')}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                      viewMode === 'focus' 
-                        ? 'bg-teal-500 text-white' 
-                        : 'text-gray-300 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    聚焦
                   </button>
                   <button
                     onClick={() => setViewMode('path')}
@@ -1832,11 +1842,21 @@ const Section3Mindmap = ({ id }) => {
             <div className="mt-3 bg-black/10 backdrop-blur-sm rounded-lg border border-white/10">
               {/* 当前位置指示器 */}
               <div className="px-4 py-2 border-b border-white/10">
-                <div className="flex items-center gap-2 text-xs">
-                  <span style={{ color: 'var(--tech-mint)' }}>📍 当前位置:</span>
-                  <span style={{ color: 'var(--ink-mid)' }}>
-                    {currentPath.join(' > ')}
-                  </span>
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: 'var(--tech-mint)' }}>📍 当前位置:</span>
+                    <span style={{ color: 'var(--ink-mid)' }}>
+                      {currentPath.join(' > ')}
+                    </span>
+                  </div>
+                  {viewMode !== 'path' && (
+                    <div className="flex items-center gap-1 text-xs">
+                      <span style={{ color: 'var(--tech-mint)' }}>
+                        {viewMode === 'overview' ? '🌐' : '🎯'} 
+                        {viewMode === 'overview' ? '全局视图' : '聚焦视图'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               
