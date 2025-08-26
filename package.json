@@ -1,8 +1,8 @@
 {
-  "name": "optimization-in-surveying",
+  "name": "optimization-visualizer",
   "private": true,
   "version": "1.0.0",
-  "description": "Interactive Web Presentation: Mathematical Optimization Problems in Surveying Applications",
+  "description": "An interactive web application for visualizing mathematical optimization algorithms.",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -19,7 +19,7 @@ PURPLE='\033[0;35m'
 NC='\033[0m' # 无颜色
 
 # 项目信息
-PROJECT_NAME="数学优化问题及其在测绘领域的应用"
+PROJECT_NAME="Optimization Visualizer"
 PROJECT_VERSION="1.0.0"
 DEFAULT_PORT=3000
 CUSTOM_PORT=""
