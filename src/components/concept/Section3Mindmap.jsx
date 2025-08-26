@@ -14,10 +14,131 @@ const Section3Mindmap = ({ id }) => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [isExpanded, setIsExpanded] = useState(true);
   const [highlightedSection, setHighlightedSection] = useState('root');
+  
+  // 新的交互状态
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [viewMode, setViewMode] = useState('overview'); // 'overview', 'focus', 'path'
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [currentPath, setCurrentPath] = useState(['数学优化方法的分类']);
+  const [focusedNode, setFocusedNode] = useState(null);
+  const [visibleNodeTypes, setVisibleNodeTypes] = useState({
+    root: true,
+    category: true,
+    framework: true,
+    subframework: true,
+    method: true
+  });
 
   // 自定义滚动条状态管理
   const [scrollbarVisible, setScrollbarVisible] = useState(false);
   const hideScrollbarTimeout = useRef(null);
+
+  // 搜索功能
+  const searchInNodes = (nodes, query, path = []) => {
+    let results = [];
+    
+    nodes.forEach(node => {
+      const currentPath = [...path, node.name];
+      
+      // 检查当前节点是否匹配
+      if (node.name.toLowerCase().includes(query.toLowerCase())) {
+        results.push({
+          ...node,
+          path: currentPath,
+          pathString: currentPath.join(' > ')
+        });
+      }
+      
+      // 递归搜索子节点
+      if (node.children) {
+        results = results.concat(searchInNodes(node.children, query, currentPath));
+      }
+    });
+    
+    return results;
+  };
+
+  // 处理搜索输入
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim()) {
+      const results = searchInNodes([mindmapData], query);
+      setSearchResults(results);
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+
+  // 选择搜索结果
+  const handleSearchResultSelect = (result) => {
+    const focusNodeData = {
+      name: result.name,
+      sectionId: result.sectionId,
+      type: result.type
+    };
+    
+    console.log('Setting focused node from search:', focusNodeData.name);
+    setCurrentPath(result.path);
+    setFocusedNode(focusNodeData);
+    setViewMode('focus');
+    setShowSearchResults(false);
+    setSearchQuery(result.name);
+    
+    // 滚动到对应的markdown章节
+    if (result.sectionId) {
+      scrollToSection(result.sectionId);
+    }
+  };
+
+  // 缩放控制
+  const handleZoom = (direction) => {
+    if (direction === 'in') {
+      setZoomLevel(Math.min(zoomLevel * 1.5, 3));
+    } else if (direction === 'out') {
+      setZoomLevel(Math.max(zoomLevel / 1.5, 0.5));
+    } else if (direction === 'reset') {
+      setZoomLevel(1);
+      setViewMode('overview');
+      setFocusedNode(null);
+      setCurrentPath(['数学优化方法的分类']);
+    }
+  };
+
+  // 切换节点类型可见性
+  const toggleNodeType = (type) => {
+    setVisibleNodeTypes(prev => ({
+      ...prev,
+      [type]: !prev[type]
+    }));
+  };
+
+  // 获取节点路径的辅助函数
+  const getPathToNode = (targetNode) => {
+    const findPath = (node, target, currentPath = []) => {
+      const newPath = [...currentPath, node.name];
+      
+      if (node.sectionId === target.sectionId) {
+        return newPath;
+      }
+      
+      if (node.children) {
+        for (const child of node.children) {
+          const path = findPath(child, target, newPath);
+          if (path) return path;
+        }
+      }
+      
+      return null;
+    };
+    
+    return findPath(mindmapData, targetNode) || [targetNode.name];
+  };
 
 
   // 添加自定义滚动条样式和数学公式样式
@@ -902,12 +1023,88 @@ const Section3Mindmap = ({ id }) => {
 
     svg.attr("width", width).attr("height", height);
 
-    // 创建力导向布局
+    // 创建力导向布局 - 统一布局，但聚焦模式下调整参数
     const simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().id(d => d.id).distance(120))
-      .force("charge", d3.forceManyBody().strength(-300))
+      .force("link", d3.forceLink().id(d => d.id)
+        .distance(d => {
+          if (viewMode === 'focus' && focusedNode) {
+            // 聚焦模式下调整连线距离，突出层级关系
+            const sourceNode = nodes.find(n => n.id === d.source.id);
+            const targetNode = nodes.find(n => n.id === d.target.id);
+            const sourceRel = sourceNode?.relationship || 'distant';
+            const targetRel = targetNode?.relationship || 'distant';
+            
+            // 焦点节点与其父子节点的距离更近
+            if ((sourceRel === 'focus' && ['parent', 'child'].includes(targetRel)) ||
+                (targetRel === 'focus' && ['parent', 'child'].includes(sourceRel))) {
+              return 80; // 更近的距离突出层级关系
+            }
+            return 120; // 默认距离
+          }
+          return 120; // 正常模式默认距离
+        }))
+      .force("charge", d3.forceManyBody()
+        .strength(d => {
+          if (viewMode === 'focus' && focusedNode) {
+            // 聚焦模式下调整排斥力，关键节点排斥力更强
+            switch (d.relationship) {
+              case 'focus': return -400;     // 焦点节点强排斥，保持中心位置
+              case 'parent':
+              case 'child': return -200;     // 父子节点中等排斥
+              default: return -50;           // 其他节点弱排斥，不干扰主体
+            }
+          }
+          return -300; // 正常模式统一排斥力
+        }))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(50));
+      .force("collision", d3.forceCollide()
+        .radius(d => {
+          const baseRadius = d.scale ? (d.name.length * 6 + 20) * d.scale : 50;
+          return baseRadius + 5;
+        }));
+
+    // 聚焦模式下添加额外的中心吸引力和约束，确保关键节点可见
+    if (viewMode === 'focus' && focusedNode) {
+      simulation.force("centerAttraction", d3.forceRadial()
+        .radius(d => {
+          switch (d.relationship) {
+            case 'focus': return 0;        // 焦点节点固定在中心
+            case 'parent': return 90;      // 父节点围绕中心
+            case 'child': return 120;      // 子节点围绕中心  
+            default: return 250;           // 其他节点推向外围
+          }
+        })
+        .strength(d => {
+          switch (d.relationship) {
+            case 'focus': return 0.9;      // 焦点节点强力居中
+            case 'parent': 
+            case 'child': return 0.5;      // 父子节点较强吸引力
+            default: return 0.08;          // 其他节点很弱吸引力
+          }
+        })
+        .x(width / 2)
+        .y(height / 2));
+        
+      // 添加额外的边界力，防止关键节点被推出视图
+      simulation.force("boundary", () => {
+        nodes.forEach(d => {
+          if (['focus', 'parent', 'child'].includes(d.relationship)) {
+            const nodeRadius = 60;
+            const padding = 30;
+            const maxX = width - nodeRadius - padding;
+            const maxY = height - nodeRadius - padding;
+            const minX = nodeRadius + padding;
+            const minY = nodeRadius + padding;
+            
+            // 如果节点接近边界，施加向内的力
+            if (d.x < minX) d.vx += (minX - d.x) * 0.1;
+            if (d.x > maxX) d.vx += (maxX - d.x) * 0.1;
+            if (d.y < minY) d.vy += (minY - d.y) * 0.1;
+            if (d.y > maxY) d.vy += (maxY - d.y) * 0.1;
+          }
+        });
+      });
+    }
 
     // 转换数据为图结构
     const nodes = [];
@@ -916,25 +1113,50 @@ const Section3Mindmap = ({ id }) => {
 
     const processNode = (node, parentId = null, level = 0) => {
       const currentId = nodeId++;
-      nodes.push({
-        id: currentId,
-        name: node.name,
-        type: node.type,
-        case: node.case,
-        anchor: node.anchor,
-        sectionId: node.sectionId,
-        level: level,
-        expanded: isExpanded
-      });
-
-      if (parentId !== null) {
-        links.push({
-          source: parentId,
-          target: currentId
+      
+      // 根据视图模式决定节点显示策略
+      let shouldShow = visibleNodeTypes[node.type];
+      let relationship = 'unrelated';
+      
+      if (viewMode === 'focus' && focusedNode) {
+        relationship = getNodeRelationship(node, focusedNode);
+        // 在聚焦模式下，只高亮显示焦点节点及其直接父子节点
+        // 所有节点都显示，但只有focus、parent、child高亮，其他都是低透明度背景
+        // shouldShow保持为true，让所有节点都显示，通过opacity控制视觉效果
+        
+        // 调试信息 - 只在开发环境显示
+        if (process.env.NODE_ENV === 'development' && focusedNode && nodes.length < 5) {
+          console.log(`Focus: ${focusedNode?.name}(${focusedNode?.sectionId}), Node: ${node.name}(${node.sectionId}), Relationship: ${relationship}, Show: ${shouldShow}`);
+        }
+      } else if (viewMode === 'path') {
+        shouldShow = shouldShow && isNodeInPath(node);
+      }
+      // overview模式显示所有可见类型的节点
+      
+      if (shouldShow) {
+        nodes.push({
+          id: currentId,
+          name: node.name,
+          type: node.type,
+          case: node.case,
+          anchor: node.anchor,
+          sectionId: node.sectionId,
+          level: level,
+          expanded: isExpanded,
+          relationship: relationship,
+          opacity: getNodeOpacity(node, level, relationship),
+          scale: getNodeScale(node, level, relationship),
         });
+
+        if (parentId !== null) {
+          links.push({
+            source: parentId,
+            target: currentId
+          });
+        }
       }
 
-      if (node.children && (isExpanded || level < 4)) {
+      if (node.children && shouldShow) {
         node.children.forEach(child => {
           processNode(child, currentId, level + 1);
         });
@@ -943,17 +1165,383 @@ const Section3Mindmap = ({ id }) => {
       return currentId;
     };
 
+    // 获取节点的直接关联关系
+    const getNodeRelationship = (node, focusNode) => {
+      if (!focusNode) return 'unrelated';
+      
+      if (node.sectionId === focusNode.sectionId) {
+        return 'focus'; // 焦点节点本身
+      }
+      
+      // 寻找父子关系
+      const isDirectParent = findDirectParent(focusNode, node);
+      const isDirectChild = findDirectChild(focusNode, node);
+      const siblings = findSiblings(focusNode);
+      const isSibling = siblings.some(sibling => sibling.sectionId === node.sectionId);
+      
+      // 调试信息 - 特别关注"非线性规划"节点
+      if (focusNode.sectionId === 'objective-nlp' || node.sectionId === 'objective-nlp') {
+        console.log(`🔍 关系检测 - 焦点: ${focusNode.name}(${focusNode.sectionId}), 节点: ${node.name}(${node.sectionId})`);
+        console.log(`  - 是父节点? ${isDirectParent}`);
+        console.log(`  - 是子节点? ${isDirectChild}`);
+        console.log(`  - 兄弟节点列表:`, siblings.map(s => `${s.name}(${s.sectionId})`));
+        console.log(`  - 是兄弟节点? ${isSibling}`);
+      }
+      
+      if (isDirectParent) return 'parent';
+      if (isDirectChild) return 'child';
+      if (isSibling) return 'sibling';
+      
+      return 'distant';
+    };
+
+    // 查找节点完整信息的辅助函数
+    const findNodeInData = (targetSectionId, rootNode = mindmapData) => {
+      if (rootNode.sectionId === targetSectionId) {
+        return rootNode;
+      }
+      if (rootNode.children) {
+        for (const child of rootNode.children) {
+          const result = findNodeInData(targetSectionId, child);
+          if (result) return result;
+        }
+      }
+      return null;
+    };
+
+    // 查找直接父节点
+    const findDirectParent = (targetNode, candidateParent) => {
+      const searchForParent = (node) => {
+        if (node.children) {
+          // 检查是否是直接子节点
+          for (const child of node.children) {
+            if (child.sectionId === targetNode.sectionId) {
+              const isParent = node.sectionId === candidateParent.sectionId;
+              // 调试非线性规划节点
+              if (targetNode.sectionId === 'objective-nlp') {
+                console.log(`  📍 findDirectParent: 找到目标节点"${targetNode.name}"，父节点是"${node.name}"(${node.sectionId})，候选父节点是"${candidateParent.name}"(${candidateParent.sectionId})，匹配结果: ${isParent}`);
+              }
+              return isParent;
+            }
+          }
+          // 递归搜索
+          for (const child of node.children) {
+            const result = searchForParent(child);
+            if (result !== null) return result;
+          }
+        }
+        return null;
+      };
+      return searchForParent(mindmapData) || false;
+    };
+
+    // 查找直接子节点  
+    const findDirectChild = (parentNode, candidateChild) => {
+      const parentData = findNodeInData(parentNode.sectionId);
+      if (parentData && parentData.children) {
+        const isChild = parentData.children.some(child => child.sectionId === candidateChild.sectionId);
+        // 调试非线性规划节点
+        if (parentNode.sectionId === 'objective-nlp') {
+          console.log(`  📍 findDirectChild: 父节点"${parentNode.name}"(${parentNode.sectionId})的子节点列表:`, parentData.children.map(c => `${c.name}(${c.sectionId})`));
+          console.log(`  📍 候选子节点"${candidateChild.name}"(${candidateChild.sectionId})，匹配结果: ${isChild}`);
+        }
+        return isChild;
+      }
+      return false;
+    };
+
+    // 查找兄弟节点
+    const findSiblings = (targetNode) => {
+      const findSiblingsInNode = (node) => {
+        if (node.children) {
+          // 检查子节点中是否包含目标节点
+          const targetChild = node.children.find(child => child.sectionId === targetNode.sectionId);
+          if (targetChild) {
+            // 返回除目标节点外的所有兄弟节点
+            const siblings = node.children.filter(sibling => sibling.sectionId !== targetNode.sectionId);
+            // 调试非线性规划节点
+            if (targetNode.sectionId === 'objective-nlp') {
+              console.log(`  📍 findSiblings: 找到目标节点"${targetNode.name}"，在父节点"${node.name}"(${node.sectionId})下`);
+              console.log(`  📍 所有子节点:`, node.children.map(c => `${c.name}(${c.sectionId})`));
+              console.log(`  📍 兄弟节点:`, siblings.map(s => `${s.name}(${s.sectionId})`));
+            }
+            return siblings;
+          }
+          // 递归搜索
+          for (const child of node.children) {
+            const result = findSiblingsInNode(child);
+            if (result.length > 0) return result;
+          }
+        }
+        return [];
+      };
+      return findSiblingsInNode(mindmapData);
+    };
+
+    // 判断节点是否在当前路径中
+    const isNodeInPath = (node) => {
+      return currentPath.includes(node.name);
+    };
+
+    // 获取节点透明度 - 基于关联关系
+    const getNodeOpacity = (node, level, relationship) => {
+      if (viewMode === 'focus') {
+        switch (relationship) {
+          case 'focus': return 1.0;           // 焦点节点完全不透明
+          case 'parent': return 0.95;         // 直接父节点高透明度
+          case 'child': return 0.95;          // 直接子节点高透明度  
+          case 'sibling': return 0.4;         // 兄弟节点中等透明度
+          case 'distant': return 0.25;        // 远距离节点低透明度
+          default: return 0.3;                // 其他节点低透明度
+        }
+      }
+      return Math.max(0.6, 1 - level * 0.1);
+    };
+
+    // 获取节点缩放比例 - 突出焦点节点
+    const getNodeScale = (node, level, relationship) => {
+      const baseScale = zoomLevel;
+      
+      if (viewMode === 'focus') {
+        switch (relationship) {
+          case 'focus': return baseScale * 1.8;    // 焦点节点显著放大
+          case 'parent': return baseScale * 1.3;   // 父节点适度放大
+          case 'child': return baseScale * 1.3;    // 子节点适度放大
+          default: return baseScale * 0.8;         // 其他节点缩小
+        }
+      }
+      
+      return baseScale * Math.max(0.8, 1 - level * 0.05);
+    };
+
+    // 获取聚焦模式下的固定位置
+    const getFocusPosition = (node, relationship, relatedNodes) => {
+      if (viewMode !== 'focus' || !focusedNode) return null;
+      
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      if (relationship === 'focus') {
+        // 焦点节点固定在中心
+        return { x: centerX, y: centerY, fixed: true };
+      }
+      
+      if (relationship === 'parent') {
+        // 父节点固定在焦点节点上方
+        return { x: centerX, y: centerY - 120, fixed: true };
+      }
+      
+      if (relationship === 'child') {
+        // 获取所有子节点
+        const childNodes = relatedNodes.filter(n => n.relationship === 'child');
+        const childIndex = childNodes.findIndex(c => c.sectionId === node.sectionId);
+        const childCount = childNodes.length;
+        
+        if (childCount === 1) {
+          return { x: centerX, y: centerY + 120, fixed: true };
+        } else if (childCount === 2) {
+          return { 
+            x: centerX + (childIndex === 0 ? -100 : 100), 
+            y: centerY + 120, 
+            fixed: true 
+          };
+        } else {
+          // 多个子节点呈扇形分布在下方
+          const angle = (Math.PI / 2) * (childIndex - (childCount - 1) / 2) / Math.max(1, childCount - 1);
+          const radius = 120;
+          return {
+            x: centerX + Math.sin(angle) * radius,
+            y: centerY + Math.cos(angle) * radius,
+            fixed: true
+          };
+        }
+      }
+      
+      // 兄弟节点不需要特殊位置，让它们和其他背景节点一样随机分布
+      
+      // 其他节点不固定位置，但设置为远离中心的随机位置
+      return {
+        x: Math.random() * width * 0.3 + (Math.random() > 0.5 ? width * 0.7 : 0),
+        y: Math.random() * height * 0.3 + (Math.random() > 0.5 ? height * 0.7 : 0),
+        fixed: false
+      };
+    };
+
+    // 获取节点层级（简化版本）
+    const getNodeLevel = (node) => {
+      const levelMap = { root: 0, category: 1, framework: 2, subframework: 3, method: 4 };
+      return levelMap[node.type] || 0;
+    };
+
     processNode(mindmapData);
 
-    // 创建连接线
+    // 应急处理：如果聚焦模式下没有显示任何节点，显示焦点节点及其路径上的节点
+    if (viewMode === 'focus' && focusedNode && nodes.length === 0) {
+      console.log('Emergency fallback: showing path nodes');
+      // 重新处理，这次显示路径上的节点
+      nodes.length = 0;
+      links.length = 0;
+      nodeId = 0;
+      
+      const processNodeFallback = (node, parentId = null, level = 0) => {
+        const currentId = nodeId++;
+        const isInCurrentPath = currentPath.includes(node.name);
+        const shouldShow = visibleNodeTypes[node.type] && (isInCurrentPath || level <= 2);
+        
+        if (shouldShow) {
+          nodes.push({
+            id: currentId,
+            name: node.name,
+            type: node.type,
+            sectionId: node.sectionId,
+            level: level,
+            relationship: node.sectionId === focusedNode.sectionId ? 'focus' : 'context',
+            opacity: node.sectionId === focusedNode.sectionId ? 1.0 : 0.7,
+            scale: node.sectionId === focusedNode.sectionId ? zoomLevel * 2.0 : zoomLevel,
+            position: { weight: 1, distance: 120, centerAttraction: 1 }
+          });
+
+          if (parentId !== null) {
+            links.push({ source: parentId, target: currentId });
+          }
+        }
+
+        if (node.children && (shouldShow || isInCurrentPath)) {
+          node.children.forEach(child => {
+            processNodeFallback(child, shouldShow ? currentId : parentId, level + 1);
+          });
+        }
+
+        return currentId;
+      };
+      
+      processNodeFallback(mindmapData);
+    }
+
+
+    // 添加SVG滤镜定义
+    if (viewMode === 'focus' && focusedNode) {
+      const defs = svg.select("defs").empty() ? svg.append("defs") : svg.select("defs");
+      
+      // 呼吸发光效果滤镜
+      const glowFilter = defs.selectAll("#focus-line-glow").empty() ? 
+        defs.append("filter").attr("id", "focus-line-glow") : 
+        defs.select("#focus-line-glow");
+        
+      glowFilter
+        .attr("x", "-50%")
+        .attr("y", "-50%")
+        .attr("width", "200%")
+        .attr("height", "200%");
+
+      // 清除之前的内容
+      glowFilter.selectAll("*").remove();
+      
+      // 创建发光效果
+      glowFilter.append("feGaussianBlur")
+        .attr("stdDeviation", "2")
+        .attr("result", "coloredBlur");
+      
+      const feMerge = glowFilter.append("feMerge");
+      feMerge.append("feMergeNode").attr("in", "coloredBlur");
+      feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+    }
+
+    // 创建连接线 - 根据视图模式调整样式
     const link = svg.append("g")
       .selectAll("line")
       .data(links)
       .enter()
       .append("line")
-      .attr("stroke", "#4a5568")
-      .attr("stroke-width", 2)
-      .attr("opacity", 0.6);
+      .attr("stroke", d => {
+        if (viewMode === 'focus' && focusedNode) {
+          // 获取连线两端的节点信息
+          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+          const sourceNode = nodes.find(n => n.id === sourceId);
+          const targetNode = nodes.find(n => n.id === targetId);
+          const sourceRel = sourceNode?.relationship || 'distant';
+          const targetRel = targetNode?.relationship || 'distant';
+          
+          // 关键节点间的连线使用更亮的颜色
+          if (['focus', 'parent', 'child'].includes(sourceRel) && 
+              ['focus', 'parent', 'child'].includes(targetRel)) {
+            return "#60a5fa"; // 亮蓝色，比默认更亮但不刺眼
+          }
+          return "#6b7280"; // 背景连线稍微弱化
+        }
+        return "#4a5568"; // 默认颜色
+      })
+      .attr("stroke-width", d => {
+        if (viewMode === 'focus' && focusedNode) {
+          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+          const sourceNode = nodes.find(n => n.id === sourceId);
+          const targetNode = nodes.find(n => n.id === targetId);
+          const sourceRel = sourceNode?.relationship || 'distant';
+          const targetRel = targetNode?.relationship || 'distant';
+          
+          // 关键节点间的连线保持默认粗细
+          if (['focus', 'parent', 'child'].includes(sourceRel) && 
+              ['focus', 'parent', 'child'].includes(targetRel)) {
+            return 2; // 与默认一致的粗细
+          }
+          return 1.5; // 背景连线稍细一些
+        }
+        return 2; // 默认粗细
+      })
+      .attr("opacity", d => {
+        if (viewMode === 'focus' && focusedNode) {
+          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+          const sourceNode = nodes.find(n => n.id === sourceId);
+          const targetNode = nodes.find(n => n.id === targetId);
+          const sourceRel = sourceNode?.relationship || 'distant';
+          const targetRel = targetNode?.relationship || 'distant';
+          
+          // 关键节点间的连线保持默认透明度
+          if (['focus', 'parent', 'child'].includes(sourceRel) && 
+              ['focus', 'parent', 'child'].includes(targetRel)) {
+            return 0.6; // 与默认一致的透明度
+          }
+          return 0.3; // 背景连线适度弱化但仍可见
+        }
+        return 0.6; // 默认透明度
+      })
+      .attr("filter", d => {
+        if (viewMode === 'focus' && focusedNode) {
+          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+          const sourceNode = nodes.find(n => n.id === sourceId);
+          const targetNode = nodes.find(n => n.id === targetId);
+          const sourceRel = sourceNode?.relationship || 'distant';
+          const targetRel = targetNode?.relationship || 'distant';
+          
+          // 关键节点间的连线添加发光效果
+          if (['focus', 'parent', 'child'].includes(sourceRel) && 
+              ['focus', 'parent', 'child'].includes(targetRel)) {
+            return "url(#focus-line-glow)";
+          }
+        }
+        return null;
+      })
+      .attr("class", d => {
+        if (viewMode === 'focus' && focusedNode) {
+          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+          const sourceNode = nodes.find(n => n.id === sourceId);
+          const targetNode = nodes.find(n => n.id === targetId);
+          const sourceRel = sourceNode?.relationship || 'distant';
+          const targetRel = targetNode?.relationship || 'distant';
+          
+          // 关键节点间的连线添加呼吸动画类
+          if (['focus', 'parent', 'child'].includes(sourceRel) && 
+              ['focus', 'parent', 'child'].includes(targetRel)) {
+            return "focus-link-breathing";
+          }
+        }
+        return "";
+      });
 
     // 创建节点组
     const node = svg.append("g")
@@ -973,10 +1561,10 @@ const Section3Mindmap = ({ id }) => {
       
       // 节点背景
       const rect = g.append("rect")
-        .attr("width", d => d.name.length * 12 + 20)
-        .attr("height", 35)
-        .attr("x", d => -(d.name.length * 6 + 10))
-        .attr("y", -17.5)
+        .attr("width", d => (d.name.length * 12 + 20) * d.scale)
+        .attr("height", d => 35 * d.scale)
+        .attr("x", d => -((d.name.length * 6 + 10) * d.scale))
+        .attr("y", d => -(17.5 * d.scale))
         .attr("rx", 8)
         .attr("fill", d => {
           switch(d.type) {
@@ -988,47 +1576,81 @@ const Section3Mindmap = ({ id }) => {
             default: return "#64748b";
           }
         })
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 1.5)
-        .attr("opacity", 0.9);
+        .attr("stroke", d => {
+          if (d.relationship === 'focus') return "#fbbf24";        // 焦点节点金色边框
+          if (d.relationship === 'parent') return "#10b981";       // 父节点绿色边框
+          if (d.relationship === 'child') return "#3b82f6";        // 子节点蓝色边框
+          if (d.relationship === 'sibling') return "#8b5cf6";      // 兄弟节点紫色边框
+          return "#ffffff";                                        // 其他节点白色边框
+        })
+        .attr("stroke-width", d => {
+          if (d.relationship === 'focus') return 4;    // 焦点节点粗边框
+          if (['parent', 'child'].includes(d.relationship)) return 2.5; // 直接关联节点中粗边框
+          return 1.5;                                   // 其他节点正常边框
+        })
+        .attr("opacity", d => d.opacity);
 
       // 节点文本
       g.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
-        .attr("font-size", d => d.type === "root" ? "14px" : "12px")
+        .attr("font-size", d => {
+          const baseSize = d.type === "root" ? 14 : 12;
+          return `${baseSize * d.scale}px`;
+        })
         .attr("font-weight", d => d.type === "root" ? "bold" : "normal")
         .attr("fill", "white")
+        .attr("opacity", d => d.opacity)
         .text(d.name);
 
-      // 添加悬停效果
+      // 添加悬停效果和交互
       g.on("mouseenter", function(event, d) {
         setSelectedNode(d);
-        d3.select(this).select("rect")
-          .transition()
-          .duration(200)
-          .attr("opacity", 1)
-          .attr("stroke-width", 2);
+        // 悬停时适度放大，但不影响鱼眼布局
+        if (d.relationship !== 'focus') { // 焦点节点已经是最大，不需要再放大
+          d3.select(this).select("rect")
+            .transition()
+            .duration(150)
+            .attr("stroke-width", (d.relationship === 'focus' ? 4 : 
+                                   ['parent', 'child'].includes(d.relationship) ? 2.5 : 1.5) + 1);
+        }
       })
-      .on("mouseleave", function() {
+      .on("mouseleave", function(event, d) {
+        // 恢复原始边框
         d3.select(this).select("rect")
           .transition()
-          .duration(200)
-          .attr("opacity", 0.9)
-          .attr("stroke-width", 1.5);
+          .duration(150)
+          .attr("stroke-width", d.relationship === 'focus' ? 4 : 
+                               ['parent', 'child'].includes(d.relationship) ? 2.5 : 1.5);
       })
       .on("click", function(event, d) {
-        // 点击节点时，滚动定位到对应章节
+        // 设置为焦点节点 - 确保包含完整的节点信息
+        const fullNodeData = {
+          ...d,
+          name: d.name,
+          sectionId: d.sectionId,
+          type: d.type
+        };
+        
+        console.log('🎯 点击节点，设置聚焦:', fullNodeData);
+        
+        // 特殊调试"非线性规划"节点
+        if (d.sectionId === 'objective-nlp') {
+          console.log('🔍 点击了非线性规划节点，准备进入调试模式');
+          const nodeInData = findNodeInData(d.sectionId);
+          console.log('🔍 在数据中找到的节点信息:', nodeInData);
+        }
+        
+        setFocusedNode(fullNodeData);
+        setViewMode('focus');
+        
+        // 更新当前路径
+        const pathToNode = getPathToNode(d);
+        setCurrentPath(pathToNode);
+        
+        // 滚动到对应章节
         if (d.sectionId) {
           scrollToSection(d.sectionId);
-          // 高亮当前选中的节点
-          svg.selectAll('rect')
-            .attr('stroke', '#ffffff')
-            .attr('stroke-width', 1.5);
-          
-          d3.select(this).select('rect')
-            .attr('stroke', '#fbbf24')
-            .attr('stroke-width', 3);
         }
       });
     });
@@ -1051,10 +1673,30 @@ const Section3Mindmap = ({ id }) => {
       d.fy = null;
     }
 
+    // 清除所有固定位置约束，让物理模拟自然工作
+    nodes.forEach(d => {
+      d.fx = null;
+      d.fy = null;
+    });
+
     // 启动仿真
     simulation
       .nodes(nodes)
       .on("tick", () => {
+        // 在聚焦模式下，确保关键节点始终在视图内
+        if (viewMode === 'focus' && focusedNode) {
+          nodes.forEach(d => {
+            if (['focus', 'parent', 'child'].includes(d.relationship)) {
+              // 为关键节点设置边界约束，确保它们始终可见
+              const nodeRadius = 50; // 节点半径的估算值
+              const padding = 20; // 边界内边距
+              
+              d.x = Math.max(nodeRadius + padding, Math.min(width - nodeRadius - padding, d.x));
+              d.y = Math.max(nodeRadius + padding, Math.min(height - nodeRadius - padding, d.y));
+            }
+          });
+        }
+        
         link
           .attr("x1", d => d.source.x)
           .attr("y1", d => d.source.y)
@@ -1065,22 +1707,118 @@ const Section3Mindmap = ({ id }) => {
           .attr("transform", d => `translate(${d.x},${d.y})`);
       });
 
-    simulation.force("link").links(links);
+    // 只有在有link force的时候才设置links
+    const linkForce = simulation.force("link");
+    if (linkForce) {
+      linkForce.links(links);
+    }
 
-  }, [isExpanded]);
+  }, [isExpanded, viewMode, zoomLevel, focusedNode, visibleNodeTypes]);
 
   return (
-    <section
-      id={id}
-      className="snap-section relative overflow-hidden"
-      style={{ backgroundColor: 'var(--bg-deep)' }}
-    >
+    <>
+      <section
+        id={id}
+        className="snap-section relative overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-deep)' }}
+      >
       <div className="relative z-10 w-full h-screen flex flex-col pt-[51px] pb-[96px]">
 
         {/* 主要内容区域 - 左右布局 */}
         <div className="flex-1 flex gap-6 px-8 pt-6 overflow-hidden justify-between" style={{ pointerEvents: 'auto' }}>
-          {/* 左侧：思维导图区域 */}
+          {/* 左侧：知识图谱区域 */}
           <div className="flex flex-col" style={{ width: '45%', marginLeft: '5%' }}>
+            {/* 搜索和控制区域 */}
+            <div className="mb-4 space-y-3">
+              {/* 智能搜索框 */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="🔍 搜索优化方法... (支持中英文)"
+                  className="w-full px-4 py-2 rounded-lg border border-white/20 bg-black/20 backdrop-blur-sm text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:bg-black/30 transition-all"
+                  style={{ color: 'var(--ink-high)' }}
+                />
+                
+                {/* 搜索结果下拉框 */}
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800/95 backdrop-blur-sm border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
+                    {searchResults.map((result, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSearchResultSelect(result)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-700/50 transition-colors border-b border-gray-700 last:border-b-0"
+                      >
+                        <div className="font-medium text-white">{result.name}</div>
+                        <div className="text-xs text-gray-400 mt-1">{result.pathString}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* 控制按钮组 */}
+              <div className="flex justify-between items-center">
+                {/* 视图模式切换 */}
+                <div className="flex bg-black/20 rounded-lg p-1">
+                  <button
+                    onClick={() => handleZoom('reset')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                      viewMode === 'overview' 
+                        ? 'bg-teal-500 text-white' 
+                        : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    全景
+                  </button>
+                  <button
+                    onClick={() => setViewMode('focus')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                      viewMode === 'focus' 
+                        ? 'bg-teal-500 text-white' 
+                        : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    聚焦
+                  </button>
+                  <button
+                    onClick={() => setViewMode('path')}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                      viewMode === 'path' 
+                        ? 'bg-teal-500 text-white' 
+                        : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    路径
+                  </button>
+                </div>
+                
+                {/* 缩放控制 */}
+                <div className="flex bg-black/20 rounded-lg p-1">
+                  <button
+                    onClick={() => handleZoom('in')}
+                    className="px-2 py-1 rounded text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={() => handleZoom('reset')}
+                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                  >
+                    ◯
+                  </button>
+                  <button
+                    onClick={() => handleZoom('out')}
+                    className="px-2 py-1 rounded text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                  >
+                    -
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* 知识图谱主视图 */}
             <div className="flex-1 bg-black/10 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
               <div className="p-4 h-full">
                 <svg 
@@ -1090,40 +1828,46 @@ const Section3Mindmap = ({ id }) => {
               </div>
             </div>
             
-            <div className="mt-3 bg-black/10 backdrop-blur-sm p-3 rounded-lg border border-white/10">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-3 text-xs flex-wrap">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded"></div>
-                    <span style={{ color: 'var(--ink-mid)' }}>根节点</span>
+            {/* 底部信息区域 */}
+            <div className="mt-3 bg-black/10 backdrop-blur-sm rounded-lg border border-white/10">
+              {/* 当前位置指示器 */}
+              <div className="px-4 py-2 border-b border-white/10">
+                <div className="flex items-center gap-2 text-xs">
+                  <span style={{ color: 'var(--tech-mint)' }}>📍 当前位置:</span>
+                  <span style={{ color: 'var(--ink-mid)' }}>
+                    {currentPath.join(' > ')}
+                  </span>
+                </div>
+              </div>
+              
+              {/* 节点类型图例和控制 */}
+              <div className="p-3">
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-3 text-xs flex-wrap">
+                    {Object.entries({
+                      root: { color: 'bg-blue-500', label: '根节点' },
+                      category: { color: 'bg-green-500', label: '分类维度' },
+                      framework: { color: 'bg-yellow-500', label: '框架层' },
+                      subframework: { color: 'bg-purple-500', label: '子框架' },
+                      method: { color: 'bg-red-500', label: '具体方法' }
+                    }).map(([type, config]) => (
+                      <button
+                        key={type}
+                        onClick={() => toggleNodeType(type)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded transition-all ${
+                          visibleNodeTypes[type] ? 'opacity-100' : 'opacity-50'
+                        }`}
+                      >
+                        <div className={`w-2 h-2 ${config.color} rounded`}></div>
+                        <span style={{ color: 'var(--ink-mid)' }}>{config.label}</span>
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-500 rounded"></div>
-                    <span style={{ color: 'var(--ink-mid)' }}>分类维度</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-yellow-500 rounded"></div>
-                    <span style={{ color: 'var(--ink-mid)' }}>框架层</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-purple-500 rounded"></div>
-                    <span style={{ color: 'var(--ink-mid)' }}>子框架</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-red-500 rounded"></div>
-                    <span style={{ color: 'var(--ink-mid)' }}>具体方法</span>
+                  
+                  <div className="text-xs" style={{ color: 'var(--ink-mid)' }}>
+                    缩放: {Math.round(zoomLevel * 100)}%
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="px-3 py-1 rounded text-xs font-medium transition-all duration-300"
-                  style={{
-                    backgroundColor: 'var(--tech-mint)',
-                    color: 'var(--bg-deep)'
-                  }}
-                >
-                  {isExpanded ? '折叠' : '展开'}
-                </button>
               </div>
             </div>
           </div>
@@ -1440,7 +2184,27 @@ const Section3Mindmap = ({ id }) => {
           </svg>
         </button>
       </div>
-    </section>
+      
+      {/* 呼吸发光动画样式 */}
+      <style jsx>{`
+        /* 高亮连线呼吸发光动画 */
+        :global(.focus-link-breathing) {
+          animation: linkBreathing 2.5s ease-in-out infinite;
+        }
+        
+        @keyframes linkBreathing {
+          0%, 100% {
+            opacity: 0.6;
+            stroke-width: 2px;
+          }
+          50% {
+            opacity: 0.9;
+            stroke-width: 2.5px;
+          }
+        }
+      `}</style>
+      </section>
+    </>
   );
 };
 
