@@ -694,7 +694,7 @@ export default function Section5TSP({ id }) {
   useEffect(() => {
     if (!isAnimating || !planResult?.stitchedPath) return;
     // 速度控制
-    const speedMap = { slow: 0.06, medium: 0.1, fast: 0.2 };
+    const speedMap = { slow: 0.09, medium: 0.17, fast: 0.25 };
     const speed = speedMap[animationSpeed];
     
     const animate = () => {
