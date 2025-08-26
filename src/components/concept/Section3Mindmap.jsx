@@ -90,10 +90,14 @@ const Section3Mindmap = ({ id }) => {
     };
   }, [scrollbarVisible]);
 
-  // 处理滚动条区域的鼠标事件
+  // 处理滚动条显示逻辑
   useEffect(() => {
     const scrollContainer = markdownRef.current;
     if (!scrollContainer) return;
+
+    let isScrolling = false;
+    let scrollTimeout;
+    let isMouseInContainer = false;
 
     const showScrollbar = () => {
       setScrollbarVisible(true);
@@ -103,48 +107,57 @@ const Section3Mindmap = ({ id }) => {
     };
 
     const hideScrollbarWithDelay = () => {
-      hideScrollbarTimeout.current = setTimeout(() => {
-        setScrollbarVisible(false);
-      }, 2000);
+      // 只有在鼠标不在容器内且没有滚动时才延迟隐藏
+      if (!isScrolling && !isMouseInContainer) {
+        hideScrollbarTimeout.current = setTimeout(() => {
+          setScrollbarVisible(false);
+        }, 350);
+      }
     };
 
     // 监听滚动事件
     const handleScroll = () => {
+      isScrolling = true;
       showScrollbar();
+      
+      // 清除之前的滚动超时
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+      
+      // 滚动停止后标记为非滚动状态
+      scrollTimeout = setTimeout(() => {
+        isScrolling = false;
+        // 滚动结束后，如果鼠标不在容器内，则延迟隐藏滚动条
+        hideScrollbarWithDelay();
+      }, 150);
+    };
+
+    // 监听鼠标进入markdown容器
+    const handleMouseEnter = () => {
+      isMouseInContainer = true;
+      showScrollbar();
+    };
+
+    // 监听鼠标离开markdown容器
+    const handleMouseLeave = () => {
+      isMouseInContainer = false;
       hideScrollbarWithDelay();
     };
 
-    // 监听鼠标移动事件（全局）
-    const handleMouseMove = (e) => {
-      const rect = scrollContainer.getBoundingClientRect();
-      const scrollbarArea = {
-        left: rect.right - 50, // 滚动条左侧50px范围
-        right: rect.right + 10, // 滚动条右侧10px范围
-        top: rect.top - 10,     // 滚动条上方10px范围
-        bottom: rect.bottom + 10 // 滚动条下方10px范围
-      };
-
-      // 检查鼠标是否在滚动条区域范围内
-      const inScrollbarArea = e.clientX >= scrollbarArea.left && 
-                             e.clientX <= scrollbarArea.right && 
-                             e.clientY >= scrollbarArea.top && 
-                             e.clientY <= scrollbarArea.bottom;
-
-      if (inScrollbarArea) {
-        showScrollbar();
-      } else {
-        hideScrollbarWithDelay();
-      }
-    };
-
     scrollContainer.addEventListener('scroll', handleScroll);
-    document.addEventListener('mousemove', handleMouseMove);
+    scrollContainer.addEventListener('mouseenter', handleMouseEnter);
+    scrollContainer.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('mousemove', handleMouseMove);
+      scrollContainer.removeEventListener('mouseenter', handleMouseEnter);
+      scrollContainer.removeEventListener('mouseleave', handleMouseLeave);
       if (hideScrollbarTimeout.current) {
         clearTimeout(hideScrollbarTimeout.current);
+      }
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
       }
     };
   }, []);
