@@ -105,7 +105,6 @@ const Section3Mindmap = ({ id }) => {
       type: result.type
     };
     
-    console.log('Setting focused node from search:', focusNodeData.name);
     setCurrentPath(result.path);
     setFocusedNode(focusNodeData);
     // 搜索结果选择时，进入聚焦视图
@@ -122,12 +121,11 @@ const Section3Mindmap = ({ id }) => {
   // 缩放控制
   const handleZoom = (direction) => {
     if (direction === 'in') {
-      setZoomLevel(Math.min(zoomLevel * 1.5, 3));
+      setZoomLevel(Math.min(zoomLevel * 1.4, 4));
     } else if (direction === 'out') {
-      setZoomLevel(Math.max(zoomLevel / 1.5, 0.5));
+      setZoomLevel(Math.max(zoomLevel / 1.4, 0.3));
     } else if (direction === 'reset') {
       setZoomLevel(1);
-      // 回到全局视图
       setViewMode('overview');
       setFocusedNode(null);
       setCurrentPath(['数学优化方法的分类']);
@@ -218,7 +216,6 @@ const Section3Mindmap = ({ id }) => {
   const handlePathNodeClick = (nodeName) => {
     const nodeData = findNodeByName(nodeName);
     if (nodeData) {
-      console.log('🔗 点击路径节点:', nodeName, nodeData);
       
       const fullNodeData = {
         name: nodeData.name,
@@ -809,7 +806,7 @@ const Section3Mindmap = ({ id }) => {
 #### 1.3.2.3 小结 {#constraint-summary}
 
 
-> **NOTE**：可行域的几何结构是算法选择的**核心路标**。一个**凸**的可行域通常意味着问题是**“易解的” (Tractable)**，存在通向全局最优的可靠路径；而一个**非凸**的可行域则往往意味着问题是**“难解”的 (Intractable)**，求解时必须在**解的质量**与**计算效率**之间做出权衡。
+> **NOTE**：可行域的几何结构是算法选择的**核心路标**。一个**凸**的可行域通常意味着问题是**易解的**（Tractable），存在通向全局最优的可靠路径；而一个**非凸**的可行域则往往意味着问题是**难解的**（Intractable），求解时必须在**解的质量**与**计算效率**之间做出权衡。
 
 
 ### 1.3.3 按目标与模型结构（What Does the Cost Look like?） {#objective-model-structure}
@@ -1149,6 +1146,14 @@ const Section3Mindmap = ({ id }) => {
     const simulation = d3.forceSimulation()
       .force("link", d3.forceLink().id(d => d.id)
         .distance(d => {
+          // 基于缩放级别调整距离 - 更激进的缩放算法
+          const baseDistance = 120;
+          const focusDistance = 80;
+          // 使用更强的缩放函数：缩小时距离显著减小，放大时距离适度增加
+          const distanceScale = zoomLevel > 1 
+            ? 1 / Math.pow(zoomLevel, 0.3) // 放大时距离适度减小
+            : 1 / Math.pow(zoomLevel, 0.8); // 缩小时距离显著减小
+          
           if (viewMode === 'focus' && focusedNode) {
             // 聚焦模式下调整连线距离，突出层级关系
             const sourceNode = nodes.find(n => n.id === d.source.id);
@@ -1159,24 +1164,29 @@ const Section3Mindmap = ({ id }) => {
             // 焦点节点与其父子节点的距离更近
             if ((sourceRel === 'focus' && ['parent', 'child'].includes(targetRel)) ||
                 (targetRel === 'focus' && ['parent', 'child'].includes(sourceRel))) {
-              return 80; // 更近的距离突出层级关系
+              return focusDistance * distanceScale; // 更近的距离突出层级关系
             }
-            return 120; // 默认距离
+            return baseDistance * distanceScale; // 默认距离
           }
-          return 120; // 正常模式默认距离
+          return baseDistance * distanceScale; // 正常模式默认距离
         }))
       .force("charge", d3.forceManyBody()
         .strength(d => {
+          // 基于缩放级别调整排斥力 - 与距离缩放保持一致
+          const chargeScale = zoomLevel > 1 
+            ? 1 / Math.pow(zoomLevel, 0.4) // 放大时排斥力适度减小
+            : 1 / Math.pow(zoomLevel, 1.2); // 缩小时排斥力显著减小
+          
           if (viewMode === 'focus' && focusedNode) {
             // 聚焦模式下调整排斥力，关键节点排斥力更强
             switch (d.relationship) {
-              case 'focus': return -400;     // 焦点节点强排斥，保持中心位置
+              case 'focus': return -400 * chargeScale;     // 焦点节点强排斥，保持中心位置
               case 'parent':
-              case 'child': return -200;     // 父子节点中等排斥
-              default: return -50;           // 其他节点弱排斥，不干扰主体
+              case 'child': return -200 * chargeScale;     // 父子节点中等排斥
+              default: return -50 * chargeScale;           // 其他节点弱排斥，不干扰主体
             }
           }
-          return -300; // 正常模式统一排斥力
+          return -300 * chargeScale; // 正常模式统一排斥力
         }))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collision", d3.forceCollide()
@@ -1299,14 +1309,6 @@ const Section3Mindmap = ({ id }) => {
       const siblings = findSiblings(focusNode);
       const isSibling = siblings.some(sibling => sibling.sectionId === node.sectionId);
       
-      // 调试信息 - 特别关注"非线性规划"节点
-      if (focusNode.sectionId === 'objective-nlp' || node.sectionId === 'objective-nlp') {
-        console.log(`🔍 关系检测 - 焦点: ${focusNode.name}(${focusNode.sectionId}), 节点: ${node.name}(${node.sectionId})`);
-        console.log(`  - 是父节点? ${isDirectParent}`);
-        console.log(`  - 是子节点? ${isDirectChild}`);
-        console.log(`  - 兄弟节点列表:`, siblings.map(s => `${s.name}(${s.sectionId})`));
-        console.log(`  - 是兄弟节点? ${isSibling}`);
-      }
       
       if (isDirectParent) return 'parent';
       if (isDirectChild) return 'child';
@@ -1337,10 +1339,6 @@ const Section3Mindmap = ({ id }) => {
           for (const child of node.children) {
             if (child.sectionId === targetNode.sectionId) {
               const isParent = node.sectionId === candidateParent.sectionId;
-              // 调试非线性规划节点
-              if (targetNode.sectionId === 'objective-nlp') {
-                console.log(`  📍 findDirectParent: 找到目标节点"${targetNode.name}"，父节点是"${node.name}"(${node.sectionId})，候选父节点是"${candidateParent.name}"(${candidateParent.sectionId})，匹配结果: ${isParent}`);
-              }
               return isParent;
             }
           }
@@ -1360,11 +1358,6 @@ const Section3Mindmap = ({ id }) => {
       const parentData = findNodeInData(parentNode.sectionId);
       if (parentData && parentData.children) {
         const isChild = parentData.children.some(child => child.sectionId === candidateChild.sectionId);
-        // 调试非线性规划节点
-        if (parentNode.sectionId === 'objective-nlp') {
-          console.log(`  📍 findDirectChild: 父节点"${parentNode.name}"(${parentNode.sectionId})的子节点列表:`, parentData.children.map(c => `${c.name}(${c.sectionId})`));
-          console.log(`  📍 候选子节点"${candidateChild.name}"(${candidateChild.sectionId})，匹配结果: ${isChild}`);
-        }
         return isChild;
       }
       return false;
@@ -1679,12 +1672,24 @@ const Section3Mindmap = ({ id }) => {
     nodeSelection.each(function(d) {
       const g = d3.select(this);
       
-      // 节点背景
+      // 节点背景，根节点增加内边距
       const rect = g.append("rect")
-        .attr("width", d => (d.name.length * 12 + 20) * d.scale)
-        .attr("height", d => 35 * d.scale)
-        .attr("x", d => -((d.name.length * 6 + 10) * d.scale))
-        .attr("y", d => -(17.5 * d.scale))
+        .attr("width", d => {
+          const padding = d.type === "root" ? 40 : 20; // 根节点加大内边距
+          return (d.name.length * 12 + padding) * d.scale;
+        })
+        .attr("height", d => {
+          const height = d.type === "root" ? 45 : 35; // 根节点高度也稍微增加
+          return height * d.scale;
+        })
+        .attr("x", d => {
+          const padding = d.type === "root" ? 40 : 20;
+          return -((d.name.length * 6 + padding/2) * d.scale);
+        })
+        .attr("y", d => {
+          const height = d.type === "root" ? 45 : 35;
+          return -(height/2 * d.scale);
+        })
         .attr("rx", 8)
         .attr("fill", d => {
           switch(d.type) {
@@ -1752,14 +1757,6 @@ const Section3Mindmap = ({ id }) => {
           type: d.type
         };
         
-        console.log('🎯 点击节点，设置聚焦:', fullNodeData);
-        
-        // 特殊调试"非线性规划"节点
-        if (d.sectionId === 'objective-nlp') {
-          console.log('🔍 点击了非线性规划节点，准备进入调试模式');
-          const nodeInData = findNodeInData(d.sectionId);
-          console.log('🔍 在数据中找到的节点信息:', nodeInData);
-        }
         
         setFocusedNode(fullNodeData);
         
@@ -1833,7 +1830,74 @@ const Section3Mindmap = ({ id }) => {
     const linkForce = simulation.force("link");
     if (linkForce) {
       linkForce.links(links);
+      
+      // 完全重新设置距离函数以获取最新的zoomLevel值
+      const newDistanceFunction = (d) => {
+        // 基于缩放级别调整距离 - 更激进的缩放算法
+        const baseDistance = 120;
+        const focusDistance = 80;
+        // 正确的缩放逻辑，但加强缩放效果使其更明显
+        const distanceScale = Math.pow(zoomLevel, 1.5); // 加强缩放效果，使距离变化更明显
+        
+        const finalDistance = baseDistance * distanceScale;
+        
+        if (viewMode === 'focus' && focusedNode) {
+          // 聚焦模式下调整连线距离，突出层级关系
+          const sourceNode = nodes.find(n => n.id === d.source.id);
+          const targetNode = nodes.find(n => n.id === d.target.id);
+          const sourceRel = sourceNode?.relationship || 'distant';
+          const targetRel = targetNode?.relationship || 'distant';
+          
+          // 焦点节点与其父子节点的距离更近
+          if ((sourceRel === 'focus' && ['parent', 'child'].includes(targetRel)) ||
+              (targetRel === 'focus' && ['parent', 'child'].includes(sourceRel))) {
+            return focusDistance * distanceScale; // 更近的距离突出层级关系
+          }
+          return finalDistance; // 默认距离
+        }
+        // 全局视图模式下，所有连线都应用缩放
+        return finalDistance;
+      };
+      
+      linkForce.distance(newDistanceFunction);
     }
+
+    // 同样更新排斥力的缩放
+    const chargeForce = simulation.force("charge");
+    if (chargeForce) {
+      chargeForce.strength(d => {
+        // 基于缩放级别调整排斥力 - 与距离缩放保持一致
+        const chargeScale = zoomLevel > 1 
+          ? 1 / Math.pow(zoomLevel, 0.4) // 放大时排斥力适度减小
+          : 1 / Math.pow(zoomLevel, 1.2); // 缩小时排斥力显著减小
+        
+        if (viewMode === 'focus' && focusedNode) {
+          // 聚焦模式下调整排斥力，关键节点排斥力更强
+          switch (d.relationship) {
+            case 'focus': return -400 * chargeScale;     // 焦点节点强排斥，保持中心位置
+            case 'parent':
+            case 'child': return -200 * chargeScale;     // 父子节点中等排斥
+            default: return -50 * chargeScale;           // 其他节点弱排斥，不干扰主体
+          }
+        }
+        return -300 * chargeScale; // 正常模式统一排斥力
+      });
+    }
+    
+    // 强制更新所有连线和力的初始化值
+    simulation.nodes(nodes);
+    if (linkForce) {
+      linkForce.links(links);
+    }
+
+    // 更激烈的重启动方式确保缩放生效
+    simulation.stop();
+    simulation.alpha(1).alphaTarget(0.05).restart();
+    
+    // 延时停止目标alpha，让仿真自然冷却
+    setTimeout(() => {
+      simulation.alphaTarget(0);
+    }, 3000);
 
   }, [viewMode, focusedNode, visibleNodeTypes, isExpanded, zoomLevel]);
 
@@ -1861,12 +1925,17 @@ const Section3Mindmap = ({ id }) => {
                   onKeyDown={handleKeyDown}
                   onFocus={handleSearchFocus}
                   placeholder="🔍 搜索具体优化方法..."
-                  className="w-full px-4 py-2 pr-28 rounded-lg border border-white/20 bg-black/20 backdrop-blur-sm text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:bg-black/30 transition-all"
-                  style={{ color: 'var(--ink-high)' }}
+                  className="w-full px-4 py-2 pr-2 rounded-lg border border-white/20 bg-black/20 backdrop-blur-sm text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:bg-black/30 transition-all relative z-30"
+                  style={{ 
+                    color: 'var(--ink-high)'
+                  }}
                 />
                 
-                {/* 内置控制按钮 */}
-                <div className="absolute right-0 top-0 bottom-0 flex items-center bg-gray-800/50 backdrop-blur-sm border border-gray-600/30 rounded-r-lg border-l-0 px-1 gap-0.5">
+                {/* 按钮背景 - 低z-index，紧贴搜索框，明显的对比色 */}
+                <div className="absolute right-0 top-0 bottom-0 bg-gray-700/80 backdrop-blur-sm rounded-r-lg z-10 border-l border-gray-600" style={{ width: '155px' }}></div>
+                
+                {/* 按钮容器 - 高z-index，确保可点击 */}
+                <div className="absolute right-0 top-0 bottom-0 flex items-center px-1 gap-0.5 z-40">
                   <button
                     onClick={handleSearchSubmit}
                     className="px-2 py-1 rounded text-sm text-gray-300 hover:text-white hover:bg-teal-500/20 transition-all duration-200"
