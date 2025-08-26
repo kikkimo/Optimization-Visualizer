@@ -1898,6 +1898,444 @@ const Section3Mindmap = ({ id }) => {
         className="snap-section relative overflow-hidden"
         style={{ backgroundColor: 'var(--bg-deep)' }}
       >
+        {/* 思维导图信息素传递动画背景 */}
+        <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 1, opacity: 0.5 }}>
+          {/* 神经网络节点群 - 均匀分布的20个节点 */}
+          <div className="absolute inset-0">
+            {Array.from({ length: 23 }).map((_, i) => {
+              // 四大经典星座组合：天蝎座、猎户座、大熊座、仙女座
+              const positions = [
+                // 天蝎座 - 左上区域（6颗星）
+                { x: 15, y: 20, tier: 'primary', size: 'large', constellation: 'scorpio' },  // 心宿二（天蝎座主星）
+                { x: 22, y: 15, tier: 'bright', size: 'medium', constellation: 'scorpio' }, // 头部
+                { x: 28, y: 25, tier: 'bright', size: 'medium', constellation: 'scorpio' }, // 身体
+                { x: 32, y: 35, tier: 'bright', size: 'small', constellation: 'scorpio' },  // 尾部开始
+                { x: 35, y: 45, tier: 'secondary', size: 'small', constellation: 'scorpio' }, // 尾部中段
+                { x: 38, y: 55, tier: 'secondary', size: 'tiny', constellation: 'scorpio' }, // 尾部末端
+                
+                // 猎户座 - 右上区域（7颗星）
+                { x: 75, y: 15, tier: 'bright', size: 'medium', constellation: 'orion' }, // 参宿四（左肩）
+                { x: 85, y: 18, tier: 'bright', size: 'medium', constellation: 'orion' }, // 参宿七（右肩）
+                { x: 72, y: 35, tier: 'primary', size: 'large', constellation: 'orion' }, // 参宿一（腰带中心）
+                { x: 68, y: 33, tier: 'bright', size: 'small', constellation: 'orion' },  // 参宿二（腰带左）
+                { x: 76, y: 37, tier: 'bright', size: 'small', constellation: 'orion' },  // 参宿三（腰带右）
+                { x: 74, y: 50, tier: 'secondary', size: 'medium', constellation: 'orion' }, // 参宿六（左脚）
+                { x: 82, y: 52, tier: 'secondary', size: 'medium', constellation: 'orion' }, // 参宿五（右脚）
+                
+                // 大熊座（北斗七星）- 左下区域（7颗星）
+                { x: 12, y: 65, tier: 'bright', size: 'medium', constellation: 'ursa' }, // 天枢
+                { x: 18, y: 62, tier: 'bright', size: 'medium', constellation: 'ursa' }, // 天璇
+                { x: 24, y: 68, tier: 'bright', size: 'medium', constellation: 'ursa' }, // 天玑
+                { x: 30, y: 70, tier: 'bright', size: 'medium', constellation: 'ursa' }, // 天权
+                { x: 36, y: 75, tier: 'primary', size: 'large', constellation: 'ursa' }, // 玉衡（斗柄中心）
+                { x: 42, y: 80, tier: 'bright', size: 'medium', constellation: 'ursa' }, // 开阳
+                { x: 48, y: 85, tier: 'secondary', size: 'small', constellation: 'ursa' }, // 摇光
+                
+                // 仙女座 - 右下区域（3颗星）
+                { x: 88, y: 75, tier: 'primary', size: 'large', constellation: 'andromeda' }, // 仙女座α（壁宿二）
+                { x: 82, y: 82, tier: 'bright', size: 'medium', constellation: 'andromeda' }, // 仙女座β
+                { x: 75, y: 88, tier: 'secondary', size: 'medium', constellation: 'andromeda' } // 仙女座γ
+              ];
+              const pos = positions[i];
+              return (
+                <div
+                  key={`neuron-${i}`}
+                  className="absolute"
+                  style={{
+                    left: `${pos.x}%`,
+                    top: `${pos.y}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  {/* 星座节点核心 - 自然亮度分层 */}
+                  <div
+                    className="relative rounded-full"
+                    style={{
+                      width: `${pos.size === 'large' ? 16 : pos.size === 'medium' ? 12 : pos.size === 'small' ? 8 : 4}px`,
+                      height: `${pos.size === 'large' ? 16 : pos.size === 'medium' ? 12 : pos.size === 'small' ? 8 : 4}px`,
+                      background: pos.tier === 'primary' 
+                        ? 'radial-gradient(circle, #fff 0%, #fbbf24 30%, #f59e0b 70%, rgba(245, 158, 11, 0.8) 100%)'
+                        : pos.tier === 'bright'
+                        ? 'radial-gradient(circle, #fef3c7 0%, #fbbf24 60%, rgba(245, 158, 11, 0.9) 100%)'
+                        : pos.tier === 'secondary'
+                        ? 'radial-gradient(circle, #fde68a 0%, #fbbf24 70%, rgba(251, 191, 36, 0.7) 100%)'
+                        : 'radial-gradient(circle, #fbbf24 20%, rgba(251, 191, 36, 0.5) 80%, transparent 100%)',
+                      animation: `starPulse${pos.tier === 'primary' ? 0 : pos.tier === 'bright' ? 1 : pos.tier === 'secondary' ? 2 : 3} ${
+                        pos.tier === 'primary' ? 2.5 : 
+                        pos.tier === 'bright' ? 3.5 + i * 0.15 : 
+                        pos.tier === 'secondary' ? 4.5 + i * 0.2 : 6 + i * 0.3
+                      }s infinite ease-in-out`,
+                      filter: pos.tier === 'primary' ? 'blur(0.2px)' : 'blur(0.3px)',
+                      boxShadow: pos.tier === 'primary' 
+                        ? '0 0 25px rgba(251, 191, 36, 0.9), inset 0 0 6px rgba(255, 255, 255, 0.5)'
+                        : pos.tier === 'bright'
+                        ? '0 0 15px rgba(251, 191, 36, 0.7)'
+                        : pos.tier === 'secondary'
+                        ? '0 0 8px rgba(251, 191, 36, 0.5)'
+                        : '0 0 4px rgba(251, 191, 36, 0.3)'
+                    }}
+                  />
+                  
+                  {/* 星光散射效果 */}
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: pos.tier === 'primary'
+                        ? 'radial-gradient(circle, transparent 30%, rgba(255, 255, 255, 0.3) 50%, rgba(251, 191, 36, 0.2) 70%, transparent 100%)'
+                        : pos.tier === 'bright'
+                        ? 'radial-gradient(circle, transparent 40%, rgba(251, 191, 36, 0.2) 65%, transparent 100%)'
+                        : 'radial-gradient(circle, transparent 50%, rgba(251, 191, 36, 0.1) 75%, transparent 100%)',
+                      animation: `starGlow ${pos.tier === 'primary' ? 5 : 7 + i * 0.1}s infinite ease-in-out reverse`,
+                      transform: pos.tier === 'primary' ? 'scale(3)' : pos.tier === 'bright' ? 'scale(2.2)' : 'scale(1.8)'
+                    }}
+                  />
+                  
+                  {/* 主星特殊闪烁 */}
+                  {pos.tier === 'primary' && (
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, transparent 40%)',
+                        animation: `primarySparkle 3s infinite ease-in-out`,
+                        transform: 'scale(0.4)'
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* 动态连接线网络 - 分层无交叉设计 */}
+          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="connectionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.1" />
+                <stop offset="50%" stopColor="#fbbf24" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.1" />
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge> 
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            
+            {/* 四大星座连接网络 - 按天文学准确连接 */}
+            {[
+              // 天蝎座连接（蝎子形状）
+              { x1: 15, y1: 20, x2: 22, y2: 15, type: 'constellation', group: 'scorpio' }, // 心宿二到头部
+              { x1: 22, y1: 15, x2: 28, y2: 25, type: 'constellation', group: 'scorpio' }, // 头部到身体
+              { x1: 15, y1: 20, x2: 28, y2: 25, type: 'constellation', group: 'scorpio' }, // 心宿二到身体（主线）
+              { x1: 28, y1: 25, x2: 32, y2: 35, type: 'constellation', group: 'scorpio' }, // 身体到尾部
+              { x1: 32, y1: 35, x2: 35, y2: 45, type: 'constellation', group: 'scorpio' }, // 尾部连接
+              { x1: 35, y1: 45, x2: 38, y2: 55, type: 'constellation', group: 'scorpio' }, // 尾部末端
+              
+              // 猎户座连接（猎人形状）
+              { x1: 75, y1: 15, x2: 85, y2: 18, type: 'constellation', group: 'orion' }, // 双肩连线
+              { x1: 75, y1: 15, x2: 68, y2: 33, type: 'constellation', group: 'orion' }, // 左肩到腰带
+              { x1: 85, y1: 18, x2: 76, y2: 37, type: 'constellation', group: 'orion' }, // 右肩到腰带
+              { x1: 68, y1: 33, x2: 72, y2: 35, type: 'constellation', group: 'orion' }, // 腰带三星连线
+              { x1: 72, y1: 35, x2: 76, y2: 37, type: 'constellation', group: 'orion' }, // 腰带三星连线
+              { x1: 72, y1: 35, x2: 74, y2: 50, type: 'constellation', group: 'orion' }, // 腰带到左脚
+              { x1: 72, y1: 35, x2: 82, y2: 52, type: 'constellation', group: 'orion' }, // 腰带到右脚
+              
+              // 大熊座连接（北斗七星）
+              { x1: 12, y1: 65, x2: 18, y2: 62, type: 'constellation', group: 'ursa' }, // 天枢-天璇
+              { x1: 18, y1: 62, x2: 24, y2: 68, type: 'constellation', group: 'ursa' }, // 天璇-天玑
+              { x1: 24, y1: 68, x2: 30, y2: 70, type: 'constellation', group: 'ursa' }, // 天玑-天权
+              { x1: 30, y1: 70, x2: 36, y2: 75, type: 'constellation', group: 'ursa' }, // 天权-玉衡
+              { x1: 36, y1: 75, x2: 42, y2: 80, type: 'constellation', group: 'ursa' }, // 玉衡-开阳
+              { x1: 42, y1: 80, x2: 48, y2: 85, type: 'constellation', group: 'ursa' }, // 开阳-摇光
+              { x1: 12, y1: 65, x2: 30, y2: 70, type: 'extend', group: 'ursa' }, // 斗口连线
+              
+              // 仙女座连接（三角形）
+              { x1: 88, y1: 75, x2: 82, y2: 82, type: 'constellation', group: 'andromeda' }, // α-β连线
+              { x1: 82, y1: 82, x2: 75, y2: 88, type: 'constellation', group: 'andromeda' }, // β-γ连线
+              { x1: 88, y1: 75, x2: 75, y2: 88, type: 'extend', group: 'andromeda' }      // α-γ连线
+            ].map((line, i) => (
+              <line
+                key={`connection-${i}`}
+                x1={`${line.x1}%`} y1={`${line.y1}%`}
+                x2={`${line.x2}%`} y2={`${line.y2}%`}
+                stroke={line.type === 'primary' ? '#fbbf24' : 
+                       line.type === 'constellation' ? 'rgba(251, 191, 36, 0.8)' :
+                       line.type === 'extend' ? 'rgba(251, 191, 36, 0.6)' : 'rgba(251, 191, 36, 0.3)'}
+                strokeWidth={line.type === 'primary' ? 1.5 : line.type === 'constellation' ? 1.2 : line.type === 'extend' ? 0.8 : 0.5}
+                strokeDasharray={
+                  line.type === 'primary' ? "none" : 
+                  line.type === 'constellation' ? "none" : 
+                  line.type === 'extend' ? "3,2" : "2,3"
+                }
+                strokeOpacity={line.type === 'primary' ? 0.9 : line.type === 'constellation' ? 0.7 : line.type === 'extend' ? 0.5 : 0.3}
+                filter={line.type === 'primary' ? "url(#glow)" : undefined}
+                strokeLinecap="round"
+                style={{
+                  animation: `constellationFlow${i % 4} ${
+                    line.type === 'primary' ? 3 + i * 0.1 : 
+                    line.type === 'constellation' ? 5 + i * 0.15 : 
+                    line.type === 'extend' ? 7 + i * 0.2 : 9 + i * 0.25
+                  }s infinite linear`
+                }}
+              />
+            ))}
+          </svg>
+          
+          {/* 信息素粒子群 - 基于新连接线的路径 */}
+          <div className="absolute inset-0">
+            {Array.from({ length: 24 }).map((_, i) => {
+              // 四大星座信息素粒子路径
+              const connections = [
+                // 天蝎座粒子路径
+                { start: { x: 15, y: 20 }, end: { x: 22, y: 15 }, intensity: 'high', group: 'scorpio' },
+                { start: { x: 22, y: 15 }, end: { x: 28, y: 25 }, intensity: 'medium', group: 'scorpio' },
+                { start: { x: 15, y: 20 }, end: { x: 28, y: 25 }, intensity: 'high', group: 'scorpio' },
+                { start: { x: 28, y: 25 }, end: { x: 32, y: 35 }, intensity: 'medium', group: 'scorpio' },
+                { start: { x: 32, y: 35 }, end: { x: 35, y: 45 }, intensity: 'low', group: 'scorpio' },
+                { start: { x: 35, y: 45 }, end: { x: 38, y: 55 }, intensity: 'low', group: 'scorpio' },
+                
+                // 猎户座粒子路径
+                { start: { x: 75, y: 15 }, end: { x: 85, y: 18 }, intensity: 'medium', group: 'orion' },
+                { start: { x: 75, y: 15 }, end: { x: 68, y: 33 }, intensity: 'high', group: 'orion' },
+                { start: { x: 85, y: 18 }, end: { x: 76, y: 37 }, intensity: 'high', group: 'orion' },
+                { start: { x: 68, y: 33 }, end: { x: 72, y: 35 }, intensity: 'high', group: 'orion' },
+                { start: { x: 72, y: 35 }, end: { x: 76, y: 37 }, intensity: 'high', group: 'orion' },
+                { start: { x: 72, y: 35 }, end: { x: 74, y: 50 }, intensity: 'medium', group: 'orion' },
+                { start: { x: 72, y: 35 }, end: { x: 82, y: 52 }, intensity: 'medium', group: 'orion' },
+                
+                // 大熊座粒子路径
+                { start: { x: 12, y: 65 }, end: { x: 18, y: 62 }, intensity: 'medium', group: 'ursa' },
+                { start: { x: 18, y: 62 }, end: { x: 24, y: 68 }, intensity: 'medium', group: 'ursa' },
+                { start: { x: 24, y: 68 }, end: { x: 30, y: 70 }, intensity: 'medium', group: 'ursa' },
+                { start: { x: 30, y: 70 }, end: { x: 36, y: 75 }, intensity: 'high', group: 'ursa' },
+                { start: { x: 36, y: 75 }, end: { x: 42, y: 80 }, intensity: 'high', group: 'ursa' },
+                { start: { x: 42, y: 80 }, end: { x: 48, y: 85 }, intensity: 'medium', group: 'ursa' },
+                { start: { x: 12, y: 65 }, end: { x: 30, y: 70 }, intensity: 'low', group: 'ursa' },
+                
+                // 仙女座粒子路径
+                { start: { x: 88, y: 75 }, end: { x: 82, y: 82 }, intensity: 'high', group: 'andromeda' },
+                { start: { x: 82, y: 82 }, end: { x: 75, y: 88 }, intensity: 'medium', group: 'andromeda' },
+                { start: { x: 88, y: 75 }, end: { x: 75, y: 88 }, intensity: 'low', group: 'andromeda' }
+              ];
+              
+              const conn = connections[i % connections.length];
+              const duration = conn.intensity === 'high' ? 3 + i * 0.1 : 
+                             conn.intensity === 'medium' ? 5 + i * 0.2 : 7 + i * 0.3;
+              const delay = i * 0.3;
+              const size = conn.intensity === 'high' ? 2.5 : 
+                          conn.intensity === 'medium' ? 2 : 1.5;
+              const isReverse = i % 2 === 1;
+              
+              return (
+                <div
+                  key={`particle-${i}`}
+                  className="absolute rounded-full"
+                  style={{
+                    width: `${size * 2}px`,
+                    height: `${size * 2}px`,
+                    background: conn.intensity === 'high' 
+                      ? 'radial-gradient(circle, #fff 0%, #fbbf24 30%, #f59e0b 70%, transparent 100%)'
+                      : conn.intensity === 'medium'
+                      ? 'radial-gradient(circle, #fde68a 0%, #fbbf24 60%, transparent 100%)'
+                      : 'radial-gradient(circle, #fbbf24 0%, rgba(251, 191, 36, 0.6) 80%, transparent 100%)',
+                    transform: 'translate(-50%, -50%)',
+                    opacity: 0,
+                    filter: conn.intensity === 'high' ? 'blur(0.3px)' : 'blur(0.5px)',
+                    boxShadow: conn.intensity === 'high' 
+                      ? '0 0 8px #fbbf24, 0 0 15px rgba(251, 191, 36, 0.4)'
+                      : `0 0 4px rgba(251, 191, 36, ${conn.intensity === 'medium' ? 0.6 : 0.3})`,
+                    '--start-x': isReverse ? `${conn.end.x}%` : `${conn.start.x}%`,
+                    '--start-y': isReverse ? `${conn.end.y}%` : `${conn.start.y}%`,
+                    '--end-x': isReverse ? `${conn.start.x}%` : `${conn.end.x}%`,
+                    '--end-y': isReverse ? `${conn.start.y}%` : `${conn.end.y}%`,
+                    animation: `particlePath${i % 4} ${duration}s infinite ease-in-out ${delay}s`
+                  }}
+                />
+              );
+            })}
+          </div>
+          
+          {/* 分散的微光粒子效果 */}
+          <div className="absolute inset-0">
+            {Array.from({ length: 35 }).map((_, i) => {
+              const x = Math.random() * 100;
+              const y = Math.random() * 100;
+              const size = 1 + Math.random() * 2;
+              const duration = 3 + Math.random() * 4;
+              const delay = Math.random() * 8;
+              
+              return (
+                <div
+                  key={`ambient-${i}`}
+                  className="absolute rounded-full"
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    background: 'radial-gradient(circle, #fbbf24, transparent)',
+                    transform: 'translate(-50%, -50%)',
+                    animation: `ambientFloat ${duration}s infinite ease-in-out ${delay}s`,
+                    opacity: Math.random() * 0.4 + 0.1
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* 动画样式定义 */}
+        <style jsx>{`
+          @keyframes starPulse0 {
+            0%, 100% { transform: scale(0.95); opacity: 0.95; }
+            50% { transform: scale(1.15); opacity: 1; }
+          }
+          @keyframes starPulse1 {
+            0%, 100% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 0.95; }
+          }
+          @keyframes starPulse2 {
+            0%, 100% { transform: scale(0.98); opacity: 0.6; }
+            50% { transform: scale(1.05); opacity: 0.85; }
+          }
+          @keyframes starPulse3 {
+            0%, 100% { transform: scale(1.0); opacity: 0.4; }
+            50% { transform: scale(1.05); opacity: 0.7; }
+          }
+          
+          @keyframes primarySparkle {
+            0%, 100% { 
+              transform: scale(0.3); 
+              opacity: 0; 
+            }
+            50% { 
+              transform: scale(0.6); 
+              opacity: 1; 
+            }
+          }
+          
+          @keyframes starGlow {
+            0%, 100% { transform: scale(2.5); opacity: 0.05; }
+            50% { transform: scale(3); opacity: 0.15; }
+          }
+          
+          @keyframes neuronHalo0 {
+            0%, 100% { transform: scale(2.5); opacity: 0.1; }
+            50% { transform: scale(3.5); opacity: 0.3; }
+          }
+          @keyframes neuronHalo1 {
+            0%, 100% { transform: scale(2.8); opacity: 0.15; }
+            50% { transform: scale(3.2); opacity: 0.25; }
+          }
+          
+          @keyframes constellationFlow0 {
+            0% { stroke-dashoffset: 0; opacity: 0.5; }
+            50% { opacity: 0.9; }
+            100% { stroke-dashoffset: -20; opacity: 0.5; }
+          }
+          @keyframes constellationFlow1 {
+            0% { stroke-dashoffset: -8; opacity: 0.4; }
+            50% { opacity: 0.7; }
+            100% { stroke-dashoffset: -28; opacity: 0.4; }
+          }
+          @keyframes constellationFlow2 {
+            0% { stroke-dashoffset: -15; opacity: 0.3; }
+            50% { opacity: 0.6; }
+            100% { stroke-dashoffset: -35; opacity: 0.3; }
+          }
+          @keyframes constellationFlow3 {
+            0% { stroke-dashoffset: -22; opacity: 0.25; }
+            50% { opacity: 0.5; }
+            100% { stroke-dashoffset: -42; opacity: 0.25; }
+          }
+          
+          @keyframes particlePath0 {
+            0% { 
+              opacity: 0; 
+              left: var(--start-x); 
+              top: var(--start-y); 
+              transform: translate(-50%, -50%) scale(0.8); 
+            }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { 
+              opacity: 0; 
+              left: var(--end-x); 
+              top: var(--end-y); 
+              transform: translate(-50%, -50%) scale(1.2); 
+            }
+          }
+          @keyframes particlePath1 {
+            0% { 
+              opacity: 0; 
+              left: var(--start-x); 
+              top: var(--start-y); 
+              transform: translate(-50%, -50%) scale(1); 
+            }
+            10% { opacity: 0.9; }
+            90% { opacity: 0.9; }
+            100% { 
+              opacity: 0; 
+              left: var(--end-x); 
+              top: var(--end-y); 
+              transform: translate(-50%, -50%) scale(0.9); 
+            }
+          }
+          @keyframes particlePath2 {
+            0% { 
+              opacity: 0; 
+              left: var(--start-x); 
+              top: var(--start-y); 
+              transform: translate(-50%, -50%) scale(0.9); 
+            }
+            20% { opacity: 0.7; }
+            80% { opacity: 0.7; }
+            100% { 
+              opacity: 0; 
+              left: var(--end-x); 
+              top: var(--end-y); 
+              transform: translate(-50%, -50%) scale(1.1); 
+            }
+          }
+          @keyframes particlePath3 {
+            0% { 
+              opacity: 0; 
+              left: var(--start-x); 
+              top: var(--start-y); 
+              transform: translate(-50%, -50%) scale(1.1); 
+            }
+            12% { opacity: 1; }
+            88% { opacity: 1; }
+            100% { 
+              opacity: 0; 
+              left: var(--end-x); 
+              top: var(--end-y); 
+              transform: translate(-50%, -50%) scale(0.7); 
+            }
+          }
+          
+          @keyframes ambientFloat {
+            0%, 100% { 
+              transform: translate(-50%, -50%) scale(0.8);
+              opacity: 0.1;
+            }
+            25% { 
+              transform: translate(-50%, -50%) translateY(-10px) scale(1.2);
+              opacity: 0.4;
+            }
+            50% { 
+              transform: translate(-50%, -50%) translateX(5px) scale(1);
+              opacity: 0.6;
+            }
+            75% { 
+              transform: translate(-50%, -50%) translateY(8px) scale(1.1);
+              opacity: 0.3;
+            }
+          }
+        `}</style>
+
       <div className="relative z-10 w-full h-screen flex flex-col pt-[51px] pb-[96px]">
 
         {/* 主要内容区域 - 左右布局 */}
@@ -1991,7 +2429,7 @@ const Section3Mindmap = ({ id }) => {
             </div>
             
             {/* 知识图谱主视图 */}
-            <div className="flex-1 bg-black/10 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
+            <div className="flex-1 bg-black/[0.35] backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
               <div className="p-4 h-full">
                 <svg 
                   ref={svgRef}
@@ -2001,7 +2439,7 @@ const Section3Mindmap = ({ id }) => {
             </div>
             
             {/* 底部信息区域 */}
-            <div className="mt-3 bg-black/10 backdrop-blur-sm rounded-lg border border-white/10">
+            <div className="mt-3 bg-black/[0.5] backdrop-blur-sm rounded-lg border border-white/10">
               {/* 当前位置指示器 */}
               <div className="px-4 py-2 border-b border-white/10">
                 <div className="flex items-center justify-between gap-2 text-xs">
@@ -2086,7 +2524,7 @@ const Section3Mindmap = ({ id }) => {
           </div>
 
           {/* 右侧：Markdown文本区域 */}
-          <div className="bg-black/10 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden relative" style={{ width: '45%', marginRight: '5%' }}>
+          <div className="bg-black/[0.4] backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden relative" style={{ width: '45%', marginRight: '5%' }}>
             <div className="h-full flex flex-col">
               <div className="flex-shrink-0 p-4 border-b border-white/10">
                 <h3 className="text-center text-xl font-bold" 
