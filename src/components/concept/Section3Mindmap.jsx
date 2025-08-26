@@ -60,6 +60,27 @@ const Section3Mindmap = ({ id }) => {
     return results;
   };
 
+  // 智能排序搜索结果函数
+  const sortSearchResults = (results, query) => {
+    return results.sort((a, b) => {
+      const queryLower = query.toLowerCase();
+      const aNameLower = a.name.toLowerCase();
+      const bNameLower = b.name.toLowerCase();
+      
+      // 完全匹配
+      if (aNameLower === queryLower) return -1;
+      if (bNameLower === queryLower) return 1;
+      
+      // 开头匹配
+      if (aNameLower.startsWith(queryLower) && !bNameLower.startsWith(queryLower)) return -1;
+      if (bNameLower.startsWith(queryLower) && !aNameLower.startsWith(queryLower)) return 1;
+      
+      // 按节点层级排序（更高级的分类在前）
+      const typeOrder = { root: 0, category: 1, framework: 2, subframework: 3, method: 4 };
+      return (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
+    });
+  };
+
   // 处理搜索输入
   const handleSearchChange = (e) => {
     const query = e.target.value;
@@ -67,7 +88,8 @@ const Section3Mindmap = ({ id }) => {
     
     if (query.trim()) {
       const results = searchInNodes([mindmapData], query);
-      setSearchResults(results);
+      const sortedResults = sortSearchResults(results, query.trim());
+      setSearchResults(sortedResults);
       setShowSearchResults(true);
     } else {
       setSearchResults([]);
@@ -111,6 +133,52 @@ const Section3Mindmap = ({ id }) => {
       setCurrentPath(['数学优化方法的分类']);
     }
   };
+
+  // 搜索按钮触发和回车键触发的搜索逻辑
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      const results = searchInNodes([mindmapData], searchQuery.trim());
+      if (results.length > 0) {
+        // 使用智能排序，确保选择真正的最佳匹配项
+        const sortedResults = sortSearchResults(results, searchQuery.trim());
+        const bestMatch = sortedResults[0];
+        handleSearchResultSelect(bestMatch);
+      }
+    }
+  };
+
+  // 处理键盘事件
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearchSubmit();
+    }
+  };
+
+  // 处理搜索框焦点事件
+  const handleSearchFocus = () => {
+    // 如果搜索框有内容，自动显示搜索结果下拉框
+    if (searchQuery.trim()) {
+      const results = searchInNodes([mindmapData], searchQuery.trim());
+      const sortedResults = sortSearchResults(results, searchQuery.trim());
+      setSearchResults(sortedResults);
+      setShowSearchResults(true);
+    }
+  };
+
+  // 处理点击外部区域关闭下拉框
+  const handleClickOutside = (e) => {
+    if (!e.target.closest('.search-container')) {
+      setShowSearchResults(false);
+    }
+  };
+
+  // 添加点击外部区域的事件监听
+  useEffect(() => {
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   // 切换节点类型可见性
   const toggleNodeType = (type) => {
@@ -1785,54 +1853,79 @@ const Section3Mindmap = ({ id }) => {
             {/* 搜索和控制区域 */}
             <div className="mb-4 space-y-3">
               {/* 智能搜索框 */}
-              <div className="relative">
+              <div className="relative search-container">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  placeholder="🔍 搜索优化方法... (支持中英文)"
-                  className="w-full px-4 py-2 pr-32 rounded-lg border border-white/20 bg-black/20 backdrop-blur-sm text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:bg-black/30 transition-all"
+                  onKeyDown={handleKeyDown}
+                  onFocus={handleSearchFocus}
+                  placeholder="🔍 搜索具体优化方法..."
+                  className="w-full px-4 py-2 pr-28 rounded-lg border border-white/20 bg-black/20 backdrop-blur-sm text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:bg-black/30 transition-all"
                   style={{ color: 'var(--ink-high)' }}
                 />
                 
                 {/* 内置控制按钮 */}
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex bg-black/30 rounded-md p-0.5">
+                <div className="absolute right-0 top-0 bottom-0 flex items-center bg-gray-800/50 backdrop-blur-sm border border-gray-600/30 rounded-r-lg border-l-0 px-1 gap-0.5">
                   <button
-                    onClick={() => handleZoom('in')}
-                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
-                    title="放大"
+                    onClick={handleSearchSubmit}
+                    className="px-2 py-1 rounded text-sm text-gray-300 hover:text-white hover:bg-teal-500/20 transition-all duration-200"
+                    title="搜索"
                   >
-                    +
+                    🔍
                   </button>
                   <button
                     onClick={() => handleZoom('reset')}
-                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
-                    title="重置视图"
+                    className="px-2 py-1 rounded text-sm text-gray-300 hover:text-white hover:bg-blue-500/20 transition-all duration-200"
+                    title="全局视图"
                   >
-                    ◯
+                    🌐
+                  </button>
+                  <button
+                    onClick={() => handleZoom('in')}
+                    className="px-2 py-1 rounded text-sm text-gray-300 hover:text-white hover:bg-green-500/20 transition-all duration-200"
+                    title="放大"
+                  >
+                    ➕
                   </button>
                   <button
                     onClick={() => handleZoom('out')}
-                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                    className="px-2 py-1 rounded text-sm text-gray-300 hover:text-white hover:bg-red-500/20 transition-all duration-200"
                     title="缩小"
                   >
-                    -
+                    ➖
                   </button>
                 </div>
                 
                 {/* 搜索结果下拉框 */}
                 {showSearchResults && searchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800/95 backdrop-blur-sm border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
-                    {searchResults.map((result, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSearchResultSelect(result)}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-700/50 transition-colors border-b border-gray-700 last:border-b-0"
-                      >
-                        <div className="font-medium text-white">{result.name}</div>
-                        <div className="text-xs text-gray-400 mt-1">{result.pathString}</div>
-                      </button>
-                    ))}
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl max-h-64 overflow-y-auto z-50">
+                    <div className="p-2">
+                      <div className="text-xs text-gray-400 mb-2">
+                        找到 {searchResults.length} 个匹配结果
+                      </div>
+                      {searchResults.map((result, index) => {
+                        const nodeTypeColor = getNodeTypeColor(result.type);
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => handleSearchResultSelect(result)}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-700/50 active:bg-gray-600/50 transition-all duration-200 rounded-md border border-transparent hover:border-teal-500/30 mb-1 last:mb-0"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: nodeTypeColor }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-white text-sm truncate">{result.name}</div>
+                                <div className="text-xs text-gray-400 mt-0.5 truncate">{result.pathString}</div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
