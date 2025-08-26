@@ -69,6 +69,31 @@ const Section1Definition = ({ id }) => {
     // 显示气泡提示
     setShowTooltip(termId);
     
+    // 动态计算气泡位置（使用 fixed 定位）
+    setTimeout(() => {
+      const buttonElement = document.querySelector(`[data-term-id="${termId}"]`);
+      const tooltipElement = document.querySelector(`[data-term-id="${termId}"]`).parentElement.querySelector('.absolute.z-50');
+      
+      if (buttonElement && tooltipElement) {
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const tooltipRect = tooltipElement.getBoundingClientRect();
+        
+        // 计算气泡应该的位置（按钮上方居中）
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+        const tooltipCenterX = tooltipRect.width / 2;
+        // 添加-2px的微调，补偿边框/内边距的视觉偏差
+        const leftPosition = buttonCenterX - tooltipCenterX - 2;
+        const topPosition = buttonRect.top - tooltipRect.height - 12;
+        
+        // 应用新位置
+        tooltipElement.style.position = 'fixed';
+        tooltipElement.style.left = `${leftPosition}px`;
+        tooltipElement.style.top = `${topPosition}px`;
+        tooltipElement.style.bottom = 'auto';
+        tooltipElement.style.transform = 'none';
+      }
+    }, 100);
+    
     // 3秒后自动隐藏气泡
     if (tooltipTimeout) {
       clearTimeout(tooltipTimeout);
@@ -357,18 +382,40 @@ const Section1Definition = ({ id }) => {
                     `} />
                   </div>
 
-                  {/* 提示气泡 */}
+                  {/* MIN/MAX 提示气泡 - 显示在公式框下方中央，但箭头指向MIN/MAX按钮 */}
                   {showMinMaxTooltip && (
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-4 px-4 py-2 rounded-lg text-sm animate-fade-in"
+                    <div className="absolute px-4 py-2 rounded-lg text-sm animate-fade-in"
                          style={{
                            backgroundColor: 'var(--bg-elevated)',
                            color: 'var(--ink-mid)',
-                           boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                           boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                           zIndex: 60,
+                           top: '100%',
+                           left: 0,
+                           right: 0,
+                           marginLeft: 'auto',
+                           marginRight: 'auto',
+                           marginTop: '16px',
+                           width: 'fit-content'
                          }}>
                       {isMinimization 
                         ? "最小化问题是数学优化的标准形式，求解目标函数的全局最小值。"
                         : "最大化问题等价于最小化问题：max f(x) = -min(-f(x))"
                       }
+                      
+                      {/* 气泡箭头 - 指向右上角的MIN/MAX按钮 */}
+                      <div 
+                        className="absolute"
+                        style={{
+                          bottom: '100%',
+                          right: '20px',
+                          width: 0,
+                          height: 0,
+                          borderLeft: '6px solid transparent',
+                          borderRight: '6px solid transparent',
+                          borderBottom: '6px solid var(--bg-elevated)'
+                        }}
+                      />
                     </div>
                   )}
                 </div>
@@ -420,6 +467,7 @@ const Section1Definition = ({ id }) => {
                     return (
                       <div key={chip.id} className="relative">
                         <button
+                          data-term-id={chip.id}
                           className={`px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 focus:outline-none ${
                             isActive
                               ? 'transform scale-105'
@@ -438,23 +486,23 @@ const Section1Definition = ({ id }) => {
                           {chip.label}
                         </button>
                         
-                        {/* 气泡提示 */}
+                        {/* 气泡提示 - 修复定位 */}
                         {showTooltip === chip.id && (
                           <div 
-                            className="absolute z-50 px-3 py-2 text-xs rounded-lg shadow-lg animate-fade-in"
+                            className="absolute z-50 px-3 py-2 text-xs rounded-lg shadow-lg animate-fade-in pointer-events-none"
                             style={{
-                              backgroundColor: 'var(--tech-mint)', // 与按钮背景颜色一致
-                              color: 'var(--bg-deep)', // 深色文字确保对比度
-                              border: '2px solid #22d3ee', // 边缘用更亮的青色（同色系）
-                              boxShadow: '0 0 12px rgba(34, 211, 238, 0.6)', // 同色系青色发光效果
-                              bottom: '100%',
+                              backgroundColor: 'var(--tech-mint)',
+                              color: 'var(--bg-deep)',
+                              border: '2px solid #22d3ee',
+                              boxShadow: '0 0 12px rgba(34, 211, 238, 0.6)',
+                              bottom: 'calc(100% + 12px)',
                               left: '50%',
                               transform: 'translateX(-50%)',
-                              marginBottom: '8px',
                               minWidth: '200px',
                               maxWidth: '500px',
                               whiteSpace: 'nowrap',
-                              backdropFilter: 'blur(4px)' // 添加毛玻璃效果
+                              backdropFilter: 'blur(4px)',
+                              position: 'fixed'
                             }}
                           >
                             {termTooltips[chip.id]}
@@ -468,9 +516,9 @@ const Section1Definition = ({ id }) => {
                                 transform: 'translateX(-50%)',
                                 width: 0,
                                 height: 0,
-                                borderLeft: '6px solid transparent',
-                                borderRight: '6px solid transparent',
-                                borderTop: '6px solid var(--tech-mint)'
+                                borderLeft: '8px solid transparent',
+                                borderRight: '8px solid transparent',
+                                borderTop: '8px solid var(--tech-mint)'
                               }}
                             />
                           </div>
