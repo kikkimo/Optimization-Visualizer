@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom'
 import Section1Definition from '../components/concept/Section1Definition'
 import Section2Descent3D from '../components/concept/Section2Descent3D'
 import Section3Mindmap from '../components/concept/Section3Mindmap'
-import Section4LP from '../components/concept/Section4LP'
+import Section4Surveying from '../components/concept/Section4Surveying'
 import Section5QP from '../components/concept/Section5QP'
 import ConceptRailDots from '../components/concept/ConceptRailDots'
 import useConceptSections from '../hooks/useConceptSections'
@@ -35,16 +35,16 @@ const ConceptPage = () => {
     {
       id: 2,
       title: '分类导图',
-      summary: '四主干分类/测绘案例/导航跳转',
+      summary: '八种分类方式/思维导图/优化算法',
       anchor: 'concept-2',
       component: Section3Mindmap
     },
     {
       id: 3,
-      title: 'LP 线性规划',
-      summary: '线性目标/线性约束/单纯形法',
+      title: '测绘优化建模',
+      summary: '测绘领域六大优化问题范式',
       anchor: 'concept-3',
-      component: Section4LP
+      component: Section4Surveying
     },
     {
       id: 4,
