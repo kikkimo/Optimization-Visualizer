@@ -86,10 +86,8 @@ const Section3Mindmap = ({ id }) => {
     console.log('Setting focused node from search:', focusNodeData.name);
     setCurrentPath(result.path);
     setFocusedNode(focusNodeData);
-    // 搜索结果选择时，如果在全景Tab，则进入聚焦视图；如果在路径Tab，保持路径视图
-    if (viewMode !== 'path') {
-      setViewMode('focus');
-    }
+    // 搜索结果选择时，进入聚焦视图
+    setViewMode('focus');
     setShowSearchResults(false);
     setSearchQuery(result.name);
     
@@ -107,12 +105,10 @@ const Section3Mindmap = ({ id }) => {
       setZoomLevel(Math.max(zoomLevel / 1.5, 0.5));
     } else if (direction === 'reset') {
       setZoomLevel(1);
-      // 只有在全景Tab或聚焦模式时，才回到全局视图
-      if (viewMode !== 'path') {
-        setViewMode('overview');
-        setFocusedNode(null);
-        setCurrentPath(['数学优化方法的分类']);
-      }
+      // 回到全局视图
+      setViewMode('overview');
+      setFocusedNode(null);
+      setCurrentPath(['数学优化方法的分类']);
     }
   };
 
@@ -122,6 +118,58 @@ const Section3Mindmap = ({ id }) => {
       ...prev,
       [type]: !prev[type]
     }));
+  };
+
+  // 获取节点类型颜色
+  const getNodeTypeColor = (type) => {
+    switch(type) {
+      case "root": return "#3b82f6";           // 蓝色
+      case "category": return "#10b981";       // 绿色
+      case "framework": return "#f59e0b";      // 橙色
+      case "subframework": return "#8b5cf6";   // 紫色
+      case "method": return "#ef4444";         // 橘红色
+      default: return "#64748b";               // 灰色
+    }
+  };
+
+  // 根据节点名称查找节点数据
+  const findNodeByName = (nodeName, rootNode = mindmapData) => {
+    if (rootNode.name === nodeName) {
+      return rootNode;
+    }
+    if (rootNode.children) {
+      for (const child of rootNode.children) {
+        const result = findNodeByName(nodeName, child);
+        if (result) return result;
+      }
+    }
+    return null;
+  };
+
+  // 处理路径节点点击事件
+  const handlePathNodeClick = (nodeName) => {
+    const nodeData = findNodeByName(nodeName);
+    if (nodeData) {
+      console.log('🔗 点击路径节点:', nodeName, nodeData);
+      
+      const fullNodeData = {
+        name: nodeData.name,
+        sectionId: nodeData.sectionId,
+        type: nodeData.type
+      };
+      
+      setFocusedNode(fullNodeData);
+      setViewMode('focus');
+      
+      // 更新当前路径
+      const pathToNode = getPathToNode(fullNodeData);
+      setCurrentPath(pathToNode);
+      
+      // 滚动到对应章节
+      if (nodeData.sectionId) {
+        scrollToSection(nodeData.sectionId);
+      }
+    }
   };
 
   // 获取节点路径的辅助函数
@@ -1134,8 +1182,6 @@ const Section3Mindmap = ({ id }) => {
         if (process.env.NODE_ENV === 'development' && focusedNode && nodes.length < 5) {
           console.log(`Focus: ${focusedNode?.name}(${focusedNode?.sectionId}), Node: ${node.name}(${node.sectionId}), Relationship: ${relationship}, Show: ${shouldShow}`);
         }
-      } else if (viewMode === 'path') {
-        shouldShow = shouldShow && isNodeInPath(node);
       }
       // overview模式显示所有可见类型的节点
       
@@ -1296,9 +1342,9 @@ const Section3Mindmap = ({ id }) => {
           case 'focus': return 1.0;           // 焦点节点完全不透明
           case 'parent': return 0.95;         // 直接父节点高透明度
           case 'child': return 0.95;          // 直接子节点高透明度  
-          case 'sibling': return 0.4;         // 兄弟节点中等透明度
-          case 'distant': return 0.25;        // 远距离节点低透明度
-          default: return 0.3;                // 其他节点低透明度
+          case 'sibling': return 0.2;         // 兄弟节点中等透明度
+          case 'distant': return 0.15;        // 远距离节点低透明度
+          default: return 0.1;                // 其他节点低透明度
         }
       }
       return Math.max(0.6, 1 - level * 0.1);
@@ -1550,7 +1596,7 @@ const Section3Mindmap = ({ id }) => {
       });
 
     // 创建节点组
-    const node = svg.append("g")
+    const nodeSelection = svg.append("g")
       .selectAll("g")
       .data(nodes)
       .enter()
@@ -1562,7 +1608,7 @@ const Section3Mindmap = ({ id }) => {
         .on("end", dragended));
 
     // 根据节点类型设置样式
-    node.each(function(d) {
+    nodeSelection.each(function(d) {
       const g = d3.select(this);
       
       // 节点背景
@@ -1649,14 +1695,12 @@ const Section3Mindmap = ({ id }) => {
         
         setFocusedNode(fullNodeData);
         
-        // 只有在全景Tab中才切换到聚焦视图，路径Tab保持路径视图
-        if (viewMode !== 'path') {
-          setViewMode('focus');
-          
-          // 更新当前路径
-          const pathToNode = getPathToNode(d);
-          setCurrentPath(pathToNode);
-        }
+        // 切换到聚焦视图
+        setViewMode('focus');
+        
+        // 更新当前路径
+        const pathToNode = getPathToNode(d);
+        setCurrentPath(pathToNode);
         
         // 滚动到对应章节
         if (d.sectionId) {
@@ -1713,7 +1757,7 @@ const Section3Mindmap = ({ id }) => {
           .attr("x2", d => d.target.x)
           .attr("y2", d => d.target.y);
 
-        node
+        nodeSelection
           .attr("transform", d => `translate(${d.x},${d.y})`);
       });
 
@@ -1723,7 +1767,7 @@ const Section3Mindmap = ({ id }) => {
       linkForce.links(links);
     }
 
-  }, [isExpanded, viewMode, zoomLevel, focusedNode, visibleNodeTypes]);
+  }, [viewMode, focusedNode, visibleNodeTypes, isExpanded, zoomLevel]);
 
   return (
     <>
@@ -1747,9 +1791,34 @@ const Section3Mindmap = ({ id }) => {
                   value={searchQuery}
                   onChange={handleSearchChange}
                   placeholder="🔍 搜索优化方法... (支持中英文)"
-                  className="w-full px-4 py-2 rounded-lg border border-white/20 bg-black/20 backdrop-blur-sm text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:bg-black/30 transition-all"
+                  className="w-full px-4 py-2 pr-32 rounded-lg border border-white/20 bg-black/20 backdrop-blur-sm text-white placeholder-gray-400 focus:outline-none focus:border-teal-400 focus:bg-black/30 transition-all"
                   style={{ color: 'var(--ink-high)' }}
                 />
+                
+                {/* 内置控制按钮 */}
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex bg-black/30 rounded-md p-0.5">
+                  <button
+                    onClick={() => handleZoom('in')}
+                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                    title="放大"
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={() => handleZoom('reset')}
+                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                    title="重置视图"
+                  >
+                    ◯
+                  </button>
+                  <button
+                    onClick={() => handleZoom('out')}
+                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                    title="缩小"
+                  >
+                    -
+                  </button>
+                </div>
                 
                 {/* 搜索结果下拉框 */}
                 {showSearchResults && searchResults.length > 0 && (
@@ -1766,65 +1835,6 @@ const Section3Mindmap = ({ id }) => {
                     ))}
                   </div>
                 )}
-              </div>
-              
-              {/* 控制按钮组 */}
-              <div className="flex justify-between items-center">
-                {/* 视图模式切换 */}
-                <div className="flex bg-black/20 rounded-lg p-1">
-                  <button
-                    onClick={() => {
-                      if (viewMode === 'path') {
-                        // 从路径Tab切换到全景Tab，默认显示overview模式
-                        setViewMode('overview');
-                        setFocusedNode(null);
-                        setCurrentPath(['数学优化方法的分类']);
-                      } else {
-                        // 在全景Tab内，回到全局视图
-                        handleZoom('reset');
-                      }
-                    }}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                      viewMode === 'overview' || viewMode === 'focus'
-                        ? 'bg-teal-500 text-white' 
-                        : 'text-gray-300 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    全景
-                  </button>
-                  <button
-                    onClick={() => setViewMode('path')}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                      viewMode === 'path' 
-                        ? 'bg-teal-500 text-white' 
-                        : 'text-gray-300 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    路径
-                  </button>
-                </div>
-                
-                {/* 缩放控制 */}
-                <div className="flex bg-black/20 rounded-lg p-1">
-                  <button
-                    onClick={() => handleZoom('in')}
-                    className="px-2 py-1 rounded text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
-                  >
-                    +
-                  </button>
-                  <button
-                    onClick={() => handleZoom('reset')}
-                    className="px-2 py-1 rounded text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
-                  >
-                    ◯
-                  </button>
-                  <button
-                    onClick={() => handleZoom('out')}
-                    className="px-2 py-1 rounded text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
-                  >
-                    -
-                  </button>
-                </div>
               </div>
             </div>
             
@@ -1843,20 +1853,51 @@ const Section3Mindmap = ({ id }) => {
               {/* 当前位置指示器 */}
               <div className="px-4 py-2 border-b border-white/10">
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span style={{ color: 'var(--tech-mint)' }}>📍 当前位置:</span>
-                    <span style={{ color: 'var(--ink-mid)' }}>
-                      {currentPath.join(' > ')}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {currentPath.map((nodeName, index) => {
+                        const nodeData = findNodeByName(nodeName);
+                        const nodeColor = nodeData ? getNodeTypeColor(nodeData.type) : 'var(--ink-mid)';
+                        const isClickable = nodeData;
+                        
+                        return (
+                          <React.Fragment key={`path-${index}`}>
+                            {isClickable ? (
+                              <button
+                                onClick={() => handlePathNodeClick(nodeName)}
+                                className="hover:underline transition-all duration-200 hover:brightness-110"
+                                style={{ 
+                                  color: nodeColor,
+                                  fontSize: 'inherit',
+                                  background: 'none',
+                                  border: 'none',
+                                  padding: '0',
+                                  cursor: 'pointer'
+                                }}
+                                title={`点击切换到"${nodeName}"的聚焦视图`}
+                              >
+                                {nodeName}
+                              </button>
+                            ) : (
+                              <span style={{ color: nodeColor }}>
+                                {nodeName}
+                              </span>
+                            )}
+                            {index < currentPath.length - 1 && (
+                              <span style={{ color: 'var(--ink-low)', margin: '0 2px' }}>›</span>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    <span style={{ color: 'var(--tech-mint)' }}>
+                      {viewMode === 'overview' ? '🌐' : '🎯'} 
+                      {viewMode === 'overview' ? '全局视图' : '聚焦视图'}
                     </span>
                   </div>
-                  {viewMode !== 'path' && (
-                    <div className="flex items-center gap-1 text-xs">
-                      <span style={{ color: 'var(--tech-mint)' }}>
-                        {viewMode === 'overview' ? '🌐' : '🎯'} 
-                        {viewMode === 'overview' ? '全局视图' : '聚焦视图'}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
               
