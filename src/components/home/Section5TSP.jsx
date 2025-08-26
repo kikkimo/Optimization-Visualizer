@@ -59,7 +59,7 @@ export default function Section5TSP({ id }) {
   useEffect(() => {
     console.log('[Graph] === 开始加载图数据 ===');
     
-    fetch('/assets/graph/tsp_fixed_graph.json')
+    fetch('/src/assets/graph/tsp_fixed_graph.json')
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
