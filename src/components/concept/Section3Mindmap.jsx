@@ -1257,9 +1257,6 @@ const Section3Mindmap = ({ id }) => {
         // shouldShow保持为true，让所有节点都显示，通过opacity控制视觉效果
         
         // 调试信息 - 只在开发环境显示
-        if (process.env.NODE_ENV === 'development' && focusedNode && nodes.length < 5) {
-          console.log(`Focus: ${focusedNode?.name}(${focusedNode?.sectionId}), Node: ${node.name}(${node.sectionId}), Relationship: ${relationship}, Show: ${shouldShow}`);
-        }
       }
       // overview模式显示所有可见类型的节点
       
@@ -1372,12 +1369,6 @@ const Section3Mindmap = ({ id }) => {
           if (targetChild) {
             // 返回除目标节点外的所有兄弟节点
             const siblings = node.children.filter(sibling => sibling.sectionId !== targetNode.sectionId);
-            // 调试非线性规划节点
-            if (targetNode.sectionId === 'objective-nlp') {
-              console.log(`  📍 findSiblings: 找到目标节点"${targetNode.name}"，在父节点"${node.name}"(${node.sectionId})下`);
-              console.log(`  📍 所有子节点:`, node.children.map(c => `${c.name}(${c.sectionId})`));
-              console.log(`  📍 兄弟节点:`, siblings.map(s => `${s.name}(${s.sectionId})`));
-            }
             return siblings;
           }
           // 递归搜索
@@ -1490,7 +1481,6 @@ const Section3Mindmap = ({ id }) => {
 
     // 应急处理：如果聚焦模式下没有显示任何节点，显示焦点节点及其路径上的节点
     if (viewMode === 'focus' && focusedNode && nodes.length === 0) {
-      console.log('Emergency fallback: showing path nodes');
       // 重新处理，这次显示路径上的节点
       nodes.length = 0;
       links.length = 0;
@@ -2409,7 +2399,7 @@ const Section3Mindmap = ({ id }) => {
       </div>
       
       {/* 呼吸发光动画样式 */}
-      <style jsx>{`
+      <style>{`
         /* 高亮连线呼吸发光动画 */
         :global(.focus-link-breathing) {
           animation: linkBreathing 2.5s ease-in-out infinite;
