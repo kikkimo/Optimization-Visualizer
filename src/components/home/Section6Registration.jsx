@@ -10,12 +10,12 @@ export default function Section6Registration({ id }) {
   const animationRef = useRef(null);
 
   const leftImage = mode === 'before' 
-    ? '/src/assets/registration/before_left.jpg'
-    : '/src/assets/registration/after_left.jpg';
+    ? '/src/assets/images/registration/before_left.jpg'
+    : '/src/assets/images/registration/after_left.jpg';
   
   const rightImage = mode === 'before'
-    ? '/src/assets/registration/before_right.jpg'
-    : '/src/assets/registration/after_right.jpg';
+    ? '/src/assets/images/registration/before_right.jpg'
+    : '/src/assets/images/registration/after_right.jpg';
 
   const handleModeChange = (newMode) => {
     if (newMode !== mode) {
