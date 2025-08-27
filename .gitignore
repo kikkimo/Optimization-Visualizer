@@ -25,6 +25,9 @@ lerna-debug.log*
 dist/
 dist-ssr/
 
+# Vite缓存目录
+.vite/
+
 # 生产构建文件
 build/
 
@@ -208,5 +211,8 @@ docs-dist/
 *.avi
 *.mkv
 large-assets/
+
+# 项目文档和MCP相关文件夹
 CLAUDE.md
 /.serena
+/.claude
