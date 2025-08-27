@@ -1,4 +1,4 @@
-// src/data/mindLines.ts
+// src/assets/data/mindLines.ts
 export const mindLines = [
   "这几个字看着就有点难…",
   "会不会一屏数学公式？",

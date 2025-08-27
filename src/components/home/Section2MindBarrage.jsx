@@ -2,7 +2,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { mindLines } from "../../data/mindLines";
+import { mindLines } from "../../assets/data/mindLines";
 import DownHint from "./DownHint";
 
 gsap.registerPlugin(ScrollTrigger);
