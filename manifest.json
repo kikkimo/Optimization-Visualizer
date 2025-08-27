@@ -1,0 +1,9 @@
+{
+  "name": "数学优化问题及其在测绘领域的应用",
+  "short_name": "优化问题演示",
+  "description": "数学优化问题及其在测绘领域的应用 - 交互式演示",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#3b82f6"
+}
