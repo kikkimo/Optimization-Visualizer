@@ -1,28 +1,28 @@
 import React, { useState } from 'react';
 
-const ConceptRailDots = ({ sections, currentSection, onDotClick }) => {
+const RailDots = ({ sections, currentSection, onDotClick }) => {
   const [hoveredDot, setHoveredDot] = useState(null);
 
   return (
     <div className="fixed right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-4"
          style={{ transform: 'translateY(-50%)', zIndex: 50 }}>
       {sections.map((section, index) => (
-        <div key={section.id} className="relative group">
+        <div key={section.id || index} className="relative group">
           <button
-            onClick={() => onDotClick(section)}
-            onMouseEnter={() => setHoveredDot(section.id)}
+            onClick={() => onDotClick(section, index)}
+            onMouseEnter={() => setHoveredDot(section.id ?? index)}
             onMouseLeave={() => setHoveredDot(null)}
             className="w-3 h-3 rounded-full border-2 transition-all duration-300"
             style={{
-              backgroundColor: currentSection === section.id ? 'var(--tech-mint)' : 'transparent',
-              borderColor: currentSection === section.id ? 'var(--tech-mint)' : 'var(--ink-mid)',
-              transform: currentSection === section.id ? 'scale(1.25)' : 'scale(1)'
+              backgroundColor: currentSection === (section.id ?? index) ? 'var(--tech-mint)' : 'transparent',
+              borderColor: currentSection === (section.id ?? index) ? 'var(--tech-mint)' : 'var(--ink-mid)',
+              transform: currentSection === (section.id ?? index) ? 'scale(1.25)' : 'scale(1)'
             }}
             aria-label={`跳转到${section.title}`}
           />
           
           {/* Tooltip */}
-          {hoveredDot === section.id && (
+          {hoveredDot === (section.id ?? index) && (
             <div className="absolute right-full mr-4 top-1/2 px-3 py-1.5 rounded-md
                           text-sm whitespace-nowrap animate-fade-in pointer-events-none"
                  style={{
@@ -77,4 +77,4 @@ const ConceptRailDots = ({ sections, currentSection, onDotClick }) => {
   );
 };
 
-export default ConceptRailDots;
+export default RailDots;

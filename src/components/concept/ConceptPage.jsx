@@ -7,12 +7,14 @@ import Section2Descent3D from './Section2Descent3D'
 import Section3Mindmap from './Section3Mindmap'
 import Section4Surveying from './Section4Surveying'
 import Section5QP from './Section5QP'
-import ConceptRailDots from './ConceptRailDots'
+import RailDots from '../shared/RailDots'
+import useConceptRailDots from '../../hooks/useConceptRailDots'
 import useConceptSections from '../../hooks/useConceptSections'
 import '../../styles/tokens.css'
 
 
 const ConceptPage = () => {
+  const railDotsProps = useConceptRailDots()
   const { currentSection, scrollToSection } = useConceptSections()
   const location = useLocation()
 
@@ -111,11 +113,7 @@ const ConceptPage = () => {
         className="snap-container"
         id="snap-container"
       >
-        <ConceptRailDots 
-          sections={sections}
-          currentSection={currentSection} 
-          onDotClick={handleDotClick}
-        />
+        <RailDots {...railDotsProps} />
         
         {sections.map((section) => {
           const Component = section.component

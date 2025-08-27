@@ -7,11 +7,13 @@ import Section3Olympiad from './Section3Olympiad';
 import Section5TSP from './Section5TSP';
 import Section6Registration from './Section6Registration';
 import Section7Summary from './Section7Summary';
-import RailDots from './RailDots';
+import RailDots from '../shared/RailDots';
+import useHomeRailDots from '../../hooks/useHomeRailDots';
 import useHomeSections from '../../hooks/useHomeSections';
 import '../../styles/tokens.css';
 
 export default function HomePage() {
+  const railDotsProps = useHomeRailDots();
   const { currentSection, scrollToSection } = useHomeSections();
   const location = useLocation();
 
@@ -69,10 +71,7 @@ export default function HomePage() {
         className="snap-container"
         id="snap-container"
       >
-        <RailDots 
-          currentSection={currentSection} 
-          onDotClick={scrollToSection}
-        />
+        <RailDots {...railDotsProps} />
         
         <Section1Hero id="section-0" />
         <Section2MindBarrage id="section-1" />
