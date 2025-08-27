@@ -75,38 +75,39 @@ const Section4Surveying = ({ id }) => {
       id: 'state-estimation',
       position: { angle: 0 }, // 12点钟方向
       icon: '🎯',
-      title: '状态估计与几何优化',
-      coreIdentity: '动态状态估计和几何关系恢复的核心问题',
+      title: '状态估计与几何重构',
+      coreIdentity: '从带有噪声的间接观测中，最优地估计系统内部状态与外部几何结构的核心问题',
       features: [
-        { type: '变量类型', label: '连续变量', detail: '位姿、三维点、传感器状态', color: 'bg-blue-500' },
+        { type: '变量类型', label: '连续', detail: '位姿、点坐标、IMU偏置等状态量', color: 'bg-blue-500' },
         { type: '目标结构', label: '非线性最小二乘', detail: 'NLLS', color: 'bg-green-500' },
-        { type: '规模结构', label: '大规模稀疏矩阵', detail: '结构化稀疏', color: 'bg-purple-500' },
-        { type: '方法', label: 'LM算法', detail: '稀疏分解、流形优化', color: 'bg-red-500' },
-        { type: '动态扩展', label: '递推状态估计', detail: 'KF/EKF/UKF、PF', color: 'bg-orange-500' }
+        { type: '规模结构', label: '大规模、块稀疏', detail: '结构化稀疏矩阵', color: 'bg-purple-500' },
+        { type: '求解范式', label: 'LM算法', detail: 'Schur Complement、流形优化', color: 'bg-red-500' },
+        { type: '时序扩展', label: '递推状态估计', detail: 'KF/EKF/UKF、因子图优化', color: 'bg-orange-500' }
       ],
-      modelingConclusion: '本质是一个大规模稀疏的非线性最小二乘优化问题，在动态环境下扩展为递推状态估计。',
+      modelingConclusion: '旨在解决从带有噪声的间接观测中，最优地估计系统内部状态与外部几何结构的核心问题。其本质是一个大规模稀疏的非线性最小二乘问题，其静态批量形式（如BA）构成了高精度几何重构的基石；在动态环境下则演化为递推状态估计（如Kalman滤波）或滑动窗口优化，是实现实时导航与建图的关键。',
       applications: [
         { 
           domain: '测绘经典', 
-          scenarios: ['控制网平差', '自由网平差', '空中三角测量', '导线网优化'], 
-          description: '经典测绘中的基础理论与实践' 
+          scenarios: ['光束法平差 (BA)', 'GNSS/INS精密解算']
         },
         { 
           domain: '现代遥感', 
-          scenarios: ['影像匹配', '立体重建', '传感器标定', '几何纠正'], 
-          description: '影像处理与几何重建的核心技术' 
+          scenarios: ['区域网联合平差', '多传感器融合与配准']
         },
         { 
-          domain: '智能测绘', 
-          scenarios: ['SLAM定位', '视觉里程计', '激光点云配准', '多传感器融合', 'AR/VR定位', '自动驾驶定位'], 
-          description: '人工智能与测绘融合的前沿应用' 
+          domain: 'GIS 应用', 
+          scenarios: ['城市三维实景建模', '数字底图生产']
+        },
+        { 
+          domain: '交叉综合', 
+          scenarios: ['视觉/激光SLAM', '数字孪生', '几何构建与时序更新']
         }
       ],
       learningPath: {
-        foundation: '非线性最小二乘理论',
-        intermediate: '稀疏矩阵分解、流形优化', 
-        advanced: '鲁棒估计、动态滤波',
-        application: 'SLAM算法实现、多传感器融合'
+        foundation: '最小二乘法、概率与统计、线性代数',
+        intermediate: '非线性优化算法、稀疏线性代数、卡尔曼滤波', 
+        advanced: '因子图优化、流形上的优化',
+        application: '利用无人机序列影像进行建筑物密集点云重建的BA问题求解'
       },
       gradient: 'from-blue-500 to-cyan-500'
     },
@@ -114,24 +115,26 @@ const Section4Surveying = ({ id }) => {
       id: 'constrained-convex',
       position: { angle: 60 }, // 2点钟方向
       icon: '⚖️',
-      title: '约束与凸优化',
-      coreIdentity: '在几何与物理约束下的高精度解算问题',
+      title: '约束下的参数平差',
+      coreIdentity: '在满足特定物理定律或先验几何条件的严格约束下，求解测量数据的最优估值',
       features: [
-        { type: '变量类型', label: '连续变量', detail: '控制点、定向参数', color: 'bg-blue-500' },
-        { type: '目标结构', label: '二次规划', detail: 'QP', color: 'bg-green-500' },
-        { type: '约束结构', label: '复杂约束', detail: '二次约束二次规划(QCQP)、二阶锥规划(SOCP)', color: 'bg-yellow-500' },
-        { type: '方法', label: '现代凸优化', detail: '内点法、增广拉格朗日', color: 'bg-red-500' }
+        { type: '变量类型', label: '连续', detail: '控制点坐标、形变参数、模型系数', color: 'bg-blue-500' },
+        { type: '目标结构', label: '二次规划', detail: 'QP（基于线性化的高斯-马尔可夫模型）', color: 'bg-green-500' },
+        { type: '约束结构', label: '线性、二次或锥约束', detail: 'QCQP、SOCP', color: 'bg-yellow-500' },
+        { type: '求解范式', label: '现代凸优化方法', detail: '内点法、增广拉格朗日法、凸对偶理论', color: 'bg-red-500' }
       ],
-      modelingConclusion: '本质是一个以QP为基础，通过QCQP或SOCP刻画复杂约束的凸优化问题，高效解算依赖现代凸优化方法。',
+      modelingConclusion: '关注在满足特定物理定律或先验几何条件的严格约束下，求解测量数据的最优估值。它是一个以经典平差的二次规划 (QP) 为基础，通过 二次约束二次规划(QCQP)/二阶锥规划(SOCP) 等工具精确刻画各类复杂约束的凸优化问题。其求解的可靠性与效率高度依赖于现代凸优化算法，是确保解的物理真实性和可靠性的关键。',
       applications: [
-        { domain: '测绘经典', scenarios: ['控制网平差', '约束平差', '导线测量'], description: '约束条件下的精密测量' },
-        { domain: '现代遥感', scenarios: ['形变监测', '物理约束建模'], description: '复杂约束的高精度解算' }
+        { domain: '测绘经典', scenarios: ['约束控制网平差', '正则化平差'] },
+        { domain: '现代遥感', scenarios: ['InSAR形变场建模', '激光点云几何拟合'] },
+        { domain: 'GIS应用', scenarios: ['地图要素自动综合'] },
+        { domain: '交叉综合', scenarios: ['多源观测联合反演'] }
       ],
       learningPath: {
-        foundation: '有约束优化理论',
-        intermediate: '二次规划方法', 
-        advanced: 'QCQP与SOCP技术',
-        application: '控制网平差解算'
+        foundation: '测量平差理论、拉格朗日乘子法',
+        intermediate: '凸优化理论、标准凸问题形式', 
+        advanced: '锥规划、内点法',
+        application: '对GNSS控制网进行约束平差，要求部分控制点高程符合已知DEM'
       },
       gradient: 'from-yellow-500 to-orange-500'
     },
@@ -139,37 +142,38 @@ const Section4Surveying = ({ id }) => {
       id: 'combinatorial',
       position: { angle: 120 }, // 4点钟方向
       icon: '🗺️',
-      title: '组合优化与空间决策',
-      coreIdentity: '空间资源配置与路径规划中的运筹学问题',
+      title: '组合决策与空间运筹',
+      coreIdentity: '在离散的、有限的选项中，寻找满足特定目标的最优组合或序列',
       features: [
-        { type: '变量类型', label: '离散变量', detail: '布尔、整数、排列', color: 'bg-blue-500' },
-        { type: '目标结构', label: '组合优化', detail: 'TSP、MST、最短路径', color: 'bg-green-500' },
-        { type: '约束结构', label: '复杂约束', detail: '资源、时间、空间约束', color: 'bg-yellow-500' },
-        { type: '方法', label: '启发式算法', detail: 'GA、SA、PSO、ACO', color: 'bg-red-500' }
+        { type: '变量类型', label: '离散/整数或混合整数', detail: '整数、排列', color: 'bg-blue-500' },
+        { type: '目标结构', label: 'LP/MILP', detail: '线性规划/混合整数线性规划，常结合图论模型', color: 'bg-green-500' },
+        { type: '求解范式', label: '整数规划与启发式算法', detail: '分支定界、启发式/元启发式算法、图搜索', color: 'bg-yellow-500' },
+        { type: '时序扩展', label: 'MDP与强化学习', detail: '马尔可夫决策过程、强化学习', color: 'bg-red-500' }
       ],
-      modelingConclusion: '本质是一个在复杂约束下的组合优化问题，需要启发式算法求解近似最优解。',
+      modelingConclusion: '旨在在离散的、有限的选项中，寻找满足特定目标的最优组合或序列，是典型的组合优化问题。静态决策通常建模为 混合整数线性规划(MILP) 或 图论问题，用于解决资源配置问题；在需要序贯决策的动态不确定环境下，则上升为 马尔科夫决策过程(MDP) 与 强化学习 的范畴，用于解决策略规划问题。',
       applications: [
         { 
           domain: '测绘经典', 
-          scenarios: ['控制点选址', '测站网优化', '测量路径规划', '观测计划编制'], 
-          description: '经典测量中的空间布局与路径优化' 
+          scenarios: ['地面控制点布设', 'GNSS基准站布设']
         },
         {
           domain: '现代遥感',
-          scenarios: ['无人机航迹规划', '传感器网络布设', '卫星任务调度', '观测资源调度'],
-          description: '遥感平台的空间资源优化配置'
+          scenarios: ['卫星星座任务调度', '多无人机协同航摄']
         },
         { 
           domain: 'GIS应用', 
-          scenarios: ['设施选址', '土地利用优化', '交通网络设计', '物流配送优化', '应急设施布局', '生态廊道规划'], 
-          description: 'GIS中的空间决策支持、优化分析和空间配置优化' 
+          scenarios: ['应急设施选址', '车辆路径规划VRP', '公共服务区划分']
+        },
+        { 
+          domain: '交叉综合', 
+          scenarios: ['多机器人协同勘探', '共享单车调度']
         }
       ],
       learningPath: {
-        foundation: '组合优化理论',
-        intermediate: '启发式算法', 
-        advanced: '智能优化方法',
-        application: '带约束的路径规划'
+        foundation: '图论、线性规划',
+        intermediate: '整数与混合整数规划、元启发式算法', 
+        advanced: '马尔可夫决策过程、强化学习',
+        application: '规划无人机队伍飞行路径，满足续航限制下最短总航程完整覆盖测区'
       },
       gradient: 'from-green-500 to-teal-500'
     },
@@ -177,24 +181,25 @@ const Section4Surveying = ({ id }) => {
       id: 'image-raster',
       position: { angle: 180 }, // 6点钟方向
       icon: '🖼️',
-      title: '图像与栅格优化',
-      coreIdentity: '影像处理与栅格数据中的空间优化问题',
+      title: '图像处理中的能量最小化',
+      coreIdentity: '为图像中的每个像素（或超像素）分配一个离散标签，使得一个全局能量函数最小',
       features: [
-        { type: '变量类型', label: '像素变量', detail: '灰度、RGB、光谱', color: 'bg-blue-500' },
-        { type: '目标结构', label: '能量最小化', detail: '马尔可夫随机场', color: 'bg-green-500' },
-        { type: '约束结构', label: '空间约束', detail: '邻域、连续性约束', color: 'bg-yellow-500' },
-        { type: '方法', label: '图割算法', detail: 'Graph Cut、Belief Propagation', color: 'bg-red-500' }
+        { type: '变量类型', label: '离散', detail: '像素标签、路径节点', color: 'bg-blue-500' },
+        { type: '目标结构', label: '能量最小化', detail: '常表达为马尔可夫随机场模型', color: 'bg-green-500' },
+        { type: '求解范式', label: '动态规划与图论方法', detail: '动态规划、图割/最大流最小割、置信度传播', color: 'bg-yellow-500' }
       ],
-      modelingConclusion: '本质是一个在空间约束下的能量最小化问题，通过图论方法求解全局最优。',
+      modelingConclusion: '专注于为图像中的每个像素（或超像素）分配一个离散标签，使得一个全局能量函数最小。该能量函数通常包含惩罚标签与观测数据不符的“数据项”和惩罚相邻像素标签不一致的“平滑项”。这是一个在栅格（或图）结构上定义的大规模离散优化问题，其求解的核心在于利用图论工具（如图割）来高效地找到全局（或高质量的局部）能量最小解。',
       applications: [
-        { domain: '图像处理', scenarios: ['影像分割', '边界提取'], description: '传统影像处理技术' },
-        { domain: '现代遥感', scenarios: ['地物分类', '变化检测', '影像镶嵌'], description: '智能影像分析方法' }
+        { domain: '测绘经典', scenarios: ['影像匀色', '最佳缝合线搜索'] },
+        { domain: '现代遥感', scenarios: ['高分辨率遥感变化检测', '立体匹配', '高光谱影像分类'] },
+        { domain: 'GIS应用', scenarios: ['栅格数据分类结果去噪'] },
+        { domain: '交叉综合', scenarios: ['深度学习后处理模块'] }
       ],
       learningPath: {
-        foundation: '能量最小化理论',
-        intermediate: '图论优化方法', 
-        advanced: '深度学习优化',
-        application: '影像分析与地物识别'
+        foundation: '数字图像处理、动态规划',
+        intermediate: '马尔可夫随机场、图割与最大流/最小割', 
+        advanced: '高级图割算法、条件随机场',
+        application: '对两张重叠的航空影像进行无缝拼接，自动寻找最佳缝合线'
       },
       gradient: 'from-pink-500 to-red-500'
     },
@@ -202,24 +207,26 @@ const Section4Surveying = ({ id }) => {
       id: 'data-driven',
       position: { angle: 240 }, // 8点钟方向
       icon: '🧠',
-      title: '数据驱动与机器学习',
-      coreIdentity: '基于数据驱动的模式识别与预测优化问题',
+      title: '数据驱动的机器学习建模',
+      coreIdentity: '从海量标注数据中，学习一个高维非线性模型（如深度神经网络）的参数',
       features: [
-        { type: '变量类型', label: '权重参数', detail: '神经网络权重、核参数', color: 'bg-blue-500' },
-        { type: '目标结构', label: '损失最小化', detail: '经验风险最小化', color: 'bg-green-500' },
-        { type: '约束结构', label: '正则化约束', detail: 'L1、L2、弹性网约束', color: 'bg-yellow-500' },
-        { type: '方法', label: '梯度优化', detail: 'SGD、Adam、RMSprop', color: 'bg-red-500' }
+        { type: '变量类型', label: '模型参数连续', detail: '任务目标通常是离散类别或连续数值预测', color: 'bg-blue-500' },
+        { type: '目标结构', label: '高度非凸的非线性规划', detail: '大规模数据上的求和形式', color: 'bg-green-500' },
+        { type: '规模结构', label: '超大规模', detail: '亿万级数据、亿万级参数', color: 'bg-yellow-500' },
+        { type: '求解范式', label: '一阶随机梯度方法', detail: 'SGD/Adam、GPU并行计算', color: 'bg-red-500' }
       ],
-      modelingConclusion: '本质是一个在正则化约束下的经验风险最小化问题，通过梯度优化方法训练模型。',
+      modelingConclusion: '旨在从海量标注数据中，学习一个高维非线性模型（如深度神经网络）的参数，以实现分类、回归或生成等智能任务。这是一个在超大规模、非凸景观上的优化问题，其求解范式已经高度特化为基于 GPU 并行的一阶随机算法，优化的重点在于算法的收敛速度、泛化能力与计算效率，而非寻找全局最优解。',
       applications: [
-        { domain: '测绘经典', scenarios: ['数据拟合', '参数估计'], description: '经典数据分析方法' },
-        { domain: '现代遥感', scenarios: ['深度学习', '模式识别'], description: '人工智能技术应用' }
+        { domain: '测绘经典', scenarios: ['GNSS信号多路径效应识别', '大坝/桥梁沉降预测'] },
+        { domain: '现代遥感', scenarios: ['土地利用分类', '目标检测', '地物参数反演'] },
+        { domain: 'GIS应用', scenarios: ['城市功能区识别', '交通流量预测'] },
+        { domain: '交叉综合', scenarios: ['神经辐射场NeRF', '地理空间预训练大模型'] }
       ],
       learningPath: {
-        foundation: '机器学习理论',
-        intermediate: '深度学习方法', 
-        advanced: '优化理论与算法',
-        application: '影像目标识别与分类'
+        foundation: '机器学习概论、Python与深度学习框架',
+        intermediate: '深度学习、随机优化算法', 
+        advanced: '分布式训练、贝叶斯深度学习',
+        application: '利用大量标注高分辨率遥感影像，训练深度模型实现建筑物实例分割'
       },
       gradient: 'from-purple-500 to-indigo-500'
     },
@@ -227,24 +234,25 @@ const Section4Surveying = ({ id }) => {
       id: 'pde-physics',
       position: { angle: 300 }, // 10点钟方向
       icon: '⚡',
-      title: 'PDE约束与物理场优化',
-      coreIdentity: '偏微分方程约束下的物理场重建与优化问题',
+      title: '基于物理场的PDE约束优化',
+      coreIdentity: '在满足特定偏微分方程描述的物理规律的约束下，寻找一个连续场的最优分布',
       features: [
-        { type: '变量类型', label: '场变量', detail: '势场、流场、温度场', color: 'bg-blue-500' },
-        { type: '目标结构', label: '变分问题', detail: '能量泛函最小化', color: 'bg-green-500' },
-        { type: '约束结构', label: 'PDE约束', detail: '拉普拉斯、泊松方程', color: 'bg-yellow-500' },
-        { type: '方法', label: '有限元方法', detail: 'FEM、有限差分', color: 'bg-red-500' }
+        { type: '变量类型', label: '连续函数/场变量', detail: '高程场、位移场、温度场', color: 'bg-blue-500' },
+        { type: '目标结构', label: 'PDE约束下的能量泛函最小化', detail: '变分问题', color: 'bg-green-500' },
+        { type: '求解范式', label: '变分法与数值离散', detail: '变分法、有限元/有限差分、PDE约束优化算法', color: 'bg-yellow-500' }
       ],
-      modelingConclusion: '本质是一个在偏微分方程约束下的变分问题，通过数值方法求解边值问题。',
+      modelingConclusion: '解决的是在满足特定偏微分方程 (PDE) 描述的物理规律的约束下，寻找一个连续场的最优分布。这是一个定义在无穷维函数空间上的优化问题，其求解的本质是将变分原理与数值离散化方法 (如 FEM) 相结合，是连接第一性原理物理模型与稀疏观测数据的桥梁。',
       applications: [
-        { domain: '测绘经典', scenarios: ['重力场建模', '磁场建模'], description: '地球物理场重建' },
-        { domain: '现代遥感', scenarios: ['热红外建模', '电磁场仿真'], description: '物理过程数值模拟' }
+        { domain: '测绘经典', scenarios: ['InSAR形变场物理机制建模'] },
+        { domain: '现代遥感', scenarios: ['辐射传输模型大气参数反演'] },
+        { domain: 'GIS应用', scenarios: ['污染物扩散', '地理过程模拟'] },
+        { domain: '交叉综合', scenarios: ['物理信息神经网络PINN'] }
       ],
       learningPath: {
-        foundation: '偏微分方程理论',
-        intermediate: '变分法与数值方法', 
-        advanced: '计算物理学',
-        application: '地球物理建模与仿真'
+        foundation: '微积分与常微分方程、偏微分方程入门',
+        intermediate: '变分法、数值分析与数值解', 
+        advanced: 'PDE约束优化、物理信息神经网络PINN',
+        application: '利用稀疏、带噪声的LiDAR散点数据，生成平滑且符合地表自然形态的DEM'
       },
       gradient: 'from-cyan-500 to-blue-500'
     }
@@ -291,7 +299,7 @@ const Section4Surveying = ({ id }) => {
                       className="absolute top-6 left-6 flex items-center gap-2 text-sm hover:text-white transition-colors z-10"
                       style={{ color: 'var(--tech-mint)' }}
                     >
-                      ← 返回优化建模全景
+                      ← 返回建模范式全景
                     </button>
                     
                     {/* 图标和标题居中对齐 */}
@@ -366,11 +374,8 @@ const Section4Surveying = ({ id }) => {
                                   {index + 1}
                                 </div>
                                 <div className="flex-1 bg-green-500/8 rounded-lg p-3 border border-green-500/20">
-                                  <div className="font-semibold text-sm mb-1" style={{ color: 'var(--ink-high)' }}>
+                                  <div className="font-semibold text-sm mb-2" style={{ color: 'var(--ink-high)' }}>
                                     {app.domain}
-                                  </div>
-                                  <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
-                                    {app.description}
                                   </div>
                                   <div className="flex flex-wrap gap-1">
                                     {app.scenarios.map((scenario, i) => (
@@ -408,9 +413,6 @@ const Section4Surveying = ({ id }) => {
                                   </div>
                                 </div>
                                 <div className="p-3 bg-red-500/5">
-                                  <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
-                                    {app.description}
-                                  </div>
                                   <div className="flex flex-wrap gap-1">
                                     {app.scenarios.map((scenario, i) => (
                                       <span key={i} className="px-2 py-1 bg-red-500/20 text-xs rounded-full border border-red-500/30" 
@@ -441,11 +443,8 @@ const Section4Surveying = ({ id }) => {
                                    style={{
                                      boxShadow: `0 ${4 + index * 2}px ${12 + index * 4}px rgba(168, 85, 247, ${0.1 + index * 0.05})`
                                    }}>
-                                <div className="font-semibold text-sm mb-1" style={{ color: 'var(--ink-high)' }}>
+                                <div className="font-semibold text-sm mb-2" style={{ color: 'var(--ink-high)' }}>
                                   {app.domain}
-                                </div>
-                                <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
-                                  {app.description}
                                 </div>
                                 <div className="flex flex-wrap gap-1">
                                   {app.scenarios.map((scenario, i) => (
@@ -482,9 +481,6 @@ const Section4Surveying = ({ id }) => {
                                   </div>
                                 </div>
                                 <div className="p-3 bg-pink-500/5">
-                                  <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
-                                    {app.description}
-                                  </div>
                                   <div className="flex flex-wrap gap-1">
                                     {app.scenarios.map((scenario, i) => (
                                       <span key={i} className="px-2 py-1 bg-pink-500/20 text-xs rounded-full border border-pink-500/30" 
@@ -512,11 +508,8 @@ const Section4Surveying = ({ id }) => {
                                  }}>
                               <div className="w-1 h-16 bg-gradient-to-b from-indigo-500 to-cyan-500 rounded-full" />
                               <div className="flex-1 bg-gradient-to-br from-indigo-500/8 to-cyan-500/8 rounded-lg p-3 border border-indigo-500/20">
-                                <div className="font-semibold text-sm mb-1" style={{ color: 'var(--ink-high)' }}>
+                                <div className="font-semibold text-sm mb-2" style={{ color: 'var(--ink-high)' }}>
                                   {app.domain}
-                                </div>
-                                <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
-                                  {app.description}
                                 </div>
                                 <div className="flex flex-wrap gap-1">
                                   {app.scenarios.map((scenario, i) => (
@@ -546,54 +539,37 @@ const Section4Surveying = ({ id }) => {
                       
                       {/* 根据不同卡片ID显示不同设计 */}
                       {problem.id === 'state-estimation' && (
-                        // 卡片1: 仪表盘指标
-                        <div className="grid grid-cols-2 gap-4">
+                        // 卡片1: 紧凑卡片式网格（适合5个特征）
+                        <div className="space-y-2">
                           {problem.features.map((feature, index) => {
                             const colors = {
                               'bg-blue-500': '#3b82f6', 'bg-green-500': '#22c55e', 'bg-purple-500': '#a855f7',
                               'bg-red-500': '#ef4444', 'bg-orange-500': '#f97316', 'bg-yellow-500': '#eab308'
                             };
                             const color = colors[feature.color] || '#6b7280';
+                            const icons = ['🔵', '🔶', '🟣', '🔴', '🟠'];
                             
                             return (
-                              <div key={index} className="relative flex flex-col items-center p-3"
+                              <div key={index} className="relative flex items-center gap-3 p-3 rounded-lg border"
                                    style={{
+                                     backgroundColor: `${color}08`,
+                                     borderColor: `${color}25`,
                                      opacity: animationStage >= 3 ? 1 : 0,
-                                     transform: animationStage >= 3 ? 'translateY(0)' : 'translateY(20px)',
-                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
+                                     transform: animationStage >= 3 ? 'translateX(0)' : 'translateX(-20px)',
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.12 * index}s`
                                    }}>
-                                {/* 仪表盘 */}
-                                <div className="relative w-16 h-16 mb-2">
-                                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="4" />
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke={color} strokeWidth="4"
-                                            strokeDasharray={`${(index + 1) * 70}, 283`}
-                                            strokeLinecap="round" 
-                                            style={{
-                                              transform: 'rotate(-90deg)',
-                                              transformOrigin: '50px 50px',
-                                              transition: 'stroke-dasharray 1s ease-out',
-                                              transitionDelay: `${0.3 + index * 0.1}s`
-                                            }} />
-                                    {/* 指针 */}
-                                    <line x1="50" y1="50" x2="50" y2="20" stroke={color} strokeWidth="2" strokeLinecap="round"
-                                          style={{
-                                            transform: `rotate(${animationStage >= 3 ? (index + 1) * 60 - 90 : -90}deg)`,
-                                            transformOrigin: '50px 50px',
-                                            transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            transitionDelay: `${0.5 + index * 0.1}s`
-                                          }} />
-                                    <circle cx="50" cy="50" r="3" fill={color} />
-                                  </svg>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-xs font-bold opacity-80 mb-1" style={{ color: 'var(--ink-mid)' }}>
-                                    {feature.type}
+                                <div className="absolute top-0 left-0 w-1 h-full rounded-l-lg" style={{ backgroundColor: color }} />
+                                <div className="text-xl">{icons[index % icons.length]}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="text-xs font-bold opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                      {feature.type}
+                                    </div>
                                   </div>
                                   <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
                                     {feature.label}
                                   </div>
-                                  <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                  <div className="text-xs opacity-80 truncate" style={{ color: 'var(--ink-mid)' }}>
                                     {feature.detail}
                                   </div>
                                 </div>
@@ -934,7 +910,7 @@ const Section4Surveying = ({ id }) => {
         ) : (
           // 六卡片环形布局总览视图
           <>
-            {/* 中心节点 - 优化建模全景 */}
+            {/* 中心节点 - 六大核心建模范式 */}
             <div className="absolute z-20 w-48 h-48" style={{
               left: `${(window.innerWidth/2 - 96).toFixed(0)}px`,
               top: `${(window.innerHeight/2 - 96).toFixed(0)}px`
@@ -942,8 +918,8 @@ const Section4Surveying = ({ id }) => {
               <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-600 flex items-center justify-center shadow-2xl">
                 <div className="text-center text-white">
                   <div className="text-4xl mb-2">🌐</div>
-                  <div className="font-bold text-lg">优化建模</div>
-                  <div className="font-bold text-lg">全景</div>
+                    <div className="font-bold text-lg">六大核心</div>
+                    <div className="font-bold text-lg">建模范式</div>
                 </div>
               </div>
               
