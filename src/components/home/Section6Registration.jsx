@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import DownHint from '../shared/DownHint';
 
+// 导入图片资源
+import beforeLeft from '../../assets/images/registration/before_left.jpg';
+import beforeRight from '../../assets/images/registration/before_right.jpg';
+import afterLeft from '../../assets/images/registration/after_left.jpg';
+import afterRight from '../../assets/images/registration/after_right.jpg';
+
 export default function Section6Registration({ id }) {
   const [mode, setMode] = useState('before');
   const [splitPosition, setSplitPosition] = useState(50);
@@ -10,12 +16,12 @@ export default function Section6Registration({ id }) {
   const animationRef = useRef(null);
 
   const leftImage = mode === 'before' 
-    ? '/src/assets/images/registration/before_left.jpg'
-    : '/src/assets/images/registration/after_left.jpg';
+    ? beforeLeft
+    : afterLeft;
   
   const rightImage = mode === 'before'
-    ? '/src/assets/images/registration/before_right.jpg'
-    : '/src/assets/images/registration/after_right.jpg';
+    ? beforeRight
+    : afterRight;
 
   const handleModeChange = (newMode) => {
     if (newMode !== mode) {
