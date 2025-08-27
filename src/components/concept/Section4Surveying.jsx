@@ -268,7 +268,7 @@ const Section4Surveying = ({ id }) => {
       style={{ backgroundColor: 'var(--bg-deep)' }}
     >
       {/* 主要内容区域 - 使用固定视口定位 */}
-      <div className="fixed inset-0 w-full h-screen flex items-center justify-center" style={{ top: 0, left: 0 }}>
+      <div className="fixed inset-0 w-full h-screen flex items-center justify-center" style={{ top: 0, left: 0, zIndex: 10 }}>
         {selectedCard ? (
           // 单卡片详细视图 - 缩短宽度至85%，优化高度，下边缘上移20px
           <div className="w-full max-w-[85vw] mx-auto px-8" 
@@ -313,7 +313,7 @@ const Section4Surveying = ({ id }) => {
                   {/* 四段式内容区域 - 重新设计布局和动画 */}
                   <div className="flex-1 p-6 grid grid-cols-4 gap-8 min-h-0">
                     
-                    {/* 第一段：问题本质 - 卡片式设计 */}
+                    {/* 第一段：问题本质 - 圆角矩形（基准设计） */}
                     <div className="space-y-4"
                          style={{
                            opacity: animationStage >= 1 ? 1 : 0,
@@ -324,10 +324,10 @@ const Section4Surveying = ({ id }) => {
                         💡 问题本质
                       </h3>
                       <div className="relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-2xl" />
-                        <div className="relative p-5 rounded-2xl border border-blue-500/20 backdrop-blur-sm"
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/8 to-purple-500/8 rounded-2xl" />
+                        <div className="relative p-5 rounded-2xl border border-blue-500/25 backdrop-blur-sm"
                              style={{
-                               boxShadow: animationStage >= 1 ? '0 10px 30px rgba(59, 130, 246, 0.15)' : 'none',
+                               boxShadow: animationStage >= 1 ? '0 8px 25px rgba(59, 130, 246, 0.12)' : 'none',
                                transition: 'box-shadow 0.6s ease-out 0.3s'
                              }}>
                           <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-500 rounded-l-2xl" />
@@ -338,7 +338,7 @@ const Section4Surveying = ({ id }) => {
                       </div>
                     </div>
 
-                    {/* 第二段：应用场景 - 层叠卡片设计 */}
+                    {/* 第二段：应用场景 - 根据不同卡片使用不同设计 */}
                     <div className="space-y-4"
                          style={{
                            opacity: animationStage >= 2 ? 1 : 0,
@@ -348,47 +348,192 @@ const Section4Surveying = ({ id }) => {
                       <h3 className="text-xl font-bold flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--tech-mint)' }}>
                         🌐 应用场景
                       </h3>
-                      <div className="space-y-3">
-                        {(problem.applications || [
-                          { domain: '经典测绘', scenarios: ['控制网平差', '空中三角测量'], description: '基础理论应用' }
-                        ]).map((app, index) => (
-                          <div key={index} className="relative group"
-                               style={{
-                                 opacity: animationStage >= 2 ? 1 : 0,
-                                 transform: animationStage >= 2 ? 'translateY(0) rotate(0deg)' : `translateY(15px) rotate(${index % 2 ? 2 : -2}deg)`,
-                                 transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
-                               }}>
-                            <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-teal-500/10 rounded-lg transform group-hover:scale-105 transition-transform duration-300" />
-                            <div className="relative p-3 rounded-lg border border-green-500/20 backdrop-blur-sm">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="w-2 h-2 rounded-full bg-green-500" />
-                                <div className="font-semibold text-sm" style={{ color: 'var(--ink-high)' }}>
-                                  {app.domain}
+                      
+                      {/* 根据不同卡片ID显示不同设计 */}
+                      {problem.id === 'state-estimation' && (
+                        // 卡片1: 时间轴垂直流
+                        <div className="relative">
+                          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-green-500/30" />
+                          <div className="space-y-4">
+                            {(problem.applications || []).map((app, index) => (
+                              <div key={index} className="relative flex items-start gap-4"
+                                   style={{
+                                     opacity: animationStage >= 2 ? 1 : 0,
+                                     transform: animationStage >= 2 ? 'translateX(0)' : 'translateX(-20px)',
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
+                                   }}>
+                                <div className="relative z-10 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-bold shadow-lg">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1 bg-green-500/8 rounded-lg p-3 border border-green-500/20">
+                                  <div className="font-semibold text-sm mb-1" style={{ color: 'var(--ink-high)' }}>
+                                    {app.domain}
+                                  </div>
+                                  <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {app.description}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {app.scenarios.map((scenario, i) => (
+                                      <span key={i} className="px-2 py-1 bg-green-500/20 text-xs rounded-full border border-green-500/30" 
+                                            style={{ color: 'var(--ink-high)' }}>
+                                        {scenario}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-xs mb-2 opacity-80 pl-4" style={{ color: 'var(--ink-mid)' }}>
-                                {app.description}
-                              </div>
-                              <div className="flex flex-wrap gap-1 pl-4">
-                                {app.scenarios.map((scenario, i) => (
-                                  <span key={i} className="px-2 py-1 bg-green-500/20 text-xs rounded-full border border-green-500/30 transition-all duration-300 hover:bg-green-500/30" 
-                                        style={{ 
-                                          color: 'var(--ink-high)',
-                                          opacity: animationStage >= 2 ? 1 : 0,
-                                          transform: animationStage >= 2 ? 'scale(1)' : 'scale(0.8)',
-                                          transition: `all 0.4s ease-out ${0.05 * i + 0.3}s`
-                                        }}>
-                                    {scenario}
-                                  </span>
-                                ))}
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {problem.id === 'constrained-convex' && (
+                        // 卡片2: 修改为手风琴折叠
+                        <div className="space-y-2">
+                          {(problem.applications || []).map((app, index) => (
+                            <div key={index} className="relative"
+                                 style={{
+                                   opacity: animationStage >= 2 ? 1 : 0,
+                                   transform: animationStage >= 2 ? 'translateY(0)' : 'translateY(15px)',
+                                   transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
+                                 }}>
+                              <div className="border border-red-500/25 rounded-lg overflow-hidden">
+                                <div className="bg-red-500/10 px-4 py-2 border-b border-red-500/25 cursor-pointer hover:bg-red-500/15 transition-colors">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                                    <div className="font-semibold text-sm" style={{ color: 'var(--ink-high)' }}>
+                                      {app.domain}
+                                    </div>
+                                    <div className="text-xs opacity-60 ml-auto">▼</div>
+                                  </div>
+                                </div>
+                                <div className="p-3 bg-red-500/5">
+                                  <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {app.description}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {app.scenarios.map((scenario, i) => (
+                                      <span key={i} className="px-2 py-1 bg-red-500/20 text-xs rounded-full border border-red-500/30" 
+                                            style={{ color: 'var(--ink-high)' }}>
+                                        {scenario}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {problem.id === 'combinatorial' && (
+                        // 卡片3: 分层卡片堆叠
+                        <div className="relative">
+                          {(problem.applications || []).map((app, index) => (
+                            <div key={index} className="relative mb-4"
+                                 style={{
+                                   opacity: animationStage >= 2 ? 1 : 0,
+                                   transform: animationStage >= 2 ? `translateY(${index * 2}px) translateX(${index * 4}px) rotate(${index * 1}deg)` : 'translateY(20px) rotate(3deg)',
+                                   transition: `all 0.8s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`,
+                                   zIndex: (problem.applications || []).length - index
+                                 }}>
+                              <div className="bg-purple-500/8 rounded-xl p-4 border border-purple-500/20 shadow-lg backdrop-blur-sm"
+                                   style={{
+                                     boxShadow: `0 ${4 + index * 2}px ${12 + index * 4}px rgba(168, 85, 247, ${0.1 + index * 0.05})`
+                                   }}>
+                                <div className="font-semibold text-sm mb-1" style={{ color: 'var(--ink-high)' }}>
+                                  {app.domain}
+                                </div>
+                                <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                  {app.description}
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {app.scenarios.map((scenario, i) => (
+                                    <span key={i} className="px-2 py-1 bg-purple-500/20 text-xs rounded-full border border-purple-500/30" 
+                                          style={{ color: 'var(--ink-high)' }}>
+                                      {scenario}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {problem.id === 'image-raster' && (
+                        // 卡片4: 手风琴折叠 - 简化版本
+                        <div className="space-y-2">
+                          {(problem.applications || []).map((app, index) => (
+                            <div key={index} className="relative"
+                                 style={{
+                                   opacity: animationStage >= 2 ? 1 : 0,
+                                   transform: animationStage >= 2 ? 'translateY(0)' : 'translateY(15px)',
+                                   transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
+                                 }}>
+                              <div className="border border-pink-500/25 rounded-lg overflow-hidden">
+                                <div className="bg-pink-500/10 px-4 py-2 border-b border-pink-500/25 cursor-pointer hover:bg-pink-500/15 transition-colors">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-pink-500" />
+                                    <div className="font-semibold text-sm" style={{ color: 'var(--ink-high)' }}>
+                                      {app.domain}
+                                    </div>
+                                    <div className="text-xs opacity-60 ml-auto">▼</div>
+                                  </div>
+                                </div>
+                                <div className="p-3 bg-pink-500/5">
+                                  <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {app.description}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {app.scenarios.map((scenario, i) => (
+                                      <span key={i} className="px-2 py-1 bg-pink-500/20 text-xs rounded-full border border-pink-500/30" 
+                                            style={{ color: 'var(--ink-high)' }}>
+                                        {scenario}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {(problem.id === 'data-driven' || problem.id === 'pde-physics') && (
+                        // 卡片5&6: 胶囊标签组和时间轴的不同实现
+                        <div className="space-y-3">
+                          {(problem.applications || []).map((app, index) => (
+                            <div key={index} className="relative flex items-start gap-3"
+                                 style={{
+                                   opacity: animationStage >= 2 ? 1 : 0,
+                                   transform: animationStage >= 2 ? 'translateX(0)' : 'translateX(-15px)',
+                                   transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
+                                 }}>
+                              <div className="w-1 h-16 bg-gradient-to-b from-indigo-500 to-cyan-500 rounded-full" />
+                              <div className="flex-1 bg-gradient-to-br from-indigo-500/8 to-cyan-500/8 rounded-lg p-3 border border-indigo-500/20">
+                                <div className="font-semibold text-sm mb-1" style={{ color: 'var(--ink-high)' }}>
+                                  {app.domain}
+                                </div>
+                                <div className="text-xs mb-2 opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                  {app.description}
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {app.scenarios.map((scenario, i) => (
+                                    <span key={i} className="px-2 py-1 bg-indigo-500/20 text-xs rounded-full border border-indigo-500/30" 
+                                          style={{ color: 'var(--ink-high)' }}>
+                                      {scenario}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* 第三段：特征矩阵 - 六边形网格设计 */}
+                    {/* 第三段：特征矩阵 - 根据不同卡片使用不同设计 */}
                     <div className="space-y-4"
                          style={{
                            opacity: animationStage >= 3 ? 1 : 0,
@@ -398,51 +543,308 @@ const Section4Surveying = ({ id }) => {
                       <h3 className="text-xl font-bold flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--tech-mint)' }}>
                         🏷️ 特征矩阵
                       </h3>
-                      <div className="space-y-3">
-                        {problem.features.map((feature, index) => {
-                          const colorClasses = {
-                            'bg-blue-500': 'from-blue-500/10 to-blue-600/5 border-blue-500/25',
-                            'bg-green-500': 'from-green-500/10 to-green-600/5 border-green-500/25',
-                            'bg-purple-500': 'from-purple-500/10 to-purple-600/5 border-purple-500/25',
-                            'bg-red-500': 'from-red-500/10 to-red-600/5 border-red-500/25',
-                            'bg-orange-500': 'from-orange-500/10 to-orange-600/5 border-orange-500/25',
-                            'bg-yellow-500': 'from-yellow-500/10 to-yellow-600/5 border-yellow-500/25'
-                          };
-                          
-                          return (
-                            <div key={index} className="relative group"
-                                 style={{
-                                   opacity: animationStage >= 3 ? 1 : 0,
-                                   transform: animationStage >= 3 ? 'translateX(0) rotateY(0deg)' : `translateX(${index % 2 ? 15 : -15}px) rotateY(${index % 2 ? -10 : 10}deg)`,
-                                   transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.12 * index}s`
-                                 }}>
-                              <div className={`absolute inset-0 bg-gradient-to-br ${colorClasses[feature.color] || 'from-gray-500/10 to-gray-600/5 border-gray-500/25'} rounded-xl`} />
-                              <div className="relative p-3 rounded-xl border backdrop-blur-sm hover:shadow-lg transition-shadow duration-300">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <div className={`w-3 h-3 rounded-full ${feature.color} shadow-sm`}
-                                       style={{
-                                         opacity: animationStage >= 3 ? 1 : 0,
-                                         transform: animationStage >= 3 ? 'scale(1) rotate(0deg)' : 'scale(0) rotate(180deg)',
-                                         transition: `all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) ${0.15 * index + 0.3}s`
-                                       }} />
-                                  <div className="text-xs font-bold opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                      
+                      {/* 根据不同卡片ID显示不同设计 */}
+                      {problem.id === 'state-estimation' && (
+                        // 卡片1: 仪表盘指标
+                        <div className="grid grid-cols-2 gap-4">
+                          {problem.features.map((feature, index) => {
+                            const colors = {
+                              'bg-blue-500': '#3b82f6', 'bg-green-500': '#22c55e', 'bg-purple-500': '#a855f7',
+                              'bg-red-500': '#ef4444', 'bg-orange-500': '#f97316', 'bg-yellow-500': '#eab308'
+                            };
+                            const color = colors[feature.color] || '#6b7280';
+                            
+                            return (
+                              <div key={index} className="relative flex flex-col items-center p-3"
+                                   style={{
+                                     opacity: animationStage >= 3 ? 1 : 0,
+                                     transform: animationStage >= 3 ? 'translateY(0)' : 'translateY(20px)',
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
+                                   }}>
+                                {/* 仪表盘 */}
+                                <div className="relative w-16 h-16 mb-2">
+                                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="4" />
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke={color} strokeWidth="4"
+                                            strokeDasharray={`${(index + 1) * 70}, 283`}
+                                            strokeLinecap="round" 
+                                            style={{
+                                              transform: 'rotate(-90deg)',
+                                              transformOrigin: '50px 50px',
+                                              transition: 'stroke-dasharray 1s ease-out',
+                                              transitionDelay: `${0.3 + index * 0.1}s`
+                                            }} />
+                                    {/* 指针 */}
+                                    <line x1="50" y1="50" x2="50" y2="20" stroke={color} strokeWidth="2" strokeLinecap="round"
+                                          style={{
+                                            transform: `rotate(${animationStage >= 3 ? (index + 1) * 60 - 90 : -90}deg)`,
+                                            transformOrigin: '50px 50px',
+                                            transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            transitionDelay: `${0.5 + index * 0.1}s`
+                                          }} />
+                                    <circle cx="50" cy="50" r="3" fill={color} />
+                                  </svg>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-xs font-bold opacity-80 mb-1" style={{ color: 'var(--ink-mid)' }}>
                                     {feature.type}
                                   </div>
-                                </div>
-                                <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
-                                  {feature.label}
-                                </div>
-                                <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
-                                  {feature.detail}
+                                  <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
+                                    {feature.label}
+                                  </div>
+                                  <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {feature.detail}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {problem.id === 'constrained-convex' && (
+                        // 卡片2: 卡片式网格
+                        <div className="space-y-3">
+                          {problem.features.map((feature, index) => {
+                            const colors = {
+                              'bg-blue-500': '#3b82f6', 'bg-green-500': '#22c55e', 'bg-purple-500': '#a855f7',
+                              'bg-red-500': '#ef4444', 'bg-orange-500': '#f97316', 'bg-yellow-500': '#eab308'
+                            };
+                            const color = colors[feature.color] || '#6b7280';
+                            const icons = ['🔵', '🔶', '🔷', '🔸', '🔹'];
+                            
+                            return (
+                              <div key={index} className="relative flex items-center gap-3 p-3 rounded-lg border"
+                                   style={{
+                                     backgroundColor: `${color}08`,
+                                     borderColor: `${color}25`,
+                                     opacity: animationStage >= 3 ? 1 : 0,
+                                     transform: animationStage >= 3 ? 'translateX(0)' : 'translateX(-20px)',
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.12 * index}s`
+                                   }}>
+                                <div className="absolute top-0 left-0 w-1 h-full rounded-l-lg" style={{ backgroundColor: color }} />
+                                <div className="text-xl">{icons[index % icons.length]}</div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="text-xs font-bold opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                      {feature.type}
+                                    </div>
+                                  </div>
+                                  <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
+                                    {feature.label}
+                                  </div>
+                                  <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {feature.detail}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {problem.id === 'combinatorial' && (
+                        // 卡片3: 改回最早的圆角矩形设计
+                        <div className="space-y-3">
+                          {problem.features.map((feature, index) => {
+                            const colorClasses = {
+                              'bg-blue-500': 'from-blue-500/10 to-blue-600/5 border-blue-500/25',
+                              'bg-green-500': 'from-green-500/10 to-green-600/5 border-green-500/25',
+                              'bg-purple-500': 'from-purple-500/10 to-purple-600/5 border-purple-500/25',
+                              'bg-red-500': 'from-red-500/10 to-red-600/5 border-red-500/25',
+                              'bg-orange-500': 'from-orange-500/10 to-orange-600/5 border-orange-500/25',
+                              'bg-yellow-500': 'from-yellow-500/10 to-yellow-600/5 border-yellow-500/25'
+                            };
+                            
+                            return (
+                              <div key={index} className="relative group"
+                                   style={{
+                                     opacity: animationStage >= 3 ? 1 : 0,
+                                     transform: animationStage >= 3 ? 'translateX(0) rotateY(0deg)' : `translateX(${index % 2 ? 15 : -15}px) rotateY(${index % 2 ? -10 : 10}deg)`,
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.12 * index}s`
+                                   }}>
+                                <div className={`absolute inset-0 bg-gradient-to-br ${colorClasses[feature.color] || 'from-gray-500/10 to-gray-600/5 border-gray-500/25'} rounded-xl`} />
+                                <div className="relative p-3 rounded-xl border backdrop-blur-sm hover:shadow-lg transition-shadow duration-300">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <div className={`w-3 h-3 rounded-full ${feature.color} shadow-sm`}
+                                         style={{
+                                           opacity: animationStage >= 3 ? 1 : 0,
+                                           transform: animationStage >= 3 ? 'scale(1) rotate(0deg)' : 'scale(0) rotate(180deg)',
+                                           transition: `all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) ${0.15 * index + 0.3}s`
+                                         }} />
+                                    <div className="text-xs font-bold opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                      {feature.type}
+                                    </div>
+                                  </div>
+                                  <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
+                                    {feature.label}
+                                  </div>
+                                  <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {feature.detail}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {problem.id === 'image-raster' && (
+                        // 卡片4: 改回最早的圆角矩形设计
+                        <div className="space-y-3">
+                          {problem.features.map((feature, index) => {
+                            const colorClasses = {
+                              'bg-blue-500': 'from-blue-500/10 to-blue-600/5 border-blue-500/25',
+                              'bg-green-500': 'from-green-500/10 to-green-600/5 border-green-500/25',
+                              'bg-purple-500': 'from-purple-500/10 to-purple-600/5 border-purple-500/25',
+                              'bg-red-500': 'from-red-500/10 to-red-600/5 border-red-500/25',
+                              'bg-orange-500': 'from-orange-500/10 to-orange-600/5 border-orange-500/25',
+                              'bg-yellow-500': 'from-yellow-500/10 to-yellow-600/5 border-yellow-500/25'
+                            };
+                            
+                            return (
+                              <div key={index} className="relative group"
+                                   style={{
+                                     opacity: animationStage >= 3 ? 1 : 0,
+                                     transform: animationStage >= 3 ? 'translateX(0) rotateY(0deg)' : `translateX(${index % 2 ? 15 : -15}px) rotateY(${index % 2 ? -10 : 10}deg)`,
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.12 * index}s`
+                                   }}>
+                                <div className={`absolute inset-0 bg-gradient-to-br ${colorClasses[feature.color] || 'from-gray-500/10 to-gray-600/5 border-gray-500/25'} rounded-xl`} />
+                                <div className="relative p-3 rounded-xl border backdrop-blur-sm hover:shadow-lg transition-shadow duration-300">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <div className={`w-3 h-3 rounded-full ${feature.color} shadow-sm`}
+                                         style={{
+                                           opacity: animationStage >= 3 ? 1 : 0,
+                                           transform: animationStage >= 3 ? 'scale(1) rotate(0deg)' : 'scale(0) rotate(180deg)',
+                                           transition: `all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) ${0.15 * index + 0.3}s`
+                                         }} />
+                                    <div className="text-xs font-bold opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                      {feature.type}
+                                    </div>
+                                  </div>
+                                  <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
+                                    {feature.label}
+                                  </div>
+                                  <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {feature.detail}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {problem.id === 'pde-physics' && (
+                        // 卡片6: 改回最早的圆角矩形设计
+                        <div className="space-y-3">
+                          {problem.features.map((feature, index) => {
+                            const colorClasses = {
+                              'bg-blue-500': 'from-blue-500/10 to-blue-600/5 border-blue-500/25',
+                              'bg-green-500': 'from-green-500/10 to-green-600/5 border-green-500/25',
+                              'bg-purple-500': 'from-purple-500/10 to-purple-600/5 border-purple-500/25',
+                              'bg-red-500': 'from-red-500/10 to-red-600/5 border-red-500/25',
+                              'bg-orange-500': 'from-orange-500/10 to-orange-600/5 border-orange-500/25',
+                              'bg-yellow-500': 'from-yellow-500/10 to-yellow-600/5 border-yellow-500/25'
+                            };
+                            
+                            return (
+                              <div key={index} className="relative group"
+                                   style={{
+                                     opacity: animationStage >= 3 ? 1 : 0,
+                                     transform: animationStage >= 3 ? 'translateX(0) rotateY(0deg)' : `translateX(${index % 2 ? 15 : -15}px) rotateY(${index % 2 ? -10 : 10}deg)`,
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.12 * index}s`
+                                   }}>
+                                <div className={`absolute inset-0 bg-gradient-to-br ${colorClasses[feature.color] || 'from-gray-500/10 to-gray-600/5 border-gray-500/25'} rounded-xl`} />
+                                <div className="relative p-3 rounded-xl border backdrop-blur-sm hover:shadow-lg transition-shadow duration-300">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <div className={`w-3 h-3 rounded-full ${feature.color} shadow-sm`}
+                                         style={{
+                                           opacity: animationStage >= 3 ? 1 : 0,
+                                           transform: animationStage >= 3 ? 'scale(1) rotate(0deg)' : 'scale(0) rotate(180deg)',
+                                           transition: `all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) ${0.15 * index + 0.3}s`
+                                         }} />
+                                    <div className="text-xs font-bold opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                      {feature.type}
+                                    </div>
+                                  </div>
+                                  <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
+                                    {feature.label}
+                                  </div>
+                                  <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {feature.detail}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {problem.id === 'data-driven' && (
+                        // 卡片5: 仪表盘指标变种
+                        <div className="grid grid-cols-2 gap-4">
+                          {problem.features.map((feature, index) => {
+                            const colors = {
+                              'bg-blue-500': '#3b82f6', 'bg-green-500': '#22c55e', 'bg-purple-500': '#a855f7',
+                              'bg-red-500': '#ef4444', 'bg-orange-500': '#f97316', 'bg-yellow-500': '#eab308'
+                            };
+                            const color = colors[feature.color] || '#6b7280';
+                            
+                            return (
+                              <div key={index} className="relative flex flex-col items-center p-3"
+                                   style={{
+                                     opacity: animationStage >= 3 ? 1 : 0,
+                                     transform: animationStage >= 3 ? 'translateY(0)' : 'translateY(20px)',
+                                     transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
+                                   }}>
+                                {/* 小型仪表盘 */}
+                                <div className="relative w-14 h-14 mb-2">
+                                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                                    <circle cx="50" cy="50" r="40" fill="none" stroke={color} strokeWidth="3"
+                                            strokeDasharray={`${(index + 1) * 62}, 251`}
+                                            strokeLinecap="round" 
+                                            style={{
+                                              transform: 'rotate(-90deg)',
+                                              transformOrigin: '50px 50px',
+                                              transition: 'stroke-dasharray 1s ease-out',
+                                              transitionDelay: `${0.3 + index * 0.1}s`
+                                            }} />
+                                    {/* 指针 */}
+                                    <line x1="50" y1="50" x2="50" y2="25" stroke={color} strokeWidth="2" strokeLinecap="round"
+                                          style={{
+                                            transform: `rotate(${animationStage >= 3 ? (index + 1) * 70 - 90 : -90}deg)`,
+                                            transformOrigin: '50px 50px',
+                                            transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            transitionDelay: `${0.5 + index * 0.1}s`
+                                          }} />
+                                    <circle cx="50" cy="50" r="2.5" fill={color} />
+                                  </svg>
+                                  <div className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ color }}>
+                                    {index + 1}
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-xs font-bold opacity-80 mb-1" style={{ color: 'var(--ink-mid)' }}>
+                                    {feature.type}
+                                  </div>
+                                  <div className="text-sm font-semibold mb-1" style={{ color: 'var(--ink-high)' }}>
+                                    {feature.label}
+                                  </div>
+                                  <div className="text-xs opacity-80" style={{ color: 'var(--ink-mid)' }}>
+                                    {feature.detail}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
-                    {/* 第四段：学习路线 - 阶梯式进度设计 */}
+                    {/* 第四段：学习路线 - 圆形进度环设计 */}
                     <div className="space-y-4"
                          style={{
                            opacity: animationStage >= 4 ? 1 : 0,
@@ -452,50 +854,71 @@ const Section4Surveying = ({ id }) => {
                       <h3 className="text-xl font-bold flex items-center justify-center gap-2 mb-4" style={{ color: 'var(--tech-mint)' }}>
                         🎯 学习路线
                       </h3>
-                      <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4">
                         {Object.entries(problem.learningPath || {
                           foundation: '基础理论',
                           intermediate: '进阶方法', 
                           advanced: '高级技术',
                           application: '实际应用'
                         }).map(([level, content], index) => {
-                          const colors = ['blue', 'purple', 'orange', 'green'];
+                          const colors = {
+                            0: { bg: '#3b82f6', light: '#3b82f615' }, // blue
+                            1: { bg: '#a855f7', light: '#a855f715' }, // purple
+                            2: { bg: '#f97316', light: '#f9731615' }, // orange
+                            3: { bg: '#22c55e', light: '#22c55e15' }  // green
+                          };
                           const levelNames = { foundation: '基础', intermediate: '进阶', advanced: '高级', application: '应用' };
                           const icons = ['📚', '🔬', '⚡', '🚀'];
+                          const progressValues = [25, 50, 75, 100];
                           
                           return (
-                            <div key={level} className="relative"
+                            <div key={level} className="relative flex flex-col items-center"
                                  style={{
                                    opacity: animationStage >= 4 ? 1 : 0,
-                                   transform: animationStage >= 4 ? 'translateX(0) scale(1)' : `translateX(${-20 + index * 10}px) scale(0.9)`,
+                                   transform: animationStage >= 4 ? 'translateY(0) scale(1)' : `translateY(20px) scale(0.9)`,
                                    transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${0.15 * index}s`
                                  }}>
-                              <div className={`absolute inset-0 bg-gradient-to-r from-${colors[index]}-500/8 to-transparent rounded-xl`} />
-                              <div className={`relative p-4 rounded-xl border border-${colors[index]}-500/20 backdrop-blur-sm hover:shadow-lg transition-all duration-300`}>
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-lg">{icons[index]}</span>
-                                  <div className="font-semibold text-sm" style={{ color: 'var(--ink-high)' }}>
-                                    {levelNames[level] || level}
-                                  </div>
-                                </div>
-                                <div className="text-xs mb-3" style={{ color: 'var(--ink-mid)' }}>
-                                  {content}
-                                </div>
-                                {/* 动态进度条 - 实打实的25,50,75,100%进度显示 */}
-                                <div className="relative w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="absolute top-0 left-0 h-full rounded-full shadow-sm transition-all duration-1200 ease-out"
-                                    style={{
-                                      width: animationStage >= 4 ? `${[25, 50, 75, 100][index]}%` : '0%',
-                                      backgroundColor: {
-                                        0: '#3b82f6', // blue-500
-                                        1: '#a855f7', // purple-500  
-                                        2: '#f97316', // orange-500
-                                        3: '#22c55e'  // green-500
-                                      }[index],
-                                      transitionDelay: `${0.3 + index * 0.15}s`
-                                    }} 
+                              {/* 圆形进度环 */}
+                              <div className="relative w-20 h-20 mb-3">
+                                {/* 背景圆环 */}
+                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                  <path
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke="#e5e7eb"
+                                    strokeWidth="2"
                                   />
+                                  {/* 进度圆环 */}
+                                  <path
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none"
+                                    stroke={colors[index].bg}
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${animationStage >= 4 ? progressValues[index] : 0}, 100`}
+                                    style={{
+                                      transition: 'stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                                      transitionDelay: `${0.3 + index * 0.2}s`
+                                    }}
+                                  />
+                                </svg>
+                                
+                                {/* 中心内容 */}
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                  <span className="text-lg mb-1">{icons[index]}</span>
+                                  <span className="text-xs font-bold" style={{ color: colors[index].bg }}>
+                                    {progressValues[index]}%
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* 标题和内容 */}
+                              <div className="text-center">
+                                <div className="font-semibold text-sm mb-1" style={{ color: 'var(--ink-high)' }}>
+                                  {levelNames[level] || level}
+                                </div>
+                                <div className="text-xs opacity-80 px-2 leading-relaxed" style={{ color: 'var(--ink-mid)' }}>
+                                  {content}
                                 </div>
                               </div>
                             </div>
@@ -611,10 +1034,45 @@ const Section4Surveying = ({ id }) => {
         )}
       </div>
 
-      {/* 底部提示 - 始终显示，最高z-index */}
-      <div style={{ zIndex: 100 }}>
-        <DownHint targetSection={4} />
-      </div>
+      {/* 底部提示 - 始终显示，跳转到下一个概念页面 */}
+      <button
+        onClick={() => {
+          // 寻找下一个概念页面 concept-4
+          const target = document.getElementById('concept-4');
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }}
+        className="absolute bottom-8 left-1/2 flex flex-col items-center gap-2 
+                   transition-colors duration-300 group"
+        style={{
+          transform: 'translateX(-50%)',
+          color: 'var(--ink-mid)',
+          zIndex: 100
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--tech-mint)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'var(--ink-mid)';
+        }}
+        aria-label="向下滚动继续"
+      >
+        <span className="text-sm">向下滚动继续</span>
+        <svg 
+          className="w-6 h-6 animate-bounce"
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1.5}
+            d="M19 14l-7 7m0 0l-7-7m7 7V3"
+          />
+        </svg>
+      </button>
       
       {/* 动画样式 */}
       <style jsx>{`
