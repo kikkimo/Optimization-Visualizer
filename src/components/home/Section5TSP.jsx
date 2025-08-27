@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import DownHint from '../shared/DownHint';
+import tspGraphData from '../../assets/graph/tsp_fixed_graph.json';
 
 // TSP配送路径规划组件 - 简化版本（无Worker）
 export default function Section5TSP({ id }) {
@@ -59,43 +60,38 @@ export default function Section5TSP({ id }) {
   useEffect(() => {
     console.log('[Graph] === 开始加载图数据 ===');
     
-    fetch('/src/assets/graph/tsp_fixed_graph.json')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('[Graph] ✅ 图数据加载成功:', {
-          nodeCount: data.nodes?.length,
-          edgeCount: data.edges?.length,
-          hasAdjacency: !!data.adjacency,
-          startId: data.startId
-        });
-        
-        // 检查数据是否需要反归一化（判断坐标是否在0-1范围内）
-        const isNormalized = data.nodes.every(node => 
-          node.x >= 0 && node.x <= 1 && node.y >= 0 && node.y <= 1
-        );
-        
-        let processedData;
-        if (isNormalized) {
-          console.log('[Graph] 🔄 检测到归一化数据，转换为Canvas尺寸');
-          processedData = denormalizeGraphData(data);
-        } else {
-          console.log('[Graph] 📏 使用原始Canvas尺寸数据');
-          processedData = data;
-        }
-        
-        setGraph({
-          ...processedData,
-          startId: processedData.startId || 0
-        });
-      })
-      .catch(error => {
-        console.error('[Graph] ❌ 图数据加载失败:', error);
+    try {
+      // 直接使用导入的JSON数据，替代fetch调用
+      const data = tspGraphData;
+      
+      console.log('[Graph] ✅ 图数据加载成功:', {
+        nodeCount: data.nodes?.length,
+        edgeCount: data.edges?.length,
+        hasAdjacency: !!data.adjacency,
+        startId: data.startId
       });
+      
+      // 检查数据是否需要反归一化（判断坐标是否在0-1范围内）
+      const isNormalized = data.nodes.every(node => 
+        node.x >= 0 && node.x <= 1 && node.y >= 0 && node.y <= 1
+      );
+      
+      let processedData;
+      if (isNormalized) {
+        console.log('[Graph] 🔄 检测到归一化数据，转换为Canvas尺寸');
+        processedData = denormalizeGraphData(data);
+      } else {
+        console.log('[Graph] 📏 使用原始Canvas尺寸数据');
+        processedData = data;
+      }
+      
+      setGraph({
+        ...processedData,
+        startId: processedData.startId || 0
+      });
+    } catch (error) {
+      console.error('[Graph] ❌ 图数据加载失败:', error);
+    }
   }, []);
 
   // Canvas绘制设置
