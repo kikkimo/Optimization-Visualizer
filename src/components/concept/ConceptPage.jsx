@@ -2,14 +2,14 @@ import React, { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 // 导入各个页面组件
-import Section1Definition from '../components/concept/Section1Definition'
-import Section2Descent3D from '../components/concept/Section2Descent3D'
-import Section3Mindmap from '../components/concept/Section3Mindmap'
-import Section4Surveying from '../components/concept/Section4Surveying'
-import Section5QP from '../components/concept/Section5QP'
-import ConceptRailDots from '../components/concept/ConceptRailDots'
-import useConceptSections from '../hooks/useConceptSections'
-import '../styles/tokens.css'
+import Section1Definition from './Section1Definition'
+import Section2Descent3D from './Section2Descent3D'
+import Section3Mindmap from './Section3Mindmap'
+import Section4Surveying from './Section4Surveying'
+import Section5QP from './Section5QP'
+import ConceptRailDots from './ConceptRailDots'
+import useConceptSections from '../../hooks/useConceptSections'
+import '../../styles/tokens.css'
 
 
 const ConceptPage = () => {
