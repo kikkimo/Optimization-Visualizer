@@ -254,7 +254,7 @@ const Section4Surveying = ({ id }) => {
         advanced: 'PDE约束优化、物理信息神经网络PINN',
         application: '利用稀疏、带噪声的LiDAR散点数据，生成平滑且符合地表自然形态的DEM'
       },
-      gradient: 'from-cyan-500 to-blue-500'
+      gradient: 'from-slate-500 to-gray-600'
     }
   ];
 
@@ -263,8 +263,8 @@ const Section4Surveying = ({ id }) => {
     if (selectedCard) return; // 在详细视图时停止旋转
     
     const interval = setInterval(() => {
-      setRotationAngle(prev => (prev + 0.3) % 360); // 每100ms转0.3度，120秒完成360度
-    }, 100);
+      setRotationAngle(prev => (prev + 0.8) % 360); // 每80ms转0.6度，40秒完成360度
+    }, 80);
     
     return () => clearInterval(interval);
   }, [selectedCard]);
