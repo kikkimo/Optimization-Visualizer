@@ -36,9 +36,122 @@ const Section3Mindmap = ({ id }) => {
   const hideScrollbarTimeout = useRef(null);
 
   // 搜索功能
+  // Markdown内容搜索辅助函数
+  const searchInMarkdown = (query, mindmapData, fullMarkdownContent) => {
+    const results = [];
+    const lowerQuery = query.toLowerCase();
+    
+    // 解析markdown内容，提取章节信息
+    const lines = fullMarkdownContent.split('\n');
+    let currentSection = null;
+    let currentContent = '';
+    
+    lines.forEach((line, index) => {
+      // 检测标题行 (### 或 #### 开头，且包含 {#sectionId})
+      const headingMatch = line.match(/^(#{3,4})\s+(.+?)\s+\{#([^}]+)\}$/);
+      
+      if (headingMatch) {
+        // 如果之前有内容，先处理之前的章节
+        if (currentSection && currentContent.toLowerCase().includes(lowerQuery)) {
+          const node = findNodeBySectionId(mindmapData, currentSection.sectionId);
+          if (node) {
+            // 提取匹配上下文
+            const matchIndex = currentContent.toLowerCase().indexOf(lowerQuery);
+            const start = Math.max(0, matchIndex - 50);
+            const end = Math.min(currentContent.length, matchIndex + query.length + 50);
+            const context = currentContent.substring(start, end);
+            
+            results.push({
+              ...node,
+              matchType: 'content',
+              matchContext: start > 0 ? '...' + context : context,
+              sectionTitle: currentSection.title
+            });
+          }
+        }
+        
+        // 开始新的章节
+        const title = headingMatch[2];
+        const sectionId = headingMatch[3];
+        
+        currentSection = { title, sectionId };
+        currentContent = '';
+        
+        // 检查标题是否匹配
+        if (title.toLowerCase().includes(lowerQuery)) {
+          const node = findNodeBySectionId(mindmapData, sectionId);
+          if (node) {
+            results.push({
+              ...node,
+              matchType: 'title',
+              matchContext: title,
+              sectionTitle: title
+            });
+          }
+        }
+      } else {
+        // 累积当前章节的内容
+        currentContent += line + '\n';
+      }
+    });
+    
+    // 处理最后一个章节
+    if (currentSection && currentContent.toLowerCase().includes(lowerQuery)) {
+      const node = findNodeBySectionId(mindmapData, currentSection.sectionId);
+      if (node) {
+        const matchIndex = currentContent.toLowerCase().indexOf(lowerQuery);
+        const start = Math.max(0, matchIndex - 50);
+        const end = Math.min(currentContent.length, matchIndex + query.length + 50);
+        const context = currentContent.substring(start, end);
+        
+        results.push({
+          ...node,
+          matchType: 'content',
+          matchContext: start > 0 ? '...' + context : context,
+          sectionTitle: currentSection.title
+        });
+      }
+    }
+    
+    return results;
+  };
+  
+  // 根据sectionId查找对应的mind节点
+  const findNodeBySectionId = (data, sectionId) => {
+    if (data.sectionId === sectionId) {
+      return data;
+    }
+    
+    if (data.children) {
+      for (const child of data.children) {
+        const found = findNodeBySectionId(child, sectionId);
+        if (found) return found;
+      }
+    }
+    
+    return null;
+  };
+  // 根据sectionId查找节点路径
+  const findNodePath = (data, sectionId, currentPath = []) => {
+    const newPath = [...currentPath, data.name];
+    
+    if (data.sectionId === sectionId) {
+      return newPath;
+    }
+    
+    if (data.children) {
+      for (const child of data.children) {
+        const found = findNodePath(child, sectionId, newPath);
+        if (found) return found;
+      }
+    }
+    
+    return null;
+  };
   const searchInNodes = (nodes, query, path = []) => {
     let results = [];
     
+    // 原有的mind节点名称搜索逻辑
     nodes.forEach(node => {
       const currentPath = [...path, node.name];
       
@@ -47,7 +160,8 @@ const Section3Mindmap = ({ id }) => {
         results.push({
           ...node,
           path: currentPath,
-          pathString: currentPath.join(' > ')
+          pathString: currentPath.join(' > '),
+          matchType: 'nodeName'
         });
       }
       
@@ -57,8 +171,43 @@ const Section3Mindmap = ({ id }) => {
       }
     });
     
-    return results;
-  };
+    // 新增：搜索markdown内容
+    if (path.length === 0) { // 只在顶层调用时搜索markdown
+      const markdownResults = searchInMarkdown(query, mindmapData, fullMarkdownContent);
+      
+      // 为markdown搜索结果添加路径信息
+      markdownResults.forEach(markdownResult => {
+        const nodePath = findNodePath(mindmapData, markdownResult.sectionId);
+        if (nodePath) {
+          results.push({
+            ...markdownResult,
+            path: nodePath,
+            pathString: nodePath.join(' > ')
+          });
+        }
+      });
+    }
+    
+    // 去重：如果同一个节点既有节点名称匹配又有markdown匹配，优先保留节点名称匹配
+    const uniqueResults = [];
+    const seenSectionIds = new Set();
+    
+    results.forEach(result => {
+      const key = result.sectionId;
+      if (!seenSectionIds.has(key)) {
+        seenSectionIds.add(key);
+        uniqueResults.push(result);
+      } else if (result.matchType === 'nodeName') {
+        // 如果已存在的是markdown匹配，但当前是节点名称匹配，则替换
+        const existingIndex = uniqueResults.findIndex(r => r.sectionId === key);
+        if (existingIndex !== -1 && uniqueResults[existingIndex].matchType !== 'nodeName') {
+          uniqueResults[existingIndex] = result;
+        }
+      }
+    });
+    
+    return uniqueResults;
+  };;
 
   // 智能排序搜索结果函数
   const sortSearchResults = (results, query) => {
@@ -2409,14 +2558,40 @@ const Section3Mindmap = ({ id }) => {
                             onClick={() => handleSearchResultSelect(result)}
                             className="w-full px-3 py-2 text-left hover:bg-gray-700/50 active:bg-gray-600/50 transition-all duration-200 rounded-md border border-transparent hover:border-teal-500/30 mb-1 last:mb-0"
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-start gap-2">
                               <div 
-                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                className="w-3 h-3 rounded-full flex-shrink-0 mt-1"
                                 style={{ backgroundColor: nodeTypeColor }}
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-white text-sm truncate">{result.name}</div>
                                 <div className="text-xs text-gray-400 mt-0.5 truncate">{result.pathString}</div>
+                                
+                                {/* 匹配类型标识 */}
+                                {result.matchType && (
+                                  <div className="mt-1">
+                                    <span className={`inline-block text-xs px-2 py-0.5 rounded ${
+                                      result.matchType === 'nodeName' 
+                                        ? 'bg-blue-500/20 text-blue-300' 
+                                        : result.matchType === 'title'
+                                        ? 'bg-green-500/20 text-green-300'
+                                        : 'bg-yellow-500/20 text-yellow-300'
+                                    }`}>
+                                      {result.matchType === 'nodeName' ? '节点名称' : 
+                                       result.matchType === 'title' ? '标题匹配' : '内容匹配'}
+                                    </span>
+                                  </div>
+                                )}
+                                
+                                {/* 匹配上下文 */}
+                                {result.matchContext && result.matchType !== 'nodeName' && (
+                                  <div className="text-xs text-gray-300 bg-gray-700/50 p-2 rounded border-l-2 border-teal-500/50 mt-1">
+                                    {result.matchContext.length > 100 
+                                      ? result.matchContext.substring(0, 100) + '...'
+                                      : result.matchContext
+                                    }
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </button>
