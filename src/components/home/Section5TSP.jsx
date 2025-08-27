@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import DownHint from './DownHint';
+import DownHint from '../shared/DownHint';
 
 // TSP配送路径规划组件 - 简化版本（无Worker）
 export default function Section5TSP({ id }) {

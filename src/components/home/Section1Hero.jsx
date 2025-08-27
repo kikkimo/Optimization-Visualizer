@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import HeroFieldCanvas from './HeroFieldCanvas';
-import DownHint from './DownHint';
+import DownHint from '../shared/DownHint';
 
 export default function Section1Hero({ id }) {
   const sectionRef = useRef(null);

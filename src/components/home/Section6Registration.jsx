@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import DownHint from './DownHint';
+import DownHint from '../shared/DownHint';
 
 export default function Section6Registration({ id }) {
   const [mode, setMode] = useState('before');

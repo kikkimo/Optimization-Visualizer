@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import 'katex/dist/katex.min.css';
-import DownHint from '../home/DownHint';
+import DownHint from '../shared/DownHint';
 
 const Section4Surveying = ({ id }) => {
   const [selectedCard, setSelectedCard] = useState(null);

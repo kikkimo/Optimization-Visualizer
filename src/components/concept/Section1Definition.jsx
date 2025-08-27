@@ -619,7 +619,43 @@ const Section1Definition = ({ id }) => {
       </div>
 
       {/* 底部提示 */}
-      <DownHint targetSection={1} />
+      <button
+        onClick={() => {
+          const target = document.getElementById('concept-1');
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }}
+        className="absolute bottom-8 left-1/2 flex flex-col items-center gap-2 
+                   transition-colors duration-300 group"
+        style={{
+          transform: 'translateX(-50%)',
+          color: 'var(--ink-mid)',
+          zIndex: 100
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--tech-mint)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'var(--ink-mid)';
+        }}
+        aria-label="向下滚动继续"
+      >
+        <span className="text-sm">向下滚动继续</span>
+        <svg 
+          className="w-6 h-6 animate-bounce"
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={1.5}
+            d="M19 14l-7 7m0 0l-7-7m7 7V3"
+          />
+        </svg>
+      </button>
       
       {/* 动效样式 */}
       <style jsx="true">{`
@@ -1424,55 +1460,6 @@ const UavSceneSvg = ({ currentActiveTerm, objectiveType, constraintStates, anima
   );
 };
 
-// DownHint 组件
-const DownHint = ({ targetSection, text = '向下滚动继续' }) => {
-  const handleClick = () => {
-    // 获取snap容器
-    const snapContainer = document.getElementById('snap-container');
-    if (snapContainer) {
-      // 计算目标位置（每个section是100vh）
-      const targetY = targetSection * window.innerHeight;
-      snapContainer.scrollTo({
-        top: targetY,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className="absolute bottom-8 left-1/2 flex flex-col items-center gap-2 
-                 transition-colors duration-300 group z-50"
-      style={{
-        transform: 'translateX(-50%)',
-        color: 'var(--ink-mid)'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'var(--tech-mint)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'var(--ink-mid)';
-      }}
-      aria-label={text}
-    >
-      <span className="text-sm">{text}</span>
-      <svg 
-        className="w-6 h-6 animate-bounce"
-        fill="none" 
-        stroke="currentColor" 
-        viewBox="0 0 24 24"
-      >
-        <path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={1.5}
-          d="M19 14l-7 7m0 0l-7-7m7 7V3"
-        />
-      </svg>
-    </button>
-  );
-};
 
 export const meta = {
   id: 1,
