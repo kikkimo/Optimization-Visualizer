@@ -31,8 +31,8 @@ export default function useConceptRailDots() {
     },
     {
       id: 4,
-      title: 'QP 二次规划', 
-      summary: '二次目标/线性约束/最小二乘',
+      title: '通用优化流程', 
+      summary: '建模/策略/初始化/迭代/验证',
       anchor: 'concept-4'
     }
   ];

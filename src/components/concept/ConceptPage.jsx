@@ -6,7 +6,7 @@ import Section1Definition from './Section1Definition'
 import Section2Descent3D from './Section2Descent3D'
 import Section3Mindmap from './Section3Mindmap'
 import Section4Surveying from './Section4Surveying'
-import Section5QP from './Section5QP'
+import Section5Workflow from './Section5Workflow'
 import RailDots from '../shared/RailDots'
 import useConceptRailDots from '../../hooks/useConceptRailDots'
 import useConceptSections from '../../hooks/useConceptSections'
@@ -50,10 +50,10 @@ const ConceptPage = () => {
     },
     {
       id: 4,
-      title: 'QP 二次规划', 
-      summary: '二次目标/线性约束/最小二乘',
+      title: '通用优化流程', 
+      summary: '建模/策略/初始化/迭代/验证',
       anchor: 'concept-4',
-      component: Section5QP
+      component: Section5Workflow
     }
   ]
 
