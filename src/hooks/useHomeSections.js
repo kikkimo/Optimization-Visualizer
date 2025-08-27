@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export default function useSnapSections() {
+export default function useHomeSections() {
   const [currentSection, setCurrentSection] = useState(0);
 
   const scrollToSection = useCallback((sectionIndex) => {

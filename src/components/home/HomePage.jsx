@@ -8,11 +8,11 @@ import Section5TSP from './Section5TSP';
 import Section6Registration from './Section6Registration';
 import Section7Summary from './Section7Summary';
 import RailDots from './RailDots';
-import useSnapSections from '../../hooks/useSnapSections';
+import useHomeSections from '../../hooks/useHomeSections';
 import '../../styles/tokens.css';
 
 export default function HomePage() {
-  const { currentSection, scrollToSection } = useSnapSections();
+  const { currentSection, scrollToSection } = useHomeSections();
   const location = useLocation();
 
   // 处理从其他页面导航到首页的情况
