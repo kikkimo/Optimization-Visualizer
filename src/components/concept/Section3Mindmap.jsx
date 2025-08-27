@@ -2187,7 +2187,7 @@ const Section3Mindmap = ({ id }) => {
         </div>
         
         {/* 动画样式定义 */}
-        <style jsx>{`
+        <style>{`
           @keyframes starPulse0 {
             0%, 100% { transform: scale(0.95); opacity: 0.95; }
             50% { transform: scale(1.15); opacity: 1; }

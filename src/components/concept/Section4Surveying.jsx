@@ -1075,7 +1075,7 @@ const Section4Surveying = ({ id }) => {
       </button>
       
       {/* 动画样式 */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar {
           scrollbar-width: thin;
           scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
