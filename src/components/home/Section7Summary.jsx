@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Section7Summary({ id }) {
   const sectionRef = useRef(null);
   const canvasRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const animationRef = useRef();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -132,8 +134,8 @@ export default function Section7Summary({ id }) {
   };
 
   const handleConcept = () => {
-    // 导航到概念页面
-    window.location.href = '/concept';
+    // 使用React Router进行SPA内导航，保持流畅体验
+    navigate('/concept');
   };
 
   return (
@@ -180,7 +182,7 @@ export default function Section7Summary({ id }) {
         </div>
 
         {/* CTA 按钮 */}
-        <div className={`flex flex-col sm:flex-row gap-4 justify-center items-center mb-16
+        <div className={`flex justify-center items-center mb-16
                        transition-all duration-700 delay-500 transform
                        ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
           <button
@@ -203,32 +205,6 @@ export default function Section7Summary({ id }) {
           >
             开始了解概念
           </button>
-
-          <button 
-            className="underline underline-offset-4 transition-colors duration-200"
-            style={{ color: 'var(--ink-mid)' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--tech-mint)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--ink-mid)'}
-          >
-            了解更多
-          </button>
-        </div>
-
-        {/* 页脚快捷链接 */}
-        <div className={`flex justify-center gap-6 text-sm transition-all duration-700 delay-700
-                       ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-             style={{ color: 'var(--ink-mid)' }}>
-          <a href="/concept" className="hover:text-[var(--tech-mint)] transition-colors">
-            概念页
-          </a>
-          <span style={{ color: 'var(--carbon-line)' }}>|</span>
-          <a href="/method-hub" className="hover:text-[var(--tech-mint)] transition-colors">
-            方法 Hub
-          </a>
-          <span style={{ color: 'var(--carbon-line)' }}>|</span>
-          <a href="/cases" className="hover:text-[var(--tech-mint)] transition-colors">
-            综合案例
-          </a>
         </div>
 
         {/* 返回顶部 */}
