@@ -159,6 +159,9 @@ const Section5WorkflowStep1 = () => {
         if (activeExample === 1) {
           // 显示覆盖动画的静态场景
           drawCoverageStaticScene(ctx, width, height)
+        } else if (activeExample === 2) {
+          // 显示最短时间的静态场景
+          drawTimeOptStaticScene(ctx, width, height)
         } else {
           // 显示最小化误差的静态场景
           drawCard1Scene1(ctx, width, height)
@@ -1082,12 +1085,14 @@ const Section5WorkflowStep1 = () => {
           currentCoverage = plan.coverage
         }
         
-        // 绘制UI组件（从进度20%开始显示）
+        // 始终显示底部描述文字（不参与动画）
+        drawCoverageDescriptionCard(ctx, width, height)
+        
+        // 绘制其他UI组件（从进度20%开始显示）
         if (progress >= 0.2) {
           drawCoverageFormulaCard(ctx, width)
           drawCoverageValueCard(ctx, plan, currentCoverage)
           drawCoverageComparisonBar(ctx, width, plan.id)
-          drawCoverageDescriptionCard(ctx, width, height)
         }
         
         // 再次检查停止信号
@@ -1835,14 +1840,908 @@ const Section5WorkflowStep1 = () => {
     return await playCoverageAnimation(ctx, width, height, signal)
   }
 
-  const playCard1Scene3 = async (ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height)
-    drawText(ctx, '最短时间 (路径优化)', width/2, height/2, {
-      fontSize: 18,
-      align: 'center',
-      color: '#2B6CB0'
+  const playCard1Scene3 = async (ctx, width, height, signal) => {
+    const margin = 48
+    const chartWidth = width - 2 * margin
+    const chartHeight = height - 144 - 80 - 120 // 为底部UI预留更多空间
+    const marginX = margin
+    const marginY = 64
+    
+    // 背景
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    
+    // 入场动画（0-1.2s）
+    if (signal?.aborted) return
+    if (animationShouldStop) return
+    
+    await animateBrachistochroneEntrance(ctx, width, height, marginX, marginY, chartWidth, chartHeight, signal)
+    
+    // 四条路径主循环 A→B→C→D
+    for (let pathIndex = 0; pathIndex < timeOptData.paths.length; pathIndex++) {
+      if (signal?.aborted) return
+      if (animationShouldStop) return
+      
+      await animateBrachistochronePath(ctx, width, height, marginX, marginY, chartWidth, chartHeight, pathIndex, signal)
+      
+      // 方案间过渡
+      if (pathIndex < timeOptData.paths.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 400))
+      }
+    }
+    
+    // 收尾：回到最优方案D（摆线）
+    if (!animationShouldStop && !signal?.aborted) {
+      await animateBrachistochroneFinale(ctx, width, height, marginX, marginY, chartWidth, chartHeight)
+    }
+  }
+  // 入场动画
+  const animateBrachistochroneEntrance = async (ctx, width, height, marginX, marginY, chartWidth, chartHeight, signal) => {
+    return new Promise(resolve => {
+      let progress = 0
+      const duration = 1200
+      const startTime = Date.now()
+      
+      const animate = () => {
+        if (signal?.aborted || animationShouldStop) {
+          resolve()
+          return
+        }
+        
+        const elapsed = Date.now() - startTime
+        progress = Math.min(elapsed / duration, 1)
+        
+        ctx.fillStyle = '#0F1116'
+        ctx.fillRect(0, 0, width, height)
+        
+        // 始终显示底部UI组件
+        drawTimeOptFormulaCard(ctx, width)
+        drawTimeOptValueCard(ctx, timeOptData.paths[0], 0)
+        drawTimeOptComparisonBar(ctx, width, '')
+        
+        // 0-0.3s: 背景与网格淡入
+        if (progress >= 0) {
+          const gridAlpha = Math.min(progress * 3.33, 1)
+          ctx.globalAlpha = gridAlpha
+          drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
+          ctx.globalAlpha = 1
+        }
+        
+        // 0.3-0.7s: 坐标轴滑入
+        if (progress >= 0.25) {
+          const axisProgress = Math.min((progress - 0.25) * 2.22, 1)
+          ctx.save()
+          ctx.translate(0, (1 - axisProgress) * 20)
+          ctx.globalAlpha = axisProgress
+          drawTimeOptAxes(ctx, marginX, marginY, chartWidth, chartHeight)
+          drawTimeOptTicks(ctx, marginX, marginY, chartWidth, chartHeight)
+          ctx.restore()
+        }
+        
+        // 0.3-0.7s: S、T点弹入，重力箭头扫入
+        if (progress >= 0.25) {
+          const pointProgress = (progress - 0.25) / 0.36
+          if (pointProgress <= 1) {
+            const bounce = pointProgress < 1 ? 1 + 0.08 * Math.sin(pointProgress * Math.PI * 2) : 1
+            drawTimeOptPoints(ctx, marginX, marginY, chartWidth, chartHeight, bounce)
+            
+            // 重力箭头从上向下扫入
+            const gravityAlpha = Math.min(pointProgress * 2, 1)
+            drawGravityArrow(ctx, marginX, marginY, chartWidth, chartHeight, gravityAlpha)
+          }
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          resolve()
+        }
+      }
+      
+      animate()
     })
-    return new Promise(resolve => setTimeout(resolve, 2000))
+  }
+  
+  // 单个方案路径动画
+  const animateBrachistochronePath = async (ctx, width, height, marginX, marginY, chartWidth, chartHeight, pathIndex, signal) => {
+    return new Promise(resolve => {
+      let progress = 0
+      const duration = 2800
+      const startTime = Date.now()
+      const currentPath = timeOptData.paths[pathIndex]
+      let currentTime = 0
+      let ballPosition = { x: 0, y: 0 }
+      
+      const animate = () => {
+        if (signal?.aborted || animationShouldStop) {
+          resolve()
+          return
+        }
+        
+        const elapsed = Date.now() - startTime
+        progress = Math.min(elapsed / duration, 1)
+        
+        // 清除并绘制基础场景
+        ctx.fillStyle = '#0F1116'
+        ctx.fillRect(0, 0, width, height)
+        
+        drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
+        drawTimeOptAxes(ctx, marginX, marginY, chartWidth, chartHeight)
+        drawTimeOptTicks(ctx, marginX, marginY, chartWidth, chartHeight)
+        drawTimeOptPoints(ctx, marginX, marginY, chartWidth, chartHeight)
+        drawGravityArrow(ctx, marginX, marginY, chartWidth, chartHeight)
+        
+        // 始终显示底部UI组件
+        drawTimeOptFormulaCard(ctx, width)
+        drawTimeOptValueCard(ctx, currentPath, currentTime)
+        drawTimeOptComparisonBar(ctx, width, currentPath.id)
+        
+        // 0.0-0.4s: 路径显形
+        if (progress >= 0) {
+          const pathProgress = Math.min(progress * 2.5, 1)
+          
+          // 绘制其他路径（灰色半透明）
+          timeOptData.paths.forEach((path, index) => {
+            if (index !== pathIndex) {
+              drawTimeOptPath(ctx, path, marginX, marginY, chartWidth, chartHeight, 0.15, 2)
+            }
+          })
+          
+          // 当前路径逐步绘制
+          if (pathProgress > 0) {
+            drawTimeOptPath(ctx, currentPath, marginX, marginY, chartWidth, chartHeight, pathProgress, 3)
+          }
+        }
+        
+        // 0.4-2.0s: 质点下滑 & 走表
+        if (progress >= 0.143) {
+          const moveProgress = Math.min((progress - 0.143) / 0.571, 1)
+          
+          // 计算质点位置
+          ballPosition = calculateBallPosition(currentPath, moveProgress)
+          
+          // 绘制质点
+          drawMovingBall(ctx, ballPosition.x, ballPosition.y, marginX, marginY, chartWidth, chartHeight)
+          
+          // 时间走表
+          const easeOut = 1 - Math.pow(1 - moveProgress, 3)
+          currentTime = currentPath.time * easeOut
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          setTimeout(resolve, 300)
+        }
+      }
+      
+      animate()
+    })
+  }
+  // 计算质点位置
+  const calculateBallPosition = (path, progress) => {
+    if (path.type === 'linear') {
+      const x = progress * Math.PI
+      const y = path.equation(x)
+      return { x, y }
+      
+    } else if (path.type === 'polyline') {
+      // 折线：需要判断在哪一段
+      const segment1Length = Math.sqrt(Math.pow(1.2, 2) + Math.pow(1.5, 2))
+      const segment2Length = Math.sqrt(Math.pow(Math.PI - 1.2, 2) + Math.pow(2 - 1.5, 2))
+      const totalLength = segment1Length + segment2Length
+      
+      const currentLength = progress * totalLength
+      
+      if (currentLength <= segment1Length) {
+        // 在第一段
+        const t = currentLength / segment1Length
+        return { x: t * 1.2, y: t * 1.5 }
+      } else {
+        // 在第二段
+        const t = (currentLength - segment1Length) / segment2Length
+        return { 
+          x: 1.2 + t * (Math.PI - 1.2), 
+          y: 1.5 + t * (2 - 1.5) 
+        }
+      }
+      
+    } else if (path.type === 'quadratic') {
+      const x = progress * Math.PI
+      const y = path.equation(x)
+      return { x, y }
+      
+    } else if (path.type === 'cycloid') {
+      const theta = progress * Math.PI
+      const x = path.parametric.x(theta)
+      const y = path.parametric.y(theta)
+      return { x, y }
+    }
+    
+    return { x: 0, y: 0 }
+  }
+  
+  // 绘制移动的质点
+  const drawMovingBall = (ctx, x, y, marginX, marginY, chartWidth, chartHeight) => {
+    const coords = getTimeOptCanvasCoords(x, y, marginX, marginY, chartWidth, chartHeight)
+    
+    // 外圈微光
+    ctx.fillStyle = 'rgba(231, 237, 248, 0.3)'
+    ctx.beginPath()
+    ctx.arc(coords.x, coords.y, 10, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // 内圈质点
+    ctx.fillStyle = '#E7EDF8'
+    ctx.beginPath()
+    ctx.arc(coords.x, coords.y, 6, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  
+  // 收尾动画
+  const animateBrachistochroneFinale = async (ctx, width, height, marginX, marginY, chartWidth, chartHeight) => {
+    const bestPath = timeOptData.paths[3] // 方案D - 摆线
+    
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    
+    drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptAxes(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptTicks(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptPoints(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawGravityArrow(ctx, marginX, marginY, chartWidth, chartHeight)
+    
+    // 其他方案透明度改为0.3
+    timeOptData.paths.forEach(path => {
+      if (!path.isBest) {
+        drawTimeOptPath(ctx, path, marginX, marginY, chartWidth, chartHeight, 0.3, 2)
+      }
+    })
+    
+    // 最优方案高亮
+    drawTimeOptPath(ctx, bestPath, marginX, marginY, chartWidth, chartHeight, 1, 3)
+    
+    drawTimeOptFormulaCard(ctx, width)
+    drawTimeOptValueCard(ctx, bestPath, bestPath.time)
+    drawTimeOptComparisonBar(ctx, width, '') // 空字符串表示结束状态
+    
+    return new Promise(resolve => setTimeout(resolve, 800))
+  }
+  // 绘制最短时间静态场景
+  const drawTimeOptStaticScene = (ctx, width, height) => {
+    const margin = 48
+    const chartWidth = width - 2 * margin
+    const chartHeight = height - 144 - 80 - 120 // 为底部UI预留更多空间
+    const marginX = margin
+    const marginY = 64
+    
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    
+    drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptAxes(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptTicks(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptPoints(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawGravityArrow(ctx, marginX, marginY, chartWidth, chartHeight)
+    
+    // 绘制所有路径（最优方案高亮）
+    const bestPath = timeOptData.paths[3] // 方案D - 摆线
+    
+    timeOptData.paths.forEach(path => {
+      if (path.isBest) {
+        drawTimeOptPath(ctx, path, marginX, marginY, chartWidth, chartHeight, 1, 3)
+      } else {
+        // 非最优路径透明度改为0.3
+        drawTimeOptPath(ctx, path, marginX, marginY, chartWidth, chartHeight, 0.3, 2)
+      }
+    })
+    
+    drawTimeOptFormulaCard(ctx, width)
+    drawTimeOptValueCard(ctx, bestPath, bestPath.time)
+    drawTimeOptComparisonBar(ctx, width, '') // 结束状态
+  }
+
+  // ===== 最短时间动画相关数据和函数 =====
+  
+  // 起止点和障碍物定义
+  const timeOptData = {
+    start: { x: 0, y: 0 },
+    target: { x: Math.PI, y: 2 },
+    gravity: 9.81, // m/s^2
+    
+    // 四条路径方案
+    paths: [
+      {
+        id: 'A',
+        name: '直线',
+        description: '看起来最短',
+        color: '#ED8936',
+        time: 1.190,
+        type: 'linear',
+        // y = (2/π) * x
+        equation: (x) => (2 / Math.PI) * x,
+        derivative: (x) => 2 / Math.PI
+      },
+      {
+        id: 'B', 
+        name: '折线',
+        description: '先陡后缓的直觉',
+        color: '#4299E1',
+        time: 1.050,
+        type: 'polyline',
+        // S -> K(1.2, 1.5) -> T
+        segments: [
+          { start: [0, 0], end: [1.2, 1.5] },
+          { start: [1.2, 1.5], end: [Math.PI, 2] }
+        ]
+      },
+      {
+        id: 'C',
+        name: '二次曲线',
+        description: '陡起步的平滑版本',  
+        color: '#8B5CF6',
+        time: 1.044,
+        type: 'quadratic',
+        // y = αx + βx^2, α=1.3, β≈-0.2111605
+        alpha: 1.3,
+        beta: -0.2111605,
+        equation: (x) => 1.3 * x + (-0.2111605) * x * x,
+        derivative: (x) => 1.3 + 2 * (-0.2111605) * x
+      },
+      {
+        id: 'D',
+        name: '摆线',
+        description: '最速曲线',
+        color: '#38A169',
+        time: 1.003,
+        type: 'cycloid',
+        isBest: true,
+        radius: 1,
+        // 参数方程: x = θ - sin(θ), y = 1 - cos(θ), θ ∈ [0, π]
+        parametric: {
+          x: (theta) => theta - Math.sin(theta),
+          y: (theta) => 1 - Math.cos(theta),
+          // 导数 dx/dθ = 1 - cos(θ), dy/dθ = sin(θ)
+          dxdt: (theta) => 1 - Math.cos(theta),
+          dydt: (theta) => Math.sin(theta)
+        }
+      }
+    ]
+  }
+  
+  // 坐标转换函数
+  const getTimeOptCanvasCoords = (x, y, marginX, marginY, chartWidth, chartHeight) => {
+    return {
+      x: marginX + (x / Math.PI) * chartWidth,
+      y: marginY + (y / 2.0) * chartHeight
+    }
+  }
+  
+  // 绘制网格
+  const drawTimeOptGrid = (ctx, marginX, marginY, chartWidth, chartHeight) => {
+    // 次级网格
+    ctx.strokeStyle = '#252933'
+    ctx.globalAlpha = 0.4
+    ctx.lineWidth = 1
+    ctx.setLineDash([])
+    
+    // 垂直网格线 (x方向，π分为6份)
+    for (let i = 0; i <= 6; i++) {
+      const x = marginX + (i / 6) * chartWidth
+      ctx.beginPath()
+      ctx.moveTo(x, marginY)
+      ctx.lineTo(x, marginY + chartHeight)
+      ctx.stroke()
+    }
+    
+    // 水平网格线 (y方向，2分为4份)
+    for (let i = 0; i <= 4; i++) {
+      const y = marginY + (i / 4) * chartHeight
+      ctx.beginPath()
+      ctx.moveTo(marginX, y)
+      ctx.lineTo(marginX + chartWidth, y)
+      ctx.stroke()
+    }
+    
+    // 主网格
+    ctx.strokeStyle = '#2F3642'
+    ctx.globalAlpha = 0.7
+    ctx.lineWidth = 1
+    
+    // 主垂直线 (π/2间隔)
+    for (let i = 0; i <= 2; i++) {
+      const x = marginX + (i / 2) * chartWidth
+      ctx.beginPath()
+      ctx.moveTo(x, marginY)
+      ctx.lineTo(x, marginY + chartHeight)
+      ctx.stroke()
+    }
+    
+    // 主水平线 (1单位间隔)
+    for (let i = 0; i <= 2; i++) {
+      const y = marginY + (i / 2) * chartHeight
+      ctx.beginPath()
+      ctx.moveTo(marginX, y)
+      ctx.lineTo(marginX + chartWidth, y)
+      ctx.stroke()
+    }
+    
+    ctx.globalAlpha = 1
+  }
+  // 绘制坐标轴
+  const drawTimeOptAxes = (ctx, marginX, marginY, chartWidth, chartHeight) => {
+    ctx.strokeStyle = '#E7EDF8'
+    ctx.lineWidth = 2
+    ctx.setLineDash([])
+    
+    // X轴
+    ctx.beginPath()
+    ctx.moveTo(marginX, marginY + chartHeight)
+    ctx.lineTo(marginX + chartWidth + 10, marginY + chartHeight)
+    ctx.stroke()
+    
+    // X轴箭头
+    ctx.beginPath()
+    ctx.moveTo(marginX + chartWidth + 10, marginY + chartHeight)
+    ctx.lineTo(marginX + chartWidth + 5, marginY + chartHeight - 3)
+    ctx.lineTo(marginX + chartWidth + 5, marginY + chartHeight + 3)
+    ctx.closePath()
+    ctx.fillStyle = '#E7EDF8'
+    ctx.fill()
+    
+    // Y轴
+    ctx.beginPath()
+    ctx.moveTo(marginX, marginY + chartHeight)
+    ctx.lineTo(marginX, marginY - 10)
+    ctx.stroke()
+    
+    // Y轴箭头
+    ctx.beginPath()
+    ctx.moveTo(marginX, marginY - 10)
+    ctx.lineTo(marginX - 3, marginY - 5)
+    ctx.lineTo(marginX + 3, marginY - 5)
+    ctx.closePath()
+    ctx.fill()
+    
+    // 轴标签
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '16px KaTeX_Math, Times New Roman, serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('x', marginX + chartWidth + 20, marginY + chartHeight + 5)
+    
+    // y标签
+    const startCoords = getTimeOptCanvasCoords(timeOptData.start.x, timeOptData.start.y, marginX, marginY, chartWidth, chartHeight)
+    ctx.fillText('y', startCoords.x, startCoords.y - 18)
+  }
+  
+  // 绘制坐标刻度
+  const drawTimeOptTicks = (ctx, marginX, marginY, chartWidth, chartHeight) => {
+    ctx.strokeStyle = '#BFC9DA'
+    ctx.fillStyle = '#BFC9DA'
+    ctx.lineWidth = 1
+    ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    
+    // X轴刻度 (π/2间隔)
+    const xLabels = ['0', 'π/2', 'π']
+    for (let i = 0; i <= 2; i++) {
+      const x = marginX + (i / 2) * chartWidth
+      ctx.beginPath()
+      ctx.moveTo(x, marginY + chartHeight)
+      ctx.lineTo(x, marginY + chartHeight + 5)
+      ctx.stroke()
+      
+      ctx.fillText(xLabels[i], x, marginY + chartHeight + 18)
+    }
+    
+    // Y轴刻度 (1单位间隔)
+    ctx.textAlign = 'right'
+    for (let i = 0; i <= 2; i++) {
+      const y = marginY + chartHeight - (i / 2) * chartHeight
+      ctx.beginPath()
+      ctx.moveTo(marginX - 5, y)
+      ctx.lineTo(marginX, y)
+      ctx.stroke()
+      
+      if (i > 0) { // 不显示0
+        ctx.fillText(i.toString(), marginX - 8, y + 4)
+      }
+    }
+  }
+  
+  // 绘制速度场区域
+  const drawSpeedField = (ctx, field, marginX, marginY, chartWidth, chartHeight, alpha = 1) => {
+    if (!field.points) return
+    
+    const coords = field.points.map(p => getTimeOptCanvasCoords(p[0], p[1], marginX, marginY, chartWidth, chartHeight))
+    
+    ctx.globalAlpha = alpha * field.fillAlpha
+    ctx.fillStyle = field.color
+    ctx.beginPath()
+    ctx.moveTo(coords[0].x, coords[0].y)
+    for (let i = 1; i < coords.length; i++) {
+      ctx.lineTo(coords[i].x, coords[i].y)
+    }
+    ctx.closePath()
+    ctx.fill()
+    
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = field.strokeColor
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    
+    ctx.globalAlpha = 1
+  }
+  
+  // 绘制障碍物
+  const drawTimeOptObstacle = (ctx, obstacle, marginX, marginY, chartWidth, chartHeight, alpha = 1) => {
+    const coords = obstacle.points.map(p => getTimeOptCanvasCoords(p[0], p[1], marginX, marginY, chartWidth, chartHeight))
+    
+    ctx.globalAlpha = alpha * 0.15
+    ctx.fillStyle = '#718096'
+    ctx.beginPath()
+    ctx.moveTo(coords[0].x, coords[0].y)
+    for (let i = 1; i < coords.length; i++) {
+      ctx.lineTo(coords[i].x, coords[i].y)
+    }
+    ctx.closePath()
+    ctx.fill()
+    
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = '#4A5568'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+    
+    ctx.globalAlpha = 1
+  }
+  
+  // 绘制起止点
+  const drawTimeOptPoints = (ctx, marginX, marginY, chartWidth, chartHeight, scale = 1) => {
+    const startCoords = getTimeOptCanvasCoords(timeOptData.start.x, timeOptData.start.y, marginX, marginY, chartWidth, chartHeight)
+    const targetCoords = getTimeOptCanvasCoords(timeOptData.target.x, timeOptData.target.y, marginX, marginY, chartWidth, chartHeight)
+    
+    // 起点 S - 点位置不变
+    ctx.fillStyle = '#2EC4B6'
+    ctx.beginPath()
+    ctx.arc(startCoords.x, startCoords.y, 6 * scale, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // S标识符向右下移动10px
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('S', startCoords.x + 16, startCoords.y + 5)
+    
+    // 终点 T
+    ctx.fillStyle = '#4299E1'
+    ctx.beginPath()
+    ctx.arc(targetCoords.x, targetCoords.y, 6 * scale, 0, Math.PI * 2)
+    ctx.fill()
+    
+    ctx.fillStyle = '#E7EDF8'
+    ctx.fillText('T', targetCoords.x, targetCoords.y - 12)
+  }
+  // 绘制重力箭头
+  const drawGravityArrow = (ctx, marginX, marginY, chartWidth, chartHeight, alpha = 1) => {
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = '#F6AD55'
+    ctx.fillStyle = '#F6AD55'
+    ctx.lineWidth = 2
+    
+    const arrowX = marginX + chartWidth * 0.85
+    const arrowY = marginY + 30
+    const arrowLength = 40
+    
+    // 箭头线
+    ctx.beginPath()
+    ctx.moveTo(arrowX, arrowY)
+    ctx.lineTo(arrowX, arrowY + arrowLength)
+    ctx.stroke()
+    
+    // 箭头头部
+    ctx.beginPath()
+    ctx.moveTo(arrowX, arrowY + arrowLength)
+    ctx.lineTo(arrowX - 4, arrowY + arrowLength - 8)
+    ctx.lineTo(arrowX + 4, arrowY + arrowLength - 8)
+    ctx.closePath()
+    ctx.fill()
+    
+    // 标签"g"
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '16px KaTeX_Math, Times New Roman, serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('g', arrowX, arrowY - 8)
+    
+    ctx.globalAlpha = 1
+  }
+  
+  // 绘制路径
+  const drawTimeOptPath = (ctx, path, marginX, marginY, chartWidth, chartHeight, alpha = 1, lineWidth = 3) => {
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = path.color
+    ctx.lineWidth = lineWidth
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.setLineDash([])
+    
+    ctx.beginPath()
+    
+    if (path.type === 'linear') {
+      // 直线: y = (2/π) * x
+      const startCoords = getTimeOptCanvasCoords(0, 0, marginX, marginY, chartWidth, chartHeight)
+      const endCoords = getTimeOptCanvasCoords(Math.PI, 2, marginX, marginY, chartWidth, chartHeight)
+      ctx.moveTo(startCoords.x, startCoords.y)
+      ctx.lineTo(endCoords.x, endCoords.y)
+      
+    } else if (path.type === 'polyline') {
+      // 折线: S -> K -> T
+      const segments = path.segments
+      let firstPoint = true
+      
+      segments.forEach(segment => {
+        const startCoords = getTimeOptCanvasCoords(segment.start[0], segment.start[1], marginX, marginY, chartWidth, chartHeight)
+        const endCoords = getTimeOptCanvasCoords(segment.end[0], segment.end[1], marginX, marginY, chartWidth, chartHeight)
+        
+        if (firstPoint) {
+          ctx.moveTo(startCoords.x, startCoords.y)
+          firstPoint = false
+        }
+        ctx.lineTo(endCoords.x, endCoords.y)
+      })
+      
+    } else if (path.type === 'quadratic') {
+      // 二次曲线: y = αx + βx^2
+      const numPoints = 50
+      let firstPoint = true
+      
+      for (let i = 0; i <= numPoints; i++) {
+        const t = i / numPoints
+        const x = t * Math.PI
+        const y = path.equation(x)
+        const coords = getTimeOptCanvasCoords(x, y, marginX, marginY, chartWidth, chartHeight)
+        
+        if (firstPoint) {
+          ctx.moveTo(coords.x, coords.y)
+          firstPoint = false
+        } else {
+          ctx.lineTo(coords.x, coords.y)
+        }
+      }
+      
+    } else if (path.type === 'cycloid') {
+      // 摆线: x = θ - sin(θ), y = 1 - cos(θ)
+      const numPoints = 100
+      let firstPoint = true
+      
+      for (let i = 0; i <= numPoints; i++) {
+        const t = i / numPoints
+        const theta = t * Math.PI
+        const x = path.parametric.x(theta)
+        const y = path.parametric.y(theta)
+        const coords = getTimeOptCanvasCoords(x, y, marginX, marginY, chartWidth, chartHeight)
+        
+        if (firstPoint) {
+          ctx.moveTo(coords.x, coords.y)
+          firstPoint = false
+        } else {
+          ctx.lineTo(coords.x, coords.y)
+        }
+      }
+    }
+    
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+  
+  // 绘制其他方案的预览路径
+  const drawTimeOptPreviewPaths = (ctx, currentPathId, marginX, marginY, chartWidth, chartHeight) => {
+    timeOptData.paths.forEach(path => {
+      if (path.id !== currentPathId) {
+        ctx.globalAlpha = 0.15
+        ctx.strokeStyle = '#A0AEC0'
+        ctx.lineWidth = 2
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.setLineDash([])
+        
+        const coords = path.points.map(p => getTimeOptCanvasCoords(p[0], p[1], marginX, marginY, chartWidth, chartHeight))
+        
+        ctx.beginPath()
+        ctx.moveTo(coords[0].x, coords[0].y)
+        for (let i = 1; i < coords.length; i++) {
+          ctx.lineTo(coords[i].x, coords[i].y)
+        }
+        ctx.stroke()
+      }
+    })
+    ctx.globalAlpha = 1
+  }
+  
+  // 绘制公式卡片
+  const drawTimeOptFormulaCard = (ctx, width) => {
+    const cardWidth = 500
+    const cardHeight = 50
+    const x = (width - cardWidth) / 2
+    const y = 20
+    
+    // 背景
+    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 4
+    ctx.shadowOffsetY = 1
+    
+    ctx.beginPath()
+    ctx.roundRect(x, y, cardWidth, cardHeight, 8)
+    ctx.fill()
+    
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetY = 0
+    
+    // 文字 - 使用数学字体显示积分公式
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '16px KaTeX_Math, Times New Roman, serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('min T = ∫ ds/v(x) = ∫₀ˣᵀ √(1+(y\')²)/√(2gy(x)) dx', width / 2, y + 32)
+  }
+  
+  // 绘制数值卡片
+  const drawTimeOptValueCard = (ctx, currentPath, currentTime = 0) => {
+    const cardWidth = 280
+    const cardHeight = 100
+    const x = 50
+    const y = 530
+    
+    // 背景
+    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 4
+    ctx.shadowOffsetY = 1
+    
+    ctx.beginPath()
+    ctx.roundRect(x, y, cardWidth, cardHeight, 8)
+    ctx.fill()
+    
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetY = 0
+    
+    // 文字
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
+    ctx.textAlign = 'left'
+    
+    // 第一行：当前方案
+    ctx.fillText(`当前方案：${currentPath.id} - ${currentPath.name}`, x + 12, y + 22)
+    
+    // 第二行：描述
+    ctx.fillStyle = '#9AA5B1'
+    ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
+    ctx.fillText(currentPath.description, x + 12, y + 42)
+    
+    // 第三行：总时间
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
+    ctx.fillText('总时间 T = ', x + 12, y + 65)
+    ctx.fillStyle = '#2EC4B6'
+    ctx.font = '14px ui-monospace, Menlo, monospace'
+    ctx.fillText(`${currentTime.toFixed(3)} s`, x + 80, y + 65)
+    
+    // 第四行：物理提示
+    ctx.fillStyle = '#9AA5B1'
+    ctx.font = '11px ui-sans-serif, -apple-system, sans-serif'
+    ctx.fillText('越早获得纵向下落速度，整体用时越短', x + 12, y + 85)
+  }
+  // 绘制时间对比条
+  const drawTimeOptComparisonBar = (ctx, width, currentPathId) => {
+    const barWidth = 400
+    const barHeight = 100
+    const x = width - barWidth - 50
+    const y = 530 // 与数值卡片对齐
+    
+    // 背景
+    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 4
+    ctx.shadowOffsetY = 1
+    
+    ctx.beginPath()
+    ctx.roundRect(x, y, barWidth, barHeight, 8)
+    ctx.fill()
+    
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetY = 0
+    
+    // 标题
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
+    ctx.textAlign = 'left'
+    ctx.fillText('方案时间对比', x + 12, y + 20)
+    
+    // 绘制每个方案的时间条
+    const startY = y + 35
+    const maxTime = Math.max(...timeOptData.paths.map(p => p.time))
+    const isFinaleState = !currentPathId // 空字符串表示结束状态
+    
+    timeOptData.paths.forEach((path, index) => {
+      const itemY = startY + index * 16
+      const barLength = (path.time / maxTime) * 200
+      
+      // 方案名称（使用路径颜色）
+      ctx.fillStyle = path.color
+      ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
+      ctx.fillText(`路线${path.id}`, x + 12, itemY)
+      
+      // 时间数值（根据状态设置颜色）
+      let timeColor = '#9AA5B1' // 默认灰色
+      
+      if (isFinaleState) {
+        // 结束状态：最优为绿色，其他为白色
+        timeColor = path.isBest ? '#38A169' : '#E7EDF8'
+      } else {
+        // 播放状态：当前为蓝色，最优为绿色，其他为灰色
+        if (path.id === currentPathId) {
+          timeColor = '#4299E1' // 当前播放：蓝色
+        } else if (path.isBest) {
+          timeColor = '#38A169' // 最优方案：绿色
+        }
+      }
+      
+      ctx.fillStyle = timeColor
+      ctx.font = '12px ui-monospace, Menlo, monospace'
+      ctx.fillText(`${path.time.toFixed(3)}s`, x + 50, itemY)
+      
+      // 奖杯（仅最优方案）
+      if (path.isBest) {
+        ctx.fillStyle = '#38A169'
+        ctx.fillText('🏆', x + 110, itemY)
+      }
+      
+      // 时间条
+      ctx.fillStyle = path.color + '40' // 半透明
+      ctx.fillRect(x + 130, itemY - 8, barLength, 10)
+      
+      // 时间条边框
+      ctx.strokeStyle = path.color
+      ctx.lineWidth = 1
+      ctx.strokeRect(x + 130, itemY - 8, barLength, 10)
+    })
+  }
+  
+  // 绘制移动点
+  const drawMovingDot = (ctx, x, y, marginX, marginY, chartWidth, chartHeight, scale = 1) => {
+    const coords = getTimeOptCanvasCoords(x, y, marginX, marginY, chartWidth, chartHeight)
+    
+    // 外圈光晕
+    ctx.fillStyle = 'rgba(237, 137, 54, 0.3)'
+    ctx.beginPath()
+    ctx.arc(coords.x, coords.y, 8 * scale, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // 内圈实心
+    ctx.fillStyle = '#ED8936'
+    ctx.beginPath()
+    ctx.arc(coords.x, coords.y, 4 * scale, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  
+  // 绘制速度标签
+  const drawSpeedLabel = (ctx, text, x, y, marginX, marginY, chartWidth, chartHeight, alpha = 1) => {
+    const coords = getTimeOptCanvasCoords(x, y, marginX, marginY, chartWidth, chartHeight)
+    
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = 'rgba(11, 18, 32, 0.8)'
+    ctx.beginPath()
+    ctx.roundRect(coords.x - 25, coords.y - 25, 50, 20, 4)
+    ctx.fill()
+    
+    ctx.fillStyle = '#E7EDF8'
+    ctx.font = '10px ui-sans-serif, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(text, coords.x, coords.y - 10)
+    
+    ctx.globalAlpha = 1
   }
 
   const playCard1Scene4 = async (ctx, width, height) => {
@@ -2000,6 +2899,8 @@ const Section5WorkflowStep1 = () => {
             __html: katex.renderToString(
               activeCard === 1 && activeExample === 1 
                 ? '\\max_{S \\subseteq C, |S| \\leq k} \\text{Coverage}(S) = \\frac{|\\bigcup_{i \\in S} A_i|}{|D|}'
+                : activeCard === 1 && activeExample === 2
+                ? '\\min T = \\int_0^{x_T} \\frac{\\sqrt{1+(y\')^2}}{\\sqrt{2gy(x)}} dx'
                 : '\\min \\sum_i \\|y_i - \\hat{y}(x_i)\\|^2',
               {
                 throwOnError: false,
