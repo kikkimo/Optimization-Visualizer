@@ -16,6 +16,7 @@ const Section5Workflow = ({ id }) => {
   const [activeFlow, setActiveFlow] = useState(0)
   const [backflowAnimation, setBackflowAnimation] = useState(null)
   const [tooltipInfo, setTooltipInfo] = useState(null)
+  const [hasPlayedInitialAnimation, setHasPlayedInitialAnimation] = useState(false)
 
   // 导航项定义
   const navigationItems = [
@@ -163,10 +164,12 @@ const Section5Workflow = ({ id }) => {
     }
   }, [currentStage, activeFlow])
   
-  // 重置动画
+  // 总览页面进入视图时自动播放动画
   useEffect(() => {
     if (currentStage === 'overview') {
+      // 重置activeFlow并开始动画
       setActiveFlow(0)
+      setHasPlayedInitialAnimation(true)
     }
   }, [currentStage])
 
