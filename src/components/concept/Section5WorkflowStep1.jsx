@@ -67,6 +67,11 @@ const Section5WorkflowStep1 = () => {
       setCurrentCoveragePlan('B') // 默认显示最优方案B (站点3,5,6 - 75.33%)
     }
     
+    // 如果点击的是置信度动画胶囊，更新置信度方案状态
+    if (cardId === 1 && exampleIndex === 3) {
+      setCurrentConfidenceScheme('B') // 默认显示最优方案B (95.2%)
+    }
+    
     // 立即绘制对应的静态场景
     const canvas = canvasRef.current
     if (canvas) {
@@ -162,6 +167,9 @@ const Section5WorkflowStep1 = () => {
         } else if (activeExample === 2) {
           // 显示最短时间的静态场景
           drawTimeOptStaticScene(ctx, width, height)
+        } else if (activeExample === 3) {
+          // 显示最大置信度的静态场景
+          drawConfidenceStaticScene(ctx, width, height)
         } else {
           // 显示最小化误差的静态场景
           drawCard1Scene1(ctx, width, height)
@@ -261,6 +269,20 @@ const Section5WorkflowStep1 = () => {
   }
 
   // 绘制工具函数
+  const roundRect = (ctx, x, y, width, height, radius) => {
+    ctx.beginPath()
+    ctx.moveTo(x + radius, y)
+    ctx.lineTo(x + width - radius, y)
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+    ctx.lineTo(x + width, y + height - radius)
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+    ctx.lineTo(x + radius, y + height)
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+    ctx.lineTo(x, y + radius)
+    ctx.quadraticCurveTo(x, y, x + radius, y)
+    ctx.closePath()
+  }
+  
   const drawText = (ctx, text, x, y, options = {}) => {
     const {
       fontSize = 14,
@@ -2559,30 +2581,7 @@ const Section5WorkflowStep1 = () => {
   
   // 绘制公式卡片
   const drawTimeOptFormulaCard = (ctx, width) => {
-    const cardWidth = 500
-    const cardHeight = 50
-    const x = (width - cardWidth) / 2
-    const y = 20
-    
-    // 背景
-    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-    ctx.shadowBlur = 4
-    ctx.shadowOffsetY = 1
-    
-    ctx.beginPath()
-    ctx.roundRect(x, y, cardWidth, cardHeight, 8)
-    ctx.fill()
-    
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
-    
-    // 文字 - 使用数学字体显示积分公式
-    ctx.fillStyle = '#E7EDF8'
-    ctx.font = '16px KaTeX_Math, Times New Roman, serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('min T = ∫ ds/v(x) = ∫₀ˣᵀ √(1+(y\')²)/√(2gy(x)) dx', width / 2, y + 32)
+    // 公式现在由KaTeX覆盖层显示，这里不需要绘制任何内容
   }
   
   // 绘制数值卡片
@@ -2744,14 +2743,990 @@ const Section5WorkflowStep1 = () => {
     ctx.globalAlpha = 1
   }
 
-  const playCard1Scene4 = async (ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height)
-    drawText(ctx, '最大置信度 (不确定性最小)', width/2, height/2, {
-      fontSize: 18,
-      align: 'center',
-      color: '#2B6CB0'
+  // 最大置信度动画相关状态
+  const [currentConfidenceScheme, setCurrentConfidenceScheme] = useState('B')
+  const [isPlayingConfidence, setIsPlayingConfidence] = useState(false)
+
+  // 全站仪配置数据（按照详细规范）
+  const confidenceData = {
+    targetPoint: { E: 0, N: 0 }, // 目标点P（绿色圆点）
+    stations: [
+      // 低噪（蓝色）
+      { id: 'L1', E: 0, N: 4000, noise: 'low', sigma: 0.003, weight: 111111, color: '#3B82F6' },
+      { id: 'L2', E: 1000, N: 3800, noise: 'low', sigma: 0.003, weight: 111111, color: '#3B82F6' },
+      // 中噪（浅橙）
+      { id: 'M1', E: 800, N: 3600, noise: 'medium', sigma: 0.006, weight: 27778, color: '#F59E0B' },
+      { id: 'M2', E: -4000, N: -300, noise: 'medium', sigma: 0.006, weight: 27778, color: '#F59E0B' },
+      // 高噪（深红）
+      { id: 'H1', E: 3500, N: -3500, noise: 'high', sigma: 0.012, weight: 6944, color: '#EF4444' },
+      { id: 'H2', E: -3500, N: -3500, noise: 'high', sigma: 0.012, weight: 6944, color: '#EF4444' }
+    ],
+    schemes: [
+      {
+        id: 'A',
+        name: '2低+1中，小角度交会',
+        stations: ['L1', 'L2', 'M1'],
+        description: '几何弱',
+        minAngle: '2.21°',
+        sqrtDetSigma: 3.872e-5,
+        confidence: 0.628,
+        color: '#8B5CF6',
+        isBest: false,
+        area95: 7.29e-4, // 95%置信度下的误差椭圆面积
+        shapeDesc: '细长'
+      },
+      {
+        id: 'B',
+        name: '2低+1中，角度分散',
+        stations: ['L1', 'L2', 'M2'],
+        description: '综合最强',
+        minAngle: '14.74°',
+        sqrtDetSigma: 1.255e-5,
+        confidence: 0.952,
+        color: '#10B981',
+        isBest: true,
+        area95: 2.36e-4, // 95%置信度下的误差椭圆面积
+        shapeDesc: '圆整'
+      },
+      {
+        id: 'C',
+        name: '1低+1中+1高，三角一般',
+        stations: ['L1', 'M2', 'H1'],
+        description: '中等',
+        minAngle: '94.29°',
+        sqrtDetSigma: 1.675e-5,
+        confidence: 0.898,
+        color: '#F59E0B',
+        isBest: false,
+        area95: 3.15e-4, // 95%置信度下的误差椭圆面积
+        shapeDesc: '椭圆'
+      },
+      {
+        id: 'D',
+        name: '1中+2高，低质量',
+        stations: ['M2', 'H1', 'H2'],
+        description: '信息量最弱',
+        minAngle: '40.71°',
+        sqrtDetSigma: 6.440e-5,
+        confidence: 0.448,
+        color: '#EF4444',
+        isBest: false,
+        area95: 1.21e-3, // 95%置信度下的误差椭圆面积
+        shapeDesc: '细长'
+      }
+    ],
+    budgetArea: 2.4e-4, // m²（固定面积预算）
+    coordRange: [-6000, 6000] // E/N坐标范围
+  }
+
+  const playCard1Scene4 = async (ctx, width, height, signal) => {
+    setIsPlayingConfidence(true)
+    
+    const margin = 80
+    const originalChartWidth = width - 2 * margin
+    const originalChartHeight = height - 200  // 留出底部面板空间
+    
+    // 整体缩放到0.85
+    const scaleFactor = 0.85
+    const chartWidth = originalChartWidth * scaleFactor
+    const chartHeight = originalChartHeight * scaleFactor
+    
+    const centerX = width / 2
+    const centerY = (height - 200) / 2 + 80 // 向下移动给顶部更多空间
+    
+    // 坐标变换：E/N ∈ [-6000,6000] m 映射到画布
+    const scale = Math.min(chartWidth, chartHeight) / 12000 // 适配12000m范围
+    const transform = (E, N) => {
+      return {
+        x: centerX + E * scale,
+        y: centerY - N * scale  // N轴向上
+      }
+    }
+    
+    // 绘制网格（去掉坐标轴）
+    const drawGrid = () => {
+      const gridBounds = {
+        left: centerX - chartWidth / 2,
+        right: centerX + chartWidth / 2,
+        top: centerY - chartHeight / 2,
+        bottom: centerY + chartHeight / 2
+      }
+      
+      // 主网格线
+      ctx.strokeStyle = '#2F3642'
+      ctx.lineWidth = 0.5
+      ctx.setLineDash([])
+      
+      for (let i = -6000; i <= 6000; i += 2000) {
+        if (i !== 0) {
+          const coords = transform(i, 0)
+          if (coords.x >= gridBounds.left && coords.x <= gridBounds.right) {
+            ctx.beginPath()
+            ctx.moveTo(coords.x, gridBounds.top)
+            ctx.lineTo(coords.x, gridBounds.bottom)
+            ctx.stroke()
+          }
+          
+          const coordsN = transform(0, i)
+          if (coordsN.y >= gridBounds.top && coordsN.y <= gridBounds.bottom) {
+            ctx.beginPath()
+            ctx.moveTo(gridBounds.left, coordsN.y)
+            ctx.lineTo(gridBounds.right, coordsN.y)
+            ctx.stroke()
+          }
+        }
+      }
+      
+      // 次网格线
+      ctx.strokeStyle = '#252933'
+      ctx.lineWidth = 0.3
+      
+      for (let i = -6000; i <= 6000; i += 1000) {
+        if (i !== 0 && i % 2000 !== 0) {
+          const coords = transform(i, 0)
+          if (coords.x >= gridBounds.left && coords.x <= gridBounds.right) {
+            ctx.beginPath()
+            ctx.moveTo(coords.x, gridBounds.top)
+            ctx.lineTo(coords.x, gridBounds.bottom)
+            ctx.stroke()
+          }
+          
+          const coordsN = transform(0, i)
+          if (coordsN.y >= gridBounds.top && coordsN.y <= gridBounds.bottom) {
+            ctx.beginPath()
+            ctx.moveTo(gridBounds.left, coordsN.y)
+            ctx.lineTo(gridBounds.right, coordsN.y)
+            ctx.stroke()
+          }
+        }
+      }
+    }
+    
+    // 绘制目标点P
+    const drawTargetPoint = () => {
+      const coords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+      
+      // 外圈微光
+      const gradient = ctx.createRadialGradient(coords.x, coords.y, 0, coords.x, coords.y, 12)
+      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)')
+      gradient.addColorStop(1, 'rgba(16, 185, 129, 0)')
+      
+      ctx.fillStyle = gradient
+      ctx.beginPath()
+      ctx.arc(coords.x, coords.y, 12, 0, 2 * Math.PI)
+      ctx.fill()
+      
+      // 绿色圆点 6px
+      ctx.fillStyle = '#10B981'
+      ctx.beginPath()
+      ctx.arc(coords.x, coords.y, 6, 0, 2 * Math.PI)
+      ctx.fill()
+      
+      // P标识
+      drawText(ctx, 'P', coords.x + 15, coords.y - 5, {
+        fontSize: 12,
+        color: '#10B981',
+        fontWeight: 'bold'
+      })
+    }
+    
+    // 绘制全站仪（选中站点透明度增强+发光效果）
+    const drawStations = (highlightScheme = null) => {
+      confidenceData.stations.forEach(station => {
+        const coords = transform(station.E, station.N)
+        const isHighlighted = highlightScheme && highlightScheme.stations.includes(station.id)
+        
+        // 设置透明度：选中站点更亮，未选中站点更暗
+        const baseAlpha = isHighlighted ? 1.0 : (highlightScheme ? 0.3 : 1.0)
+        
+        // 单站噪声小圆（示意用，半径与σ成比例）
+        // 根据实际精度调整缩放比例：使误差圈和椭圆在视觉上呈现合理关系
+        // L1/L2=3mm, M1/M2=6mm, H1/H2=12mm, A*=5.05mm
+        const noiseRadius = station.sigma * 6500 // 调整为更合理的缩放比例
+        ctx.globalAlpha = baseAlpha * 0.2
+        ctx.fillStyle = station.color
+        ctx.strokeStyle = station.color
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.arc(coords.x, coords.y, noiseRadius, 0, 2 * Math.PI)
+        ctx.fill()
+        ctx.stroke()
+        
+        // 选中站点的发光效果
+        if (isHighlighted) {
+          // 外层发光光圈
+          const gradient = ctx.createRadialGradient(coords.x, coords.y, 0, coords.x, coords.y, 25)
+          gradient.addColorStop(0, `${station.color}80`)
+          gradient.addColorStop(0.6, `${station.color}40`)
+          gradient.addColorStop(1, `${station.color}00`)
+          
+          ctx.globalAlpha = 1.0
+          ctx.fillStyle = gradient
+          ctx.beginPath()
+          ctx.arc(coords.x, coords.y, 25, 0, 2 * Math.PI)
+          ctx.fill()
+          
+          // 内层强光圈
+          const innerGradient = ctx.createRadialGradient(coords.x, coords.y, 0, coords.x, coords.y, 12)
+          innerGradient.addColorStop(0, `${station.color}90`)
+          innerGradient.addColorStop(1, `${station.color}20`)
+          
+          ctx.fillStyle = innerGradient
+          ctx.beginPath()
+          ctx.arc(coords.x, coords.y, 12, 0, 2 * Math.PI)
+          ctx.fill()
+        }
+        
+        // 三角形标记（全站仪）
+        const size = isHighlighted ? 8 : 6
+        const lineWidth = isHighlighted ? 3 : 2
+        
+        ctx.globalAlpha = isHighlighted ? 1.0 : baseAlpha
+        ctx.fillStyle = station.color
+        ctx.strokeStyle = station.color
+        ctx.lineWidth = lineWidth
+        
+        ctx.beginPath()
+        ctx.moveTo(coords.x, coords.y - size)
+        ctx.lineTo(coords.x - size * 0.866, coords.y + size * 0.5)
+        ctx.lineTo(coords.x + size * 0.866, coords.y + size * 0.5)
+        ctx.closePath()
+        ctx.fill()
+        ctx.stroke()
+        
+        // 站点标识
+        drawText(ctx, station.id, coords.x, coords.y - size - 10, {
+          fontSize: isHighlighted ? 12 : 10,
+          align: 'center',
+          color: station.color,
+          fontWeight: isHighlighted ? 'bold' : 'normal'
+        })
+        
+        ctx.globalAlpha = 1
+      })
+    }
+    
+    // 绘制固定面积预算圈（橙色半透明）
+    const drawBudgetCircle = () => {
+      const centerCoords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+      const budgetRadius = Math.sqrt(confidenceData.budgetArea / Math.PI) * scale * 1000 // 转换为像素
+      
+      ctx.fillStyle = 'rgba(237, 137, 54, 0.6)' // #ED8936，透明60%
+      ctx.strokeStyle = '#ED8936'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(centerCoords.x, centerCoords.y, budgetRadius, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.stroke()
+    }
+    
+    // 绘制静态A*预算误差椭圆（始终显示）
+    const drawStaticBudgetEllipse = () => {
+      const centerCoords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+      
+      // 使用固定的预算椭圆尺寸 - A*=5.05mm，应该介于L1(3mm)和M1(6mm)之间
+      // 计算：sqrt(2.4e-4/π) = 0.00874m = 8.74mm，但中误差为5.05mm
+      const budgetRadius = Math.sqrt(confidenceData.budgetArea / Math.PI) * scale * 1000 * 88 // 调整为40倍
+      
+      // A*椭圆形状（可以调整比例）
+      const a = budgetRadius * 1.1  // 长半轴
+      const b = budgetRadius * 0.9  // 短半轴
+      
+      // 绘制A*预算椭圆（浅灰色、实线、发光）
+      ctx.fillStyle = 'rgba(156, 163, 175, 0.15)' // 浅灰色，15%透明度
+      ctx.strokeStyle = '#9CA3AF' // 浅灰色边框
+      ctx.lineWidth = 2
+      ctx.setLineDash([]) // 实线
+      
+      // 添加发光效果
+      ctx.shadowColor = '#9CA3AF'
+      ctx.shadowBlur = 8
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      ctx.beginPath()
+      ctx.ellipse(centerCoords.x, centerCoords.y, a, b, 0, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 重置阴影
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+    }
+    
+    // 绘制95%置信度椭圆（用于对比）
+    const draw95ConfidenceEllipse = (scheme, progress) => {
+      const centerCoords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+      
+      // 基于A95面积计算椭圆尺寸 - 与测站误差圈保持合理比例
+      const baseRadius95 = Math.sqrt(scheme.area95 / Math.PI) * scale * 1000 * 88 // 与A*保持相同缩放
+      const currentRadius95 = baseRadius95 * progress  // 动态缩放
+      
+      // 根据形状描述调整椭圆比例
+      let a, b
+      if (scheme.shapeDesc === '圆整') {
+        a = currentRadius95
+        b = currentRadius95
+      } else if (scheme.shapeDesc === '椭圆') {
+        a = currentRadius95 * 1.3
+        b = currentRadius95 * 0.8
+      } else { // 细长
+        a = currentRadius95 * 1.6
+        b = currentRadius95 * 0.6
+      }
+      
+      // 绘制95%置信度椭圆（方案配色、虚线）
+      ctx.fillStyle = `${scheme.color}33` // 方案配色，20%透明度
+      ctx.strokeStyle = scheme.color
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5]) // 虚线
+      
+      ctx.beginPath()
+      ctx.ellipse(centerCoords.x, centerCoords.y, a, b, 0, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.stroke()
+      
+      ctx.setLineDash([])
+    }
+    
+    // 绘制误差椭圆（基于协方差矩阵）
+    const drawConfidenceEllipse = (scheme, progress) => {
+      // 这个函数现在改名为drawBudgetEllipse更合适，但为了保持兼容性暂时保留原名
+      // 实际上是绘制A*预算误差椭圆，应该始终静态显示
+      const centerCoords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+      
+      // 基于固定面积预算计算椭圆尺寸 - 与测站误差圈保持合理比例
+      const kMax = Math.sqrt(confidenceData.budgetArea / (Math.PI * scheme.sqrtDetSigma))
+      const currentK = kMax * progress
+      
+      // 简化椭圆计算（实际应基于协方差矩阵特征值）- 与其他元素保持相同缩放
+      const a = currentK * Math.sqrt(scheme.sqrtDetSigma) * scale * 1000 * 1.2 * 88 // 长半轴
+      const b = currentK * Math.sqrt(scheme.sqrtDetSigma) * scale * 1000 * 0.8 * 88 // 短半轴
+      
+      // 绘制A*预算椭圆（浅灰色、实线、发光）
+      ctx.fillStyle = 'rgba(156, 163, 175, 0.15)' // 浅灰色，15%透明度
+      ctx.strokeStyle = '#9CA3AF' // 浅灰色边框
+      ctx.lineWidth = 2
+      ctx.setLineDash([]) // 实线
+      
+      // 添加发光效果
+      ctx.shadowColor = '#9CA3AF'
+      ctx.shadowBlur = 8
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      
+      ctx.beginPath()
+      ctx.ellipse(centerCoords.x, centerCoords.y, a, b, 0, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 重置阴影
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+    }
+    
+    // 绘制视线和夹角
+    const drawSightLines = (scheme) => {
+      const centerCoords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+      const selectedStations = confidenceData.stations.filter(s => scheme.stations.includes(s.id))
+      
+      // 绘制视线（按测站精度设置颜色）
+      selectedStations.forEach(station => {
+        const stationCoords = transform(station.E, station.N)
+        
+        // 按照精度设置连线颜色：低噪(高精度)=蓝色，中噪(中精度)=橙色，高噪(低精度)=红色
+        let lineColor
+        if (station.noise === 'low') {
+          lineColor = '#3B82F6' // 蓝色 - 高精度
+        } else if (station.noise === 'medium') {
+          lineColor = '#F59E0B' // 橙色 - 中精度  
+        } else { // high
+          lineColor = '#EF4444' // 红色 - 低精度
+        }
+        
+        ctx.strokeStyle = `${lineColor}CC` // 透明度80%
+        ctx.lineWidth = 2
+        ctx.setLineDash([8, 4]) // 虚线
+        ctx.beginPath()
+        ctx.moveTo(centerCoords.x, centerCoords.y)
+        ctx.lineTo(stationCoords.x, stationCoords.y)
+        ctx.stroke()
+      })
+      
+      ctx.setLineDash([])
+      
+      // 显示最小交会角文本
+      drawText(ctx, `最小交会角: ${scheme.minAngle}`, centerCoords.x + 30, centerCoords.y - 35, {
+        fontSize: 12,
+        color: scheme.color,
+        fontWeight: 'bold'
+      })
+    }
+    
+    // 绘制底部信息面板（模仿最短时间布局）
+    const drawBottomInfoPanels = (scheme) => {
+      const panelY = height - 130
+      const leftCardX = 50
+      const rightCardX = width - 350
+      const cardHeight = 100
+      
+      // 左侧信息卡
+      ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+      ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+      ctx.lineWidth = 1
+      roundRect(ctx, leftCardX, panelY, 300, cardHeight, 8)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 计算垂直居中的行位置（将卡片高度均匀分为5份，4行文字分布在中间4份）
+      const lineHeight = cardHeight / 5  // 20px
+      const textY1 = panelY + lineHeight * 1     // 20px
+      const textY2 = panelY + lineHeight * 2     // 40px
+      const textY3 = panelY + lineHeight * 3     // 60px
+      const textY4 = panelY + lineHeight * 4     // 80px
+      
+      // 第一行：当前方案站点 - 垂直居中
+      drawText(ctx, `当前方案：{${scheme.stations.join(', ')}}`, leftCardX + 15, textY1, {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: scheme.color,
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 第二行：当前方案特点 - 垂直居中
+      drawText(ctx, `${scheme.description}，最小交会角 ${scheme.minAngle}`, leftCardX + 15, textY2, {
+        fontSize: 11,
+        color: '#E5E7EB',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 第三行：固定预算面积 - 垂直居中
+      drawText(ctx, `固定预算面积 A* = 2.4e-4 m²`, leftCardX + 15, textY3, {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 第四行：95%置信度下误差椭圆面积 - 垂直居中
+      drawText(ctx, `95%置信度面积 = ${scheme.area95.toExponential(2)} m²`, leftCardX + 15, textY4, {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 右侧比较卡
+      ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+      ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+      roundRect(ctx, rightCardX, panelY, 280, cardHeight, 8)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 对比条（去掉标题，直接显示）
+      confidenceData.schemes.forEach((s, index) => {
+        const barY = panelY + 20 + index * 18  // 从顶部开始，增加行间距
+        const barWidth = 140  // 减小进度条宽度
+        const fillWidth = barWidth * s.confidence
+        const barCenterY = barY + 4  // 进度条中心Y坐标
+        
+        // 方案名称标签 - 垂直居中对齐进度条
+        drawText(ctx, `方案${s.id}:`, rightCardX + 15, barCenterY, {
+          fontSize: 11,
+          color: s.id === scheme.id ? s.color : '#9CA3AF',
+          fontWeight: s.id === scheme.id ? 'bold' : 'normal',
+          fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+          baseline: 'middle'
+        })
+        
+        // 背景条
+        ctx.fillStyle = 'rgba(75, 85, 99, 0.3)'
+        ctx.fillRect(rightCardX + 60, barY, barWidth, 8)
+        
+        // 填充条
+        ctx.fillStyle = s.color
+        ctx.fillRect(rightCardX + 60, barY, fillWidth, 8)
+        
+        // 置信度百分比 - 垂直居中对齐进度条
+        drawText(ctx, `${(s.confidence * 100).toFixed(1)}%`, rightCardX + 210, barCenterY, {
+          fontSize: 10,
+          color: s.id === scheme.id ? s.color : '#9CA3AF',
+          fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+          baseline: 'middle'
+        })
+        
+        // 最优方案奖杯（右侧留出空间）- 垂直居中对齐进度条
+        if (s.isBest) {
+          drawText(ctx, '🏆', rightCardX + 250, barCenterY, {
+            fontSize: 10,
+            baseline: 'middle'
+          })
+        }
+      })
+    }
+    
+    // 入场动画（简化版本）
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    
+    // 绘制基础场景
+    drawGrid()
+    drawTargetPoint()
+    drawStations()
+    drawBudgetCircle()
+    drawStaticBudgetEllipse() // 始终显示A*预算椭圆
+    
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 主循环：A→B→C→D（每条2.5-3s）
+    for (let scheme of confidenceData.schemes) {
+      if (signal?.aborted) return
+      
+      setCurrentConfidenceScheme(scheme.id)
+      
+      // 清空并绘制基础元素
+      ctx.fillStyle = '#0F1116'
+      ctx.fillRect(0, 0, width, height)
+      drawGrid()
+      drawTargetPoint()
+      drawBudgetCircle()
+      drawStaticBudgetEllipse() // 始终显示A*预算椭圆
+      
+      // 1. 高亮三台站点（发光效果）
+      drawStations(scheme)
+      drawSightLines(scheme)
+      
+      // 2. 95%置信度椭圆在动画中显示，这里不显示静态版本
+      
+      // 3. 绘制底部信息面板（始终显示）
+      drawBottomInfoPanels(scheme)
+      
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // 4. 充置信度动画：椭圆从小逐步放大到面积=A*
+      const duration = 2500
+      const startTime = Date.now()
+      
+      while (Date.now() - startTime < duration) {
+        if (signal?.aborted) return
+        
+        const progress = Math.min((Date.now() - startTime) / duration, 1)
+        const easeProgress = 1 - Math.pow(1 - progress, 3) // ease-out cubic
+        
+        // 重新绘制基础元素
+        ctx.fillStyle = '#0F1116'
+        ctx.fillRect(0, 0, width, height)
+        drawGrid()
+        drawTargetPoint()
+        drawBudgetCircle()
+        drawStaticBudgetEllipse() // 静态A*椭圆
+        drawStations(scheme)
+        drawSightLines(scheme)
+        draw95ConfidenceEllipse(scheme, easeProgress) // 动态放大95%置信度椭圆
+        drawBottomInfoPanels(scheme)
+        
+        await new Promise(resolve => setTimeout(resolve, 16))
+      }
+      
+      // 5. 定格0.3s显示pmax
+      await new Promise(resolve => setTimeout(resolve, 300))
+    }
+    
+    // 收尾（1.0s）：回到方案B定格（最优方案）
+    const bestScheme = confidenceData.schemes.find(s => s.isBest)
+    setCurrentConfidenceScheme(bestScheme.id)
+    
+    // 最终状态：显示最优方案的完整信息
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    drawGrid()
+    drawTargetPoint()
+    drawBudgetCircle()
+    drawStaticBudgetEllipse() // 静态A*预算椭圆
+    drawStations(bestScheme) // 高亮选中站点
+    drawSightLines(bestScheme) // 显示连线
+    draw95ConfidenceEllipse(bestScheme, 1) // 显示完整的95%置信度椭圆
+    drawBottomInfoPanels(bestScheme)
+    
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    setIsPlayingConfidence(false)
+  }
+  
+  // 绘制置信度静态场景（更新规范）
+  const drawConfidenceStaticScene = (ctx, width, height) => {
+    const margin = 80
+    const originalChartWidth = width - 2 * margin
+    const originalChartHeight = height - 200
+    
+    // 整体缩放到0.85
+    const scaleFactor = 0.85
+    const chartWidth = originalChartWidth * scaleFactor
+    const chartHeight = originalChartHeight * scaleFactor
+    
+    const centerX = width / 2
+    const centerY = (height - 200) / 2 + 80
+    
+    // 坐标变换：E/N ∈ [-6000,6000] m 映射到画布
+    const scale = Math.min(chartWidth, chartHeight) / 12000
+    const transform = (E, N) => {
+      return {
+        x: centerX + E * scale,
+        y: centerY - N * scale  // N轴向上
+      }
+    }
+    
+    // 绘制网格（去掉坐标轴）
+    const gridBounds = {
+      left: centerX - chartWidth / 2,
+      right: centerX + chartWidth / 2,
+      top: centerY - chartHeight / 2,
+      bottom: centerY + chartHeight / 2
+    }
+    
+    // 主网格线
+    ctx.strokeStyle = '#2F3642'
+    ctx.lineWidth = 0.5
+    ctx.setLineDash([])
+    
+    for (let i = -6000; i <= 6000; i += 2000) {
+      if (i !== 0) {
+        const coords = transform(i, 0)
+        if (coords.x >= gridBounds.left && coords.x <= gridBounds.right) {
+          ctx.beginPath()
+          ctx.moveTo(coords.x, gridBounds.top)
+          ctx.lineTo(coords.x, gridBounds.bottom)
+          ctx.stroke()
+        }
+        
+        const coordsN = transform(0, i)
+        if (coordsN.y >= gridBounds.top && coordsN.y <= gridBounds.bottom) {
+          ctx.beginPath()
+          ctx.moveTo(gridBounds.left, coordsN.y)
+          ctx.lineTo(gridBounds.right, coordsN.y)
+          ctx.stroke()
+        }
+      }
+    }
+    
+    // 次网格线
+    ctx.strokeStyle = '#252933'
+    ctx.lineWidth = 0.3
+    
+    for (let i = -6000; i <= 6000; i += 1000) {
+      if (i !== 0 && i % 2000 !== 0) {
+        const coords = transform(i, 0)
+        if (coords.x >= gridBounds.left && coords.x <= gridBounds.right) {
+          ctx.beginPath()
+          ctx.moveTo(coords.x, gridBounds.top)
+          ctx.lineTo(coords.x, gridBounds.bottom)
+          ctx.stroke()
+        }
+        
+        const coordsN = transform(0, i)
+        if (coordsN.y >= gridBounds.top && coordsN.y <= gridBounds.bottom) {
+          ctx.beginPath()
+          ctx.moveTo(gridBounds.left, coordsN.y)
+          ctx.lineTo(gridBounds.right, coordsN.y)
+          ctx.stroke()
+        }
+      }
+    }
+    
+    // 绘制目标点P
+    const targetCoords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+    
+    // 外圈微光
+    const gradient = ctx.createRadialGradient(targetCoords.x, targetCoords.y, 0, targetCoords.x, targetCoords.y, 12)
+    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)')
+    gradient.addColorStop(1, 'rgba(16, 185, 129, 0)')
+    
+    ctx.fillStyle = gradient
+    ctx.beginPath()
+    ctx.arc(targetCoords.x, targetCoords.y, 12, 0, 2 * Math.PI)
+    ctx.fill()
+    
+    // 绿色圆点
+    ctx.fillStyle = '#10B981'
+    ctx.beginPath()
+    ctx.arc(targetCoords.x, targetCoords.y, 6, 0, 2 * Math.PI)
+    ctx.fill()
+    
+    drawText(ctx, 'P', targetCoords.x + 15, targetCoords.y - 5, {
+      fontSize: 12,
+      color: '#10B981',
+      fontWeight: 'bold'
     })
-    return new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // 绘制固定面积预算圈
+    const budgetRadius = Math.sqrt(confidenceData.budgetArea / Math.PI) * scale * 1000
+    ctx.fillStyle = 'rgba(237, 137, 54, 0.6)'
+    ctx.strokeStyle = '#ED8936'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(targetCoords.x, targetCoords.y, budgetRadius, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 绘制全站仪（带高亮发光效果）
+    const currentScheme = confidenceData.schemes.find(s => s.id === currentConfidenceScheme)
+    
+    confidenceData.stations.forEach(station => {
+      const coords = transform(station.E, station.N)
+      const isHighlighted = currentScheme && currentScheme.stations.includes(station.id)
+      
+      // 设置透明度：选中站点更亮，未选中站点更暗
+      const baseAlpha = isHighlighted ? 1.0 : (currentScheme ? 0.3 : 1.0)
+      
+      // 噪声小圆 - 与动画中保持一致的缩放比例
+      const noiseRadius = station.sigma * 6500
+      ctx.globalAlpha = baseAlpha * 0.2
+      ctx.fillStyle = station.color
+      ctx.strokeStyle = station.color
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(coords.x, coords.y, noiseRadius, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 选中站点的发光效果
+      if (isHighlighted) {
+        // 外层发光光圈
+        const gradient = ctx.createRadialGradient(coords.x, coords.y, 0, coords.x, coords.y, 25)
+        gradient.addColorStop(0, `${station.color}80`)
+        gradient.addColorStop(0.6, `${station.color}40`)
+        gradient.addColorStop(1, `${station.color}00`)
+        
+        ctx.globalAlpha = 1.0
+        ctx.fillStyle = gradient
+        ctx.beginPath()
+        ctx.arc(coords.x, coords.y, 25, 0, 2 * Math.PI)
+        ctx.fill()
+        
+        // 内层强光圈
+        const innerGradient = ctx.createRadialGradient(coords.x, coords.y, 0, coords.x, coords.y, 12)
+        innerGradient.addColorStop(0, `${station.color}90`)
+        innerGradient.addColorStop(1, `${station.color}20`)
+        
+        ctx.fillStyle = innerGradient
+        ctx.beginPath()
+        ctx.arc(coords.x, coords.y, 12, 0, 2 * Math.PI)
+        ctx.fill()
+      }
+      
+      // 三角形标记
+      const size = isHighlighted ? 8 : 6
+      ctx.globalAlpha = isHighlighted ? 1.0 : baseAlpha
+      ctx.fillStyle = station.color
+      ctx.strokeStyle = station.color
+      ctx.lineWidth = isHighlighted ? 3 : 2
+      
+      ctx.beginPath()
+      ctx.moveTo(coords.x, coords.y - size)
+      ctx.lineTo(coords.x - size * 0.866, coords.y + size * 0.5)
+      ctx.lineTo(coords.x + size * 0.866, coords.y + size * 0.5)
+      ctx.fill()
+      ctx.stroke()
+      
+      drawText(ctx, station.id, coords.x, coords.y - size - 10, {
+        fontSize: isHighlighted ? 12 : 10,
+        align: 'center',
+        color: station.color,
+        fontWeight: isHighlighted ? 'bold' : 'normal'
+      })
+      
+      ctx.globalAlpha = 1
+    })
+    
+    // 绘制静态A*预算误差椭圆（始终显示）
+    const budgetRadiusEllipse = Math.sqrt(confidenceData.budgetArea / Math.PI) * scale * 1000 * 88
+    const aStatic = budgetRadiusEllipse * 1.1  // 长半轴
+    const bStatic = budgetRadiusEllipse * 0.9  // 短半轴
+    
+    // A*预算椭圆（浅灰色、实线、发光）
+    ctx.fillStyle = 'rgba(156, 163, 175, 0.15)' // 浅灰色，15%透明度
+    ctx.strokeStyle = '#9CA3AF' // 浅灰色边框
+    ctx.lineWidth = 2
+    ctx.setLineDash([]) // 实线
+    
+    // 添加发光效果
+    ctx.shadowColor = '#9CA3AF'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    
+    ctx.beginPath()
+    ctx.ellipse(targetCoords.x, targetCoords.y, aStatic, bStatic, 0, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    
+    // 绘制95%置信度椭圆（当前方案配色）
+    if (currentScheme) {
+      const radius95 = Math.sqrt(currentScheme.area95 / Math.PI) * scale * 1000 * 88  // 与A*保持相同缩放
+      
+      ctx.fillStyle = `${currentScheme.color}33` // 方案配色，20%透明度
+      ctx.strokeStyle = currentScheme.color
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5]) // 虚线
+      
+      let a, b
+      if (currentScheme.shapeDesc === '圆整') {
+        a = radius95
+        b = radius95
+      } else if (currentScheme.shapeDesc === '椭圆') {
+        a = radius95 * 1.3
+        b = radius95 * 0.8
+      } else {
+        a = radius95 * 1.6
+        b = radius95 * 0.6
+      }
+      
+      ctx.beginPath()
+      ctx.ellipse(targetCoords.x, targetCoords.y, a, b, 0, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.stroke()
+      
+      ctx.setLineDash([])
+    }
+    
+    // 绘制连线（从目标点到选中的测站）
+    if (currentScheme) {
+      const selectedStations = confidenceData.stations.filter(s => currentScheme.stations.includes(s.id))
+      
+      selectedStations.forEach(station => {
+        const stationCoords = transform(station.E, station.N)
+        
+        // 按照精度设置连线颜色：低噪(高精度)=蓝色，中噪(中精度)=橙色，高噪(低精度)=红色
+        let lineColor
+        if (station.noise === 'low') {
+          lineColor = '#3B82F6' // 蓝色 - 高精度
+        } else if (station.noise === 'medium') {
+          lineColor = '#F59E0B' // 橙色 - 中精度  
+        } else { // high
+          lineColor = '#EF4444' // 红色 - 低精度
+        }
+        
+        ctx.strokeStyle = `${lineColor}CC` // 透明度80%
+        ctx.lineWidth = 2
+        ctx.setLineDash([8, 4]) // 虚线
+        ctx.beginPath()
+        ctx.moveTo(targetCoords.x, targetCoords.y)
+        ctx.lineTo(stationCoords.x, stationCoords.y)
+        ctx.stroke()
+      })
+      
+      ctx.setLineDash([])
+    }
+    
+    // 绘制底部信息面板
+    if (currentScheme) {
+      const panelY = height - 130
+      const leftCardX = 50
+      const rightCardX = width - 350
+      const cardHeight = 100
+      
+      // 左侧信息卡
+      ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+      ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+      ctx.lineWidth = 1
+      roundRect(ctx, leftCardX, panelY, 300, cardHeight, 8)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 计算垂直居中的行位置（将卡片高度均匀分为5份，4行文字分布在中间4份）
+      const lineHeight = cardHeight / 5  // 20px
+      const textY1 = panelY + lineHeight * 1     // 20px
+      const textY2 = panelY + lineHeight * 2     // 40px
+      const textY3 = panelY + lineHeight * 3     // 60px
+      const textY4 = panelY + lineHeight * 4     // 80px
+      
+      // 第一行：当前方案站点 - 垂直居中
+      drawText(ctx, `当前方案：{${currentScheme.stations.join(', ')}}`, leftCardX + 15, textY1, {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: currentScheme.color,
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 第二行：当前方案特点 - 垂直居中
+      drawText(ctx, `${currentScheme.description}，最小交会角 ${currentScheme.minAngle}`, leftCardX + 15, textY2, {
+        fontSize: 11,
+        color: '#E5E7EB',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 第三行：固定预算面积 - 垂直居中
+      drawText(ctx, `固定预算面积 A* = 2.4e-4 m²`, leftCardX + 15, textY3, {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 第四行：95%置信度下误差椭圆面积 - 垂直居中
+      drawText(ctx, `95%置信度面积 = ${currentScheme.area95.toExponential(2)} m²`, leftCardX + 15, textY4, {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 右侧比较卡
+      ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+      ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+      roundRect(ctx, rightCardX, panelY, 280, cardHeight, 8)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 对比条（去掉标题，直接显示）
+      confidenceData.schemes.forEach((s, index) => {
+        const barY = panelY + 20 + index * 18  // 从顶部开始，增加行间距
+        const barWidth = 140  // 减小进度条宽度
+        const fillWidth = barWidth * s.confidence
+        const barCenterY = barY + 4  // 进度条中心Y坐标
+        
+        // 方案名称标签 - 垂直居中对齐进度条
+        drawText(ctx, `方案${s.id}:`, rightCardX + 15, barCenterY, {
+          fontSize: 11,
+          color: s.id === currentScheme.id ? s.color : '#9CA3AF',
+          fontWeight: s.id === currentScheme.id ? 'bold' : 'normal',
+          fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+          baseline: 'middle'
+        })
+        
+        // 背景条
+        ctx.fillStyle = 'rgba(75, 85, 99, 0.3)'
+        ctx.fillRect(rightCardX + 60, barY, barWidth, 8)
+        
+        // 填充条
+        ctx.fillStyle = s.color
+        ctx.fillRect(rightCardX + 60, barY, fillWidth, 8)
+        
+        // 置信度百分比 - 垂直居中对齐进度条
+        drawText(ctx, `${(s.confidence * 100).toFixed(1)}%`, rightCardX + 210, barCenterY, {
+          fontSize: 10,
+          color: s.id === currentScheme.id ? s.color : '#9CA3AF',
+          fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+          baseline: 'middle'
+        })
+        
+        // 最优方案奖杯（右侧留出空间）- 垂直居中对齐进度条
+        if (s.isBest) {
+          drawText(ctx, '🏆', rightCardX + 250, barCenterY, {
+            fontSize: 10,
+            baseline: 'middle'
+          })
+        }
+      })
+    }
   }
 
   // 其他卡片的临时实现
@@ -2883,7 +3858,7 @@ const Section5WorkflowStep1 = () => {
             top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: '#0F1116',
+            background: 'transparent',
             padding: '8px 16px',
             borderRadius: '8px',
             fontSize: '20px',
@@ -2891,8 +3866,8 @@ const Section5WorkflowStep1 = () => {
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
             zIndex: 10,
             pointerEvents: 'none',
-            minWidth: '500px',
-            maxWidth: '800px',
+            minWidth: '600px',
+            maxWidth: '900px',
             textAlign: 'center'
           }}
           dangerouslySetInnerHTML={{
@@ -2901,6 +3876,8 @@ const Section5WorkflowStep1 = () => {
                 ? '\\max_{S \\subseteq C, |S| \\leq k} \\text{Coverage}(S) = \\frac{|\\bigcup_{i \\in S} A_i|}{|D|}'
                 : activeCard === 1 && activeExample === 2
                 ? '\\min T = \\int_0^{x_T} \\frac{\\sqrt{1+(y\')^2}}{\\sqrt{2gy(x)}} dx'
+                : activeCard === 1 && activeExample === 3
+                ? 'p_{\\max} = F_{\\chi^2(2)}\\left(\\frac{A_*}{\\pi\\sqrt{\\det\\Sigma}}\\right) = 1-\\exp\\left(-\\frac{A_*}{2\\pi\\sqrt{\\det\\Sigma}}\\right)'
                 : '\\min \\sum_i \\|y_i - \\hat{y}(x_i)\\|^2',
               {
                 throwOnError: false,
