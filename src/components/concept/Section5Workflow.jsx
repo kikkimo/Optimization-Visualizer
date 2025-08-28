@@ -610,7 +610,7 @@ const Section5Workflow = ({ id }) => {
                 const midY = startY + 60
                 path = `M ${startX} ${startY} Q ${startX} ${midY} ${(startX + endX) / 2} ${midY} Q ${endX} ${midY} ${endX} ${endY}`
                 textX = (startX + endX) / 2 + 15
-                textY = startY + 78  // 文字显示在路径下方，预留间隔
+                textY = startY + 48  // 文字显示在路径下方，预留间隔
                 
               } else if (hoveredBackflow.from === 3 && hoveredBackflow.to === 2) {
                 // B2: N4 → N3 (从N4底部到N3底部左侧25%位置)
@@ -714,7 +714,11 @@ const Section5Workflow = ({ id }) => {
                         markerEnd="url(#arrow-back)"
                         style={{
                           opacity: 0,
-                          animation: 'showArrow 0.1s ease-out 0.3s forwards'
+                          animationName: 'showArrow',
+                          animationDuration: '0.1s',
+                          animationTimingFunction: 'ease-out',
+                          animationDelay: '0.3s',
+                          animationFillMode: 'forwards'
                         }}
                       />
                     </g>
