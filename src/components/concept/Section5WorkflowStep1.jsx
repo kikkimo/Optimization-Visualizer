@@ -1113,8 +1113,8 @@ const Section5WorkflowStep1 = () => {
         // 绘制其他UI组件（从进度20%开始显示）
         if (progress >= 0.2) {
           drawCoverageFormulaCard(ctx, width)
-          drawCoverageValueCard(ctx, plan, currentCoverage)
-          drawCoverageComparisonBar(ctx, width, plan.id)
+          drawCoverageValueCard(ctx, plan, currentCoverage, marginX, marginY, chartHeight)
+          drawCoverageComparisonBar(ctx, width, plan.id, marginX, marginY, chartWidth, chartHeight)
         }
         
         // 再次检查停止信号
@@ -1168,12 +1168,13 @@ const Section5WorkflowStep1 = () => {
     // 实际的KaTeX渲染会在组件的return部分处理
   }
 
-  // 绘制覆盖数值牌（底部左下对齐）
-  const drawCoverageValueCard = (ctx, currentPlan, currentCoverage) => {
+  // 绘制覆盖数值牌（相对图表区域底部定位）
+  const drawCoverageValueCard = (ctx, currentPlan, currentCoverage, marginX = 48, marginY = 64, chartHeight = 300) => {
     const cardWidth = 220
     const cardHeight = 100
-    const x = 140 
-    const y = 530 
+    const cardGap = 20 // 距离图表底部的间隙
+    const x = marginX + 50 // 相对于图表左边距
+    const y = marginY + chartHeight + cardGap 
     
     // 绘制卡片背景
     ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
@@ -1221,12 +1222,13 @@ const Section5WorkflowStep1 = () => {
     ctx.fillText(description, x + 16, y + 79)
   }
 
-  // 绘制方案对比条（右下）
-  const drawCoverageComparisonBar = (ctx, width, activePlanId = null) => {
+  // 绘制方案对比条（相对图表区域底部定位）
+  const drawCoverageComparisonBar = (ctx, width, activePlanId = null, marginX = 48, marginY = 64, chartWidth = 500, chartHeight = 300) => {
     const barWidth = 200
     const barHeight = 100
-    const x = width - barWidth - 138
-    const y = 530
+    const cardGap = 20 // 距离图表底部的间隙
+    const x = marginX + chartWidth - barWidth - 50 // 相对于图表右边距
+    const y = marginY + chartHeight + cardGap
     
     // 绘制背景
     ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
@@ -1375,8 +1377,8 @@ const Section5WorkflowStep1 = () => {
     
     // 绘制所有UI组件
     drawCoverageFormulaCard(ctx, width)
-    drawCoverageValueCard(ctx, currentPlan, currentPlan.coverage)
-    drawCoverageComparisonBar(ctx, width, currentPlan.id)
+    drawCoverageValueCard(ctx, currentPlan, currentPlan.coverage, adjustedMarginX, adjustedMarginY, chartHeight)
+    drawCoverageComparisonBar(ctx, width, currentPlan.id, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
     drawCoverageDescriptionCard(ctx, width, height)
   }
 
@@ -1440,12 +1442,13 @@ const Section5WorkflowStep1 = () => {
     // 保留函数以维持动画调用的兼容性
   }
 
-  // 绘制数值牌
-  const drawValueCard = (ctx, line, currentRSS) => {
+  // 绘制数值牌（相对图表区域底部定位）
+  const drawValueCard = (ctx, line, currentRSS, marginX = 48, marginY = 48, chartHeight = 300) => {
     const cardWidth = 280
     const cardHeight = 80
-    const x = 70
-    const y = 250
+    const cardGap = 20 // 距离图表底部的间隙
+    const x = marginX + 20 // 相对于图表左边距
+    const y = marginY + chartHeight + cardGap
     
     // 绘制卡片背景
     ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
@@ -1509,10 +1512,11 @@ const Section5WorkflowStep1 = () => {
     ctx.fillText('点到直线的垂线为残差，RSS为残差的平方和', x + 12, y + 62)
   }
 
-  // 绘制候选概览
-  const drawCandidateOverview = (ctx, width, currentIndex = 0) => {
-    const startX = width - 200
-    const startY = 450
+  // 绘制候选概览（相对图表区域底部定位）
+  const drawCandidateOverview = (ctx, width, currentIndex = 0, marginX = 48, marginY = 48, chartWidth = 500, chartHeight = 300) => {
+    const cardGap = 20 // 距离图表底部的间隙
+    const startX = marginX + chartWidth - 200 // 相对于图表右边距
+    const startY = marginY + chartHeight + cardGap
     
     ctx.font = '12px ui-monospace, Menlo, monospace'
     ctx.textAlign = 'left'
@@ -1577,10 +1581,10 @@ const Section5WorkflowStep1 = () => {
     drawFormulaCard(ctx, width)
     
     // 绘制数值牌
-    drawValueCard(ctx, candidateLines[0], candidateLines[0].rss)
+    drawValueCard(ctx, candidateLines[0], candidateLines[0].rss, adjustedMarginX, adjustedMarginY, chartHeight)
     
     // 绘制候选概览
-    drawCandidateOverview(ctx, width, 0)
+    drawCandidateOverview(ctx, width, 0, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
   }
 
   // 这里会添加所有的动画和绘制函数
@@ -1806,12 +1810,12 @@ const Section5WorkflowStep1 = () => {
         // 绘制公式牌和数值牌
         if (progress >= 0.1) {
           drawFormulaCard(ctx, width)
-          drawValueCard(ctx, currentLine, currentRSS)
+          drawValueCard(ctx, currentLine, currentRSS, marginX, marginY, chartHeight)
         }
         
         // 绘制候选概览（高亮当前正在播放的直线）
         if (progress >= 0.43) {
-          drawCandidateOverview(ctx, width, lineIndex)
+          drawCandidateOverview(ctx, width, lineIndex, marginX, marginY, chartWidth, chartHeight)
         }
         
         if (progress < 1 && !animationShouldStop) {
@@ -1850,8 +1854,8 @@ const Section5WorkflowStep1 = () => {
       
       // 绘制所有文本
       drawFormulaCard(ctx, width)
-      drawValueCard(ctx, candidateLines[0], candidateLines[0].rss)
-      drawCandidateOverview(ctx, width, 0)
+      drawValueCard(ctx, candidateLines[0], candidateLines[0].rss, marginX, marginY, chartHeight)
+      drawCandidateOverview(ctx, width, 0, marginX, marginY, chartWidth, chartHeight)
       
       setTimeout(resolve, 800)
     })
@@ -1918,8 +1922,8 @@ const Section5WorkflowStep1 = () => {
         
         // 始终显示底部UI组件
         drawTimeOptFormulaCard(ctx, width)
-        drawTimeOptValueCard(ctx, timeOptData.paths[0], 0)
-        drawTimeOptComparisonBar(ctx, width, '')
+        drawTimeOptValueCard(ctx, timeOptData.paths[0], 0, marginX, marginY, chartHeight)
+        drawTimeOptComparisonBar(ctx, width, '', marginX, marginY, chartWidth, chartHeight)
         
         // 0-0.3s: 背景与网格淡入
         if (progress >= 0) {
@@ -1995,8 +1999,8 @@ const Section5WorkflowStep1 = () => {
         
         // 始终显示底部UI组件
         drawTimeOptFormulaCard(ctx, width)
-        drawTimeOptValueCard(ctx, currentPath, currentTime)
-        drawTimeOptComparisonBar(ctx, width, currentPath.id)
+        drawTimeOptValueCard(ctx, currentPath, currentTime, marginX, marginY, chartHeight)
+        drawTimeOptComparisonBar(ctx, width, currentPath.id, marginX, marginY, chartWidth, chartHeight)
         
         // 0.0-0.4s: 路径显形
         if (progress >= 0) {
@@ -2124,8 +2128,8 @@ const Section5WorkflowStep1 = () => {
     drawTimeOptPath(ctx, bestPath, marginX, marginY, chartWidth, chartHeight, 1, 3)
     
     drawTimeOptFormulaCard(ctx, width)
-    drawTimeOptValueCard(ctx, bestPath, bestPath.time)
-    drawTimeOptComparisonBar(ctx, width, '') // 空字符串表示结束状态
+    drawTimeOptValueCard(ctx, bestPath, bestPath.time, marginX, marginY, chartHeight)
+    drawTimeOptComparisonBar(ctx, width, '', marginX, marginY, chartWidth, chartHeight) // 空字符串表示结束状态
     
     return new Promise(resolve => setTimeout(resolve, 800))
   }
@@ -2159,8 +2163,8 @@ const Section5WorkflowStep1 = () => {
     })
     
     drawTimeOptFormulaCard(ctx, width)
-    drawTimeOptValueCard(ctx, bestPath, bestPath.time)
-    drawTimeOptComparisonBar(ctx, width, '') // 结束状态
+    drawTimeOptValueCard(ctx, bestPath, bestPath.time, marginX, marginY, chartHeight)
+    drawTimeOptComparisonBar(ctx, width, '', marginX, marginY, chartWidth, chartHeight) // 结束状态
   }
 
   // ===== 最短时间动画相关数据和函数 =====
@@ -2584,12 +2588,13 @@ const Section5WorkflowStep1 = () => {
     // 公式现在由KaTeX覆盖层显示，这里不需要绘制任何内容
   }
   
-  // 绘制数值卡片
-  const drawTimeOptValueCard = (ctx, currentPath, currentTime = 0) => {
+  // 绘制数值卡片（相对图表区域底部定位）
+  const drawTimeOptValueCard = (ctx, currentPath, currentTime = 0, marginX = 48, marginY = 64, chartHeight = 300) => {
     const cardWidth = 280
     const cardHeight = 100
-    const x = 50
-    const y = 530
+    const cardGap = 20 // 距离图表底部的间隙
+    const x = marginX + 20 // 相对于图表左边距
+    const y = marginY + chartHeight + cardGap
     
     // 背景
     ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
@@ -2631,12 +2636,13 @@ const Section5WorkflowStep1 = () => {
     ctx.font = '11px ui-sans-serif, -apple-system, sans-serif'
     ctx.fillText('越早获得纵向下落速度，整体用时越短', x + 12, y + 85)
   }
-  // 绘制时间对比条
-  const drawTimeOptComparisonBar = (ctx, width, currentPathId) => {
+  // 绘制时间对比条（相对图表区域底部定位）
+  const drawTimeOptComparisonBar = (ctx, width, currentPathId, marginX = 48, marginY = 64, chartWidth = 500, chartHeight = 300) => {
     const barWidth = 400
     const barHeight = 100
-    const x = width - barWidth - 50
-    const y = 530 // 与数值卡片对齐
+    const cardGap = 20 // 距离图表底部的间隙
+    const x = marginX + chartWidth - barWidth - 20 // 相对于图表右边距
+    const y = marginY + chartHeight + cardGap
     
     // 背景
     ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
