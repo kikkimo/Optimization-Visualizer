@@ -135,24 +135,77 @@ const Section5Workflow = ({ id }) => {
     }))
   }
 
-  // 自动播放流程动画（只播放一次）
+  // 检测组件是否进入视口
   useEffect(() => {
-    if (currentStage === 'overview' && activeFlow < 5) {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && currentStage === 'overview') {
+          // 重置所有动画状态
+          setActiveFlow(0)
+          setBackflowAnimation(null)
+          setHasPlayedInitialAnimation(false)
+          
+          // 延迟开始动画，确保状态重置完成
+          const startTimer = setTimeout(() => {
+            setHasPlayedInitialAnimation(true)
+          }, 300)
+          
+          return () => clearTimeout(startTimer)
+        }
+      },
+      { threshold: 0.3 }
+    )
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [id, currentStage])
+
+  // 组件挂载时如果是总览页面，初始化动画
+  useEffect(() => {
+    if (currentStage === 'overview') {
+      // 重置所有动画状态
+      setActiveFlow(0)
+      setBackflowAnimation(null)
+      setHasPlayedInitialAnimation(false)
+      
+      // 延迟开始动画，确保状态重置完成
+      const startTimer = setTimeout(() => {
+        setHasPlayedInitialAnimation(true)
+      }, 200)
+      
+      return () => clearTimeout(startTimer)
+    }
+  }, [])
+
+  // 总览页面切换时重置并自动播放动画
+  useEffect(() => {
+    if (currentStage === 'overview') {
+      // 重置所有动画状态
+      setActiveFlow(0)
+      setBackflowAnimation(null)
+      setHasPlayedInitialAnimation(false)
+      
+      // 延迟开始动画，确保状态重置完成
+      const startTimer = setTimeout(() => {
+        setHasPlayedInitialAnimation(true)
+      }, 100)
+      
+      return () => clearTimeout(startTimer)
+    }
+  }, [currentStage])
+
+  // 自动播放流程动画
+  useEffect(() => {
+    if (currentStage === 'overview' && hasPlayedInitialAnimation && activeFlow < 5) {
       const timer = setTimeout(() => {
         setActiveFlow(prev => prev + 1)
       }, 800)
       return () => clearTimeout(timer)
     }
-  }, [currentStage, activeFlow])
-  
-  // 总览页面进入视图时自动播放动画
-  useEffect(() => {
-    if (currentStage === 'overview') {
-      // 重置activeFlow并开始动画
-      setActiveFlow(0)
-      setHasPlayedInitialAnimation(true)
-    }
-  }, [currentStage])
+  }, [currentStage, hasPlayedInitialAnimation, activeFlow])
 
   // 处理阶段切换
   const handleStageChange = (stageId) => {
