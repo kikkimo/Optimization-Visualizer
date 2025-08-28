@@ -409,7 +409,7 @@ const Section3Mindmap = ({ id }) => {
   };
 
 
-  // 添加自定义滚动条样式和数学公式样式
+  // 添加自定义滚动条样式和数学公式样式 - 只初始化一次
   useEffect(() => {
     const style = document.createElement('style');
     style.id = 'custom-scrollbar-style';
@@ -428,56 +428,62 @@ const Section3Mindmap = ({ id }) => {
         text-align: center !important;
         margin: 1.5rem 0 !important;
       }
+      
+      /* 基础滚动条样式 - 默认隐藏状态 */
       .custom-scrollbar::-webkit-scrollbar {
-        width: 12px;
-        background: transparent;
+        width: 12px !important;
+        background: transparent !important;
       }
       
       .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-        border-radius: 6px;
+        background: transparent !important;
+        border-radius: 6px !important;
       }
       
       .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: ${scrollbarVisible ? 'rgba(16, 185, 129, 0.7)' : 'transparent'};
-        border-radius: 6px;
-        border: 2px solid transparent;
-        background-clip: content-box;
-        transition: all 0.3s ease;
+        background: transparent !important;
+        border-radius: 6px !important;
+        border: 2px solid transparent !important;
+        background-clip: content-box !important;
+        transition: all 0.3s ease !important;
       }
       
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(16, 185, 129, 1);
-        border: 2px solid transparent;
-        background-clip: content-box;
-      }
-      
+      /* 显示状态的滚动条 - 薄荷绿配色 */
       .custom-scrollbar.scrollbar-visible::-webkit-scrollbar-thumb {
-        background: rgba(16, 185, 129, 0.7);
-        border: 2px solid transparent;
-        background-clip: content-box;
+        background: rgba(16, 185, 129, 0.7) !important;
       }
       
+      .custom-scrollbar.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+        background: rgba(16, 185, 129, 1) !important;
+      }
+      
+      /* Firefox 滚动条支持 */
       .custom-scrollbar {
-        scrollbar-width: thin;
-        scrollbar-color: ${scrollbarVisible ? 'rgba(16, 185, 129, 0.7)' : 'transparent'} transparent;
+        scrollbar-width: thin !important;
+        scrollbar-color: transparent transparent !important;
+      }
+      
+      .custom-scrollbar.scrollbar-visible {
+        scrollbar-color: rgba(16, 185, 129, 0.7) transparent !important;
       }
     `;
     
+    // 清理可能存在的旧样式
     const existingStyle = document.getElementById('custom-scrollbar-style');
     if (existingStyle) {
-      existingStyle.textContent = style.textContent;
-    } else {
-      document.head.appendChild(style);
+      existingStyle.remove();
     }
+    
+    // 添加新样式
+    document.head.appendChild(style);
     
     return () => {
       const styleElement = document.getElementById('custom-scrollbar-style');
-      if (styleElement && !scrollbarVisible) {
-        document.head.removeChild(styleElement);
+      if (styleElement) {
+        styleElement.remove();
       }
     };
-  }, [scrollbarVisible]);
+  }, []); // 移除scrollbarVisible依赖，只初始化一次
 
   // 处理滚动条显示逻辑
   useEffect(() => {
@@ -1251,21 +1257,55 @@ const Section3Mindmap = ({ id }) => {
 
   // 滚动定位到指定章节并高亮标题
   const scrollToSection = (sectionId) => {
-    const element = markdownRef.current?.querySelector(`#${sectionId}`);
+    const scrollContainer = markdownRef.current;
+    const element = scrollContainer?.querySelector(`#${sectionId}`);
     
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (element && scrollContainer) {
+      // 获取目标元素相对于滚动容器的位置
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      const scrollTop = scrollContainer.scrollTop;
+      const targetScrollTop = scrollTop + elementRect.top - containerRect.top - 20; // 20px顶部间距
       
-      // 高亮所有标题的默认样式
-      markdownRef.current.querySelectorAll('h2, h3').forEach(h => {
-        h.style.backgroundColor = 'transparent';
-        h.style.padding = '0';
-      });
+      // 手动实现平滑滚动
+      const startScrollTop = scrollContainer.scrollTop;
+      const distance = targetScrollTop - startScrollTop;
+      const duration = 800; // 800ms动画时长
+      let startTime = null;
       
-      // 高亮当前标题
-      element.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
-      element.style.padding = '0.5rem';
-      element.style.borderRadius = '0.5rem';
+      const smoothScroll = (currentTime) => {
+        if (startTime === null) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        
+        // 使用easeInOutCubic缓动函数
+        const ease = progress < 0.5 
+          ? 4 * progress * progress * progress 
+          : (progress - 1) * (2 * progress - 2) * (2 * progress - 2) + 1;
+        
+        scrollContainer.scrollTop = startScrollTop + distance * ease;
+        
+        if (progress < 1) {
+          requestAnimationFrame(smoothScroll);
+        }
+      };
+      
+      requestAnimationFrame(smoothScroll);
+      
+      // 高亮处理
+      setTimeout(() => {
+        // 清除所有标题的高亮
+        scrollContainer.querySelectorAll('h2, h3').forEach(h => {
+          h.style.backgroundColor = 'transparent';
+          h.style.padding = '0';
+          h.style.borderRadius = '';
+        });
+        
+        // 高亮当前标题
+        element.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+        element.style.padding = '0.5rem';
+        element.style.borderRadius = '0.5rem';
+      }, 100); // 延迟一点执行高亮，确保滚动开始
       
       setHighlightedSection(sectionId);
       
