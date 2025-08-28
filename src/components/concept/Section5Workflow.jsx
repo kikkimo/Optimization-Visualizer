@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Section5WorkflowStep1 from './Section5WorkflowStep1'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -18,6 +19,7 @@ const Section5Workflow = ({ id }) => {
   const [tooltipInfo, setTooltipInfo] = useState(null)
   const [hasPlayedInitialAnimation, setHasPlayedInitialAnimation] = useState(false)
 
+
   // 导航项定义
   const navigationItems = [
     { id: 'overview', label: '总览', stage: '现实需求 → 数学模型 → 策略 → 求解 → 验证 → 反馈' },
@@ -34,28 +36,7 @@ const Section5Workflow = ({ id }) => {
       cards: []  // 总览页面暂时保持空内容
     },
     stage1: {
-      cards: [
-        {
-          id: 'objective',
-          front: { title: '定义目标', content: '最小化误差 / 最大化覆盖 / 最短时间 / 最大置信度' },
-          back: { content: '选择度量：L2、Huber、IoU、路径长度、收益/成本比' }
-        },
-        {
-          id: 'variables',
-          front: { title: '确定变量', content: '变量类型：连续｜离散｜混合；范围：盒约束/集合' },
-          back: { content: '示例：位姿/点坐标/超参数（连续）；选址/路径/布设（离散）' }
-        },
-        {
-          id: 'functions',
-          front: { title: '构建函数', content: '目标 f(x)；约束 g(x)=0, h(x)≤0；正则 L1/L2/TV' },
-          back: { content: '写清可微性/凸性/稀疏结构与噪声模型（高斯/鲁棒）' }
-        },
-        {
-          id: 'portrait',
-          front: { title: '问题画像', content: '范式标签：NLLS｜QP/QCQP｜MILP/MDP｜MRF｜深度学习' },
-          back: { content: '规模：小/中/大；稀疏：稠密/块稀疏；不确定性：噪声/异常/鲁棒' }
-        }
-      ]
+      cards: []
     },
     stage2: {
       cards: [
@@ -1031,6 +1012,11 @@ const Section5Workflow = ({ id }) => {
     // 总览页面特殊处理
     if (currentStage === 'overview') {
       return renderOverviewFlowchart()
+    }
+
+    // 阶段一特殊处理 - 使用独立组件
+    if (currentStage === 'stage1') {
+      return <Section5WorkflowStep1 />
     }
 
     return (
