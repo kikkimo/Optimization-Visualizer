@@ -3998,13 +3998,26 @@ const Section5WorkflowStep1 = () => {
           }}
           dangerouslySetInnerHTML={{
             __html: katex.renderToString(
-              activeCard === 1 && activeExample === 1 
-                ? '\\max_{S \\subseteq C, |S| \\leq k} \\text{Coverage}(S) = \\frac{|\\bigcup_{i \\in S} A_i|}{|D|}'
-                : activeCard === 1 && activeExample === 2
-                ? '\\min T = \\int_0^{x_T} \\frac{\\sqrt{1+(y\')^2}}{\\sqrt{2gy(x)}} dx'
-                : activeCard === 1 && activeExample === 3
-                ? 'p_{\\max} = F_{\\chi^2(2)}\\left(\\frac{A_*}{\\pi\\sqrt{\\det\\Sigma}}\\right) = 1-\\exp\\left(-\\frac{A_*}{2\\pi\\sqrt{\\det\\Sigma}}\\right)'
-                : '\\min \\sum_i \\|y_i - \\hat{y}(x_i)\\|^2',
+              (() => {
+                if (activeCard === 1) {
+                  if (activeExample === 1) 
+                    return '\\max_{S \\subseteq C, |S| \\leq k} \\text{Coverage}(S) = \\frac{|\\bigcup_{i \\in S} A_i|}{|D|}'
+                  else if (activeExample === 2)
+                    return '\\min T = \\int_0^{x_T} \\frac{\\sqrt{1+(y\')^2}}{\\sqrt{2gy(x)}} dx'
+                  else if (activeExample === 3)
+                    return 'p_{\\max} = F_{\\chi^2(2)}\\left(\\frac{A_*}{\\pi\\sqrt{\\det\\Sigma}}\\right) = 1-\\exp\\left(-\\frac{A_*}{2\\pi\\sqrt{\\det\\Sigma}}\\right)'
+                  else
+                    return '\\min \\sum_i \\|y_i - \\hat{y}(x_i)\\|^2'
+                } else if (activeCard === 2) {
+                  return 'x \\in \\mathbb{R}^n \\text{ (变量空间定义)}'
+                } else if (activeCard === 3) {
+                  return 'f: \\mathbb{R}^n \\rightarrow \\mathbb{R} \\text{ (目标函数构建)}'
+                } else if (activeCard === 4) {
+                  return '\\text{Problem Profile: } (\\text{目标}, \\text{约束}, \\text{变量}) \\rightarrow \\text{求解策略}'
+                } else {
+                  return '\\min \\sum_i \\|y_i - \\hat{y}(x_i)\\|^2'
+                }
+              })(),
               {
                 throwOnError: false,
                 displayMode: false
