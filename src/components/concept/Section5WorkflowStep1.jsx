@@ -196,7 +196,7 @@ const Section5WorkflowStep1 = () => {
   // 绘制当前卡片的静态场景
   const drawCurrentCardStaticScene = (ctx, width, height) => {
     // 强制清除画布
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     
     switch (activeCard) {
@@ -426,10 +426,10 @@ const Section5WorkflowStep1 = () => {
 
   // 候选直线定义
   const candidateLines = [
-    { a: 1.42, b: 1.05, rss: 0.0528, color: '#2B6CB0', label: 'L1' }, // 最佳拟合线
-    { a: 1.30, b: 2.20, rss: 6.9126, color: '#A0AEC0', label: 'L2' },
-    { a: 1.60, b: 0.80, rss: 1.3271, color: '#A0AEC0', label: 'L3' },
-    { a: 1.10, b: 1.20, rss: 7.5306, color: '#A0AEC0', label: 'L4' }
+    { a: 1.42, b: 1.05, rss: 0.0528, color: '#3B82F6', label: 'L1' }, // 最佳拟合线
+    { a: 1.30, b: 2.20, rss: 6.9126, color: '#6B7280', label: 'L2' },
+    { a: 1.60, b: 0.80, rss: 1.3271, color: '#6B7280', label: 'L3' },
+    { a: 1.10, b: 1.20, rss: 7.5306, color: '#6B7280', label: 'L4' }
   ]
   // ===== 最大化覆盖动画数据配置 =====
   
@@ -500,7 +500,7 @@ const Section5WorkflowStep1 = () => {
   // 绘制网格
   const drawGrid = (ctx, marginX, marginY, chartWidth, chartHeight) => {
     // 次级网格（每0.5单位）
-    ctx.strokeStyle = '#252933'
+    ctx.strokeStyle = '#374151'
     ctx.globalAlpha = 0.4
     ctx.lineWidth = 1
     
@@ -523,7 +523,7 @@ const Section5WorkflowStep1 = () => {
     }
     
     // 主网格（每1.0单位）
-    ctx.strokeStyle = '#2F3642'
+    ctx.strokeStyle = '#4B5563'
     ctx.globalAlpha = 0.7
     ctx.lineWidth = 1.5
     
@@ -550,7 +550,7 @@ const Section5WorkflowStep1 = () => {
 
   // 绘制坐标轴
   const drawAxes = (ctx, marginX, marginY, width, height, chartWidth, chartHeight) => {
-    ctx.strokeStyle = '#E7EDF8'
+    ctx.strokeStyle = '#E5E7EB'
     ctx.lineWidth = 2.5
     
     // 原点坐标 (0,0)
@@ -584,7 +584,7 @@ const Section5WorkflowStep1 = () => {
     ctx.stroke()
     
     // 轴标签 - 跟随坐标轴平移量调整位置
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = 'italic 18px "KaTeX_Math", "Times New Roman", serif'
     ctx.textAlign = 'center'
     // X轴标签：跟随X轴末端位置
@@ -598,8 +598,8 @@ const Section5WorkflowStep1 = () => {
 
   // 绘制刻度
   const drawTicks = (ctx, marginX, marginY, chartWidth, chartHeight) => {
-    ctx.strokeStyle = '#BFC9DA'
-    ctx.fillStyle = '#E7EDF8'
+    ctx.strokeStyle = '#9CA3AF'
+    ctx.fillStyle = '#F3F4F6'
     ctx.lineWidth = 1.5
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
     ctx.textAlign = 'center'
@@ -658,9 +658,9 @@ const Section5WorkflowStep1 = () => {
 
   // 绘制直线
   const drawLine = (ctx, line, marginX, marginY, chartWidth, chartHeight, isActive = false) => {
-    const color = isActive ? '#ED8936' : line.color
+    const color = isActive ? '#F59E0B' : line.color
     const lineWidth = isActive ? 3 : (line.label === 'L1' ? 3 : 2)
-    const opacity = isActive ? 1 : (line.color === '#A0AEC0' ? 0.45 : 1)
+    const opacity = isActive ? 1 : (line.color === '#6B7280' ? 0.45 : 1)
     
     ctx.globalAlpha = opacity
     ctx.strokeStyle = color
@@ -682,7 +682,7 @@ const Section5WorkflowStep1 = () => {
 
   // 绘制残差线
   const drawResiduals = (ctx, line, marginX, marginY, chartWidth, chartHeight) => {
-    ctx.strokeStyle = '#F6AD55'
+    ctx.strokeStyle = '#60A5FA'
     ctx.lineWidth = 2
     ctx.setLineDash([6, 4])
     
@@ -699,7 +699,7 @@ const Section5WorkflowStep1 = () => {
       
       // 绘制端点
       ctx.setLineDash([])
-      ctx.fillStyle = '#F6AD55'
+      ctx.fillStyle = '#3B82F6'
       ctx.beginPath()
       ctx.arc(predictedCoords.x, predictedCoords.y, 3, 0, Math.PI * 2)
       ctx.fill()
@@ -713,7 +713,7 @@ const Section5WorkflowStep1 = () => {
   // 绘制覆盖网格
   const drawCoverageGrid = (ctx, marginX, marginY, chartWidth, chartHeight) => {
     // 次级网格（每0.5单位）
-    ctx.strokeStyle = '#252933'
+    ctx.strokeStyle = '#374151'
     ctx.globalAlpha = 0.4
     ctx.lineWidth = 1
     
@@ -736,7 +736,7 @@ const Section5WorkflowStep1 = () => {
     }
     
     // 主网格（每1.0单位）
-    ctx.strokeStyle = '#2F3642'
+    ctx.strokeStyle = '#4B5563'
     ctx.globalAlpha = 0.7
     ctx.lineWidth = 1.5
     
@@ -783,7 +783,7 @@ const Section5WorkflowStep1 = () => {
     
     if (filled) {
       // 区域底纹
-      ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
+      ctx.fillStyle = 'rgba(17, 24, 39, 0.92)'
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
       ctx.shadowBlur = 2
       ctx.shadowOffsetY = 1
@@ -795,7 +795,7 @@ const Section5WorkflowStep1 = () => {
     }
     
     // 边界描边
-    ctx.strokeStyle = '#E7EDF8'
+    ctx.strokeStyle = '#E5E7EB'
     ctx.lineWidth = 2
     ctx.stroke()
   }
@@ -816,7 +816,7 @@ const Section5WorkflowStep1 = () => {
       ctx.stroke()
       
       // 编号标签
-      ctx.fillStyle = '#E7EDF8'
+      ctx.fillStyle = '#F3F4F6'
       ctx.font = '12px ui-monospace, Menlo, monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -836,7 +836,7 @@ const Section5WorkflowStep1 = () => {
     ctx.arc(coords.x, coords.y, radiusCanvas, 0, Math.PI * 2)
     
     if (isSelected) {
-      ctx.fillStyle = 'rgba(56, 161, 105, 0.25)'
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.25)'
       ctx.fill()
       ctx.strokeStyle = '#ED8936'
       ctx.lineWidth = 1.5
@@ -887,7 +887,7 @@ const Section5WorkflowStep1 = () => {
     
     // 绘制并集区域
     if (coverageData.size > 0) {
-      ctx.fillStyle = 'rgba(56, 161, 105, 0.35)'
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.35)'
       ctx.strokeStyle = '#38A169'
       ctx.lineWidth = 2
       
@@ -1061,8 +1061,9 @@ const Section5WorkflowStep1 = () => {
         progress = Math.min(elapsed / duration, 1)
         
         // 清除画布
-        ctx.fillStyle = '#0F1116'
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillStyle = '#111827'
+        roundRect(ctx, 0, 0, width, height, 12)
+        ctx.fill()
         
         // 0-0.3s: 背景与网格淡入
         if (progress >= 0) {
@@ -1139,8 +1140,9 @@ const Section5WorkflowStep1 = () => {
         }
         
         // 清除画布并绘制基础元素
-        ctx.fillStyle = '#0F1116'
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillStyle = '#111827'
+        roundRect(ctx, 0, 0, width, height, 12)
+        ctx.fill()
         
         drawCoverageGrid(ctx, marginX, marginY, chartWidth, chartHeight)
         drawTargetRegion(ctx, marginX, marginY, chartWidth, chartHeight)
@@ -1213,7 +1215,7 @@ const Section5WorkflowStep1 = () => {
       const optimalPlan = coveragePlans.find(p => p.isOptimal)
       
       // 清除画布并绘制最优方案
-      ctx.fillStyle = '#0F1116'
+      ctx.fillStyle = '#111827'
       ctx.fillRect(0, 0, width, height)
       
       drawCoverageGrid(ctx, marginX, marginY, chartWidth, chartHeight)
@@ -1245,39 +1247,22 @@ const Section5WorkflowStep1 = () => {
   const drawCoverageValueCard = (ctx, currentPlan, currentCoverage, marginX = 48, marginY = 64, chartHeight = 300) => {
     const cardWidth = 220
     const cardHeight = 100
-    const cardGap = 20 // 距离图表底部的间隙
     const x = marginX + 50 // 相对于图表左边距
-    const y = marginY + chartHeight + cardGap 
+    const y = ctx.canvas.height - 130 // 统一Y坐标位置 
     
     // 绘制卡片背景
-    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-    ctx.shadowBlur = 4
-    ctx.shadowOffsetY = 1
-    
-    // 绘制圆角矩形
-    ctx.beginPath()
-    ctx.moveTo(x + 8, y)
-    ctx.lineTo(x + cardWidth - 8, y)
-    ctx.quadraticCurveTo(x + cardWidth, y, x + cardWidth, y + 8)
-    ctx.lineTo(x + cardWidth, y + cardHeight - 8)
-    ctx.quadraticCurveTo(x + cardWidth, y + cardHeight, x + cardWidth - 8, y + cardHeight)
-    ctx.lineTo(x + 8, y + cardHeight)
-    ctx.quadraticCurveTo(x, y + cardHeight, x, y + cardHeight - 8)
-    ctx.lineTo(x, y + 8)
-    ctx.quadraticCurveTo(x, y, x + 8, y)
-    ctx.closePath()
+    ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+    ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+    ctx.lineWidth = 1
+    roundRect(ctx, x, y, cardWidth, cardHeight, 8)
     ctx.fill()
-    
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
+    ctx.stroke()
     
     // 绘制文本
     ctx.textAlign = 'left'
     
     // 行1：当前方案
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
     const siteList = currentPlan ? `{#${currentPlan.sites.join(', #')}}` : '{}'
     ctx.fillText(`当前方案：S = ${siteList}`, x + 16, y + 25)
@@ -1289,7 +1274,7 @@ const Section5WorkflowStep1 = () => {
     ctx.fillText(`${currentCoverage.toFixed(1)}%`, x + 75, y + 52)
     
     // 行3：方案描述
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
     const description = currentPlan ? currentPlan.description : '无描述'
     ctx.fillText(description, x + 16, y + 79)
@@ -1299,32 +1284,16 @@ const Section5WorkflowStep1 = () => {
   const drawCoverageComparisonBar = (ctx, width, activePlanId = null, marginX = 48, marginY = 64, chartWidth = 500, chartHeight = 300) => {
     const barWidth = 200
     const barHeight = 100
-    const cardGap = 20 // 距离图表底部的间隙
     const x = marginX + chartWidth - barWidth - 50 // 相对于图表右边距
-    const y = marginY + chartHeight + cardGap
+    const y = ctx.canvas.height - 130 // 统一Y坐标位置
     
     // 绘制背景
-    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-    ctx.shadowBlur = 4
-    ctx.shadowOffsetY = 1
-    
-    ctx.beginPath()
-    ctx.moveTo(x + 8, y)
-    ctx.lineTo(x + barWidth - 8, y)
-    ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + 8)
-    ctx.lineTo(x + barWidth, y + barHeight - 8)
-    ctx.quadraticCurveTo(x + barWidth, y + barHeight, x + barWidth - 8, y + barHeight)
-    ctx.lineTo(x + 8, y + barHeight)
-    ctx.quadraticCurveTo(x, y + barHeight, x, y + barHeight - 8)
-    ctx.lineTo(x, y + 8)
-    ctx.quadraticCurveTo(x, y, x + 8, y)
-    ctx.closePath()
+    ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+    ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+    ctx.lineWidth = 1
+    roundRect(ctx, x, y, barWidth, barHeight, 8)
     ctx.fill()
-    
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
+    ctx.stroke()
     
     // 绘制方案对比
     ctx.textAlign = 'left'
@@ -1340,7 +1309,7 @@ const Section5WorkflowStep1 = () => {
       } else if (isOptimal) {
         ctx.fillStyle = '#38A169'
       } else {
-        ctx.fillStyle = '#9AA5B1'
+        ctx.fillStyle = '#9CA3AF'
       }
       
       ctx.fillText(`${plan.id}:${plan.coverage.toFixed(1)}%`, x + 16, textY)
@@ -1377,7 +1346,7 @@ const Section5WorkflowStep1 = () => {
       ctx.fill()
       
       // 绘制文字
-      ctx.fillStyle = '#E7EDF8'
+      ctx.fillStyle = '#F3F4F6'
       ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
       ctx.textAlign = 'left'
       
@@ -1419,7 +1388,7 @@ const Section5WorkflowStep1 = () => {
     const adjustedMarginY = 64 + centerOffsetY + coverageOffsetY
     
     // 设置背景
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     
     // 绘制基础元素
@@ -1518,119 +1487,170 @@ const Section5WorkflowStep1 = () => {
   // 绘制数值牌（相对图表区域底部定位）
   const drawValueCard = (ctx, line, currentRSS, marginX = 48, marginY = 48, chartHeight = 300) => {
     const cardWidth = 280
-    const cardHeight = 80
-    const cardGap = 20 // 距离图表底部的间隙
+    const cardHeight = 100 // 统一高度为100px
     const x = marginX + 20 // 相对于图表左边距
-    const y = marginY + chartHeight + cardGap
+    const y = ctx.canvas.height - 130 // 统一Y坐标位置
     
     // 绘制卡片背景
-    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-    ctx.shadowBlur = 4
-    ctx.shadowOffsetY = 1
-    
-    // 绘制圆角矩形（兼容性更好的方法）
-    ctx.beginPath()
-    ctx.moveTo(x + 8, y)
-    ctx.lineTo(x + cardWidth - 8, y)
-    ctx.quadraticCurveTo(x + cardWidth, y, x + cardWidth, y + 8)
-    ctx.lineTo(x + cardWidth, y + cardHeight - 8)
-    ctx.quadraticCurveTo(x + cardWidth, y + cardHeight, x + cardWidth - 8, y + cardHeight)
-    ctx.lineTo(x + 8, y + cardHeight)
-    ctx.quadraticCurveTo(x, y + cardHeight, x, y + cardHeight - 8)
-    ctx.lineTo(x, y + 8)
-    ctx.quadraticCurveTo(x, y, x + 8, y)
-    ctx.closePath()
+    ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+    ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+    ctx.lineWidth = 1
+    roundRect(ctx, x, y, cardWidth, cardHeight, 8)
     ctx.fill()
+    ctx.stroke()
     
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
-    
-    // 绘制文本
+    // 绘制文本 - 精确垂直居中，等距分布
     ctx.textAlign = 'left'
     
+    // 考虑实际字体高度：14px主要文字，12px提示文字
+    const line1Height = 14 // 第一行字体高度
+    const line2Height = 14 // 第二行字体高度  
+    const line3Height = 12 // 第三行字体高度
+    const lineSpacing = 20 // 行间距
+    
+    // 计算总文本区域高度
+    const totalTextHeight = line1Height + lineSpacing + line2Height + lineSpacing + line3Height
+    
+    // 垂直居中计算：卡片中心减去文本区域一半
+    const textStartY = y + (cardHeight - totalTextHeight) / 2 + line1Height + 3
+    
     // 第一行：当前直线 - 使用数学斜体
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
-    ctx.fillText('当前：', x + 12, y + 20)
+    ctx.fillText('当前：', x + 12, textStartY)
     
     // y = 部分用斜体
     ctx.font = 'italic 14px "KaTeX_Math", "Times New Roman", serif'
-    ctx.fillText('y', x + 50, y + 20)
+    ctx.fillText('y', x + 50, textStartY)
     
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
-    ctx.fillText(' = ', x + 60, y + 20)
+    ctx.fillText(' = ', x + 60, textStartY)
     
-    ctx.fillText(line.a.toFixed(2), x + 80, y + 20)
+    ctx.fillText(line.a.toFixed(2), x + 80, textStartY)
     
     ctx.font = 'italic 14px "KaTeX_Math", "Times New Roman", serif'
-    ctx.fillText('x', x + 120, y + 20)
+    ctx.fillText('x', x + 120, textStartY)
     
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
-    ctx.fillText(' + ', x + 130, y + 20)
-    ctx.fillText(line.b.toFixed(2), x + 155, y + 20)
+    ctx.fillText(' + ', x + 130, textStartY)
+    ctx.fillText(line.b.toFixed(2), x + 155, textStartY)
     
-    // 第二行：RSS
-    ctx.fillStyle = '#E7EDF8'
-    ctx.fillText('残差平方和 RSS = ', x + 12, y + 40)
+    // 第二行：RSS，精确行距
+    const line2Y = textStartY + lineSpacing + line2Height - 4
+    ctx.fillStyle = '#F3F4F6'
+    ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
+    ctx.fillText('残差平方和 RSS = ', x + 12, line2Y)
     
     ctx.fillStyle = '#2EC4B6'
     ctx.font = '14px ui-monospace, Menlo, monospace'
-    ctx.fillText(currentRSS.toFixed(4), x + 140, y + 40)
+    ctx.fillText(currentRSS.toFixed(4), x + 140, line2Y)
     
-    // 第三行：提示
-    ctx.fillStyle = '#9AA5B1'
+    // 第三行：提示，精确行距
+    const line3Y = line2Y + lineSpacing + line3Height - 6
+    ctx.fillStyle = '#9CA3AF'
     ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
-    ctx.fillText('点到直线的垂线为残差，RSS为残差的平方和', x + 12, y + 62)
+    ctx.fillText('点到直线的垂线为残差，RSS为残差的平方和', x + 12, line3Y)
   }
 
   // 绘制候选概览（相对图表区域底部定位）
   const drawCandidateOverview = (ctx, width, currentIndex = 0, marginX = 48, marginY = 48, chartWidth = 500, chartHeight = 300) => {
-    const cardGap = 20 // 距离图表底部的间隙
-    const startX = marginX + chartWidth - 200 // 相对于图表右边距
-    const startY = marginY + chartHeight + cardGap
+    const cardWidth = 200
+    const cardHeight = 100
+    const x = marginX + chartWidth - cardWidth - 50 // 相对于图表右边距
+    const y = ctx.canvas.height - 130 // 统一Y坐标位置
     
-    ctx.font = '12px ui-monospace, Menlo, monospace'
+    // 绘制卡片背景
+    ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+    ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+    ctx.lineWidth = 1
+    roundRect(ctx, x, y, cardWidth, cardHeight, 8)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 绘制标题
+    ctx.fillStyle = '#F3F4F6'
+    ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
     ctx.textAlign = 'left'
+    ctx.fillText('方案对比', x + 15, y + 20)
+    
+    // 找到最大RSS值用于进度条归一化
+    const maxRSS = Math.max(...candidateLines.map(line => line.rss))
+    
+    // 定义L1-L4的固定配色方案（参考最大置信度配色）
+    const lineColors = [
+      '#10B981', // L1 - 绿色（最优方案）
+      '#8B5CF6', // L2 - 紫色
+      '#F59E0B', // L3 - 橙色  
+      '#EF4444'  // L4 - 红色
+    ]
     
     candidateLines.forEach((line, index) => {
-      const y = startY + index * 18
+      const textY = y + 35 + index * 16
       const isCurrentlyPlaying = index === currentIndex
       const isTrueBest = index === 0 // L1 is always the true minimum (0.0528)
       
-      // 设置文字颜色
+      // 方案标签颜色使用固定配色
+      const lineColor = lineColors[index]
+      ctx.fillStyle = lineColor
+      
+      // 绘制方案标签
+      ctx.font = '10px ui-monospace, Menlo, monospace'
+      ctx.fillText(`${line.label}:`, x + 12, textY)
+      
+      // RSS数值颜色逻辑：最优值绿色，当前播放蓝色，其他白色
       if (isTrueBest) {
-        ctx.fillStyle = '#38A169' // 绿色 - 真正的最优解
+        ctx.fillStyle = '#22C55E' // 绿色 - 最优值
       } else if (isCurrentlyPlaying) {
-        ctx.fillStyle = '#2B6CB0' // 蓝色 - 当前正在播放的非最优方案
+        ctx.fillStyle = '#3B82F6' // 蓝色 - 当前高亮
       } else {
-        ctx.fillStyle = '#9AA5B1' // 灰色 - 其他方案
+        ctx.fillStyle = '#F3F4F6' // 白色 - 其他值
       }
       
-      ctx.fillText(`${line.label}: ${line.rss.toFixed(4)}`, startX, y)
+      // 绘制RSS数值
+      ctx.fillText(line.rss.toFixed(4), x + 35, textY)
+      
+      // 绘制进度条
+      const progressWidth = 60 // 进度条宽度
+      const progressHeight = 3 // 进度条高度
+      const progressX = x + 105
+      const progressY = textY - 6
+      
+      // 进度条背景
+      ctx.fillStyle = 'rgba(75, 85, 99, 0.3)'
+      ctx.fillRect(progressX, progressY, progressWidth, progressHeight)
+      
+      // 进度条填充 (RSS数值越大，进度条越长)
+      const normalizedProgress = line.rss / maxRSS
+      const fillWidth = progressWidth * normalizedProgress
+      
+      // 进度条使用对应的线条颜色
+      ctx.fillStyle = lineColor
+      ctx.fillRect(progressX, progressY, fillWidth, progressHeight)
       
       // 只有真正的最优解才显示奖杯
       if (isTrueBest) {
-        ctx.fillStyle = '#38A169'
-        ctx.fillText('🏆', startX + 80, y)
+        ctx.fillStyle = '#22C55E'
+        ctx.fillText('🏆', x + 170, textY)
       }
     })
   }
 
   // 卡片1场景绘制函数（静态）
   const drawCard1Scene1 = (ctx, width, height) => {
-    // 设置背景
-    ctx.fillStyle = '#0F1116'
-    ctx.fillRect(0, 0, width, height)
+    // 设置背景 - 使用圆角矩形
+    ctx.fillStyle = '#111827'
+    roundRect(ctx, 0, 0, width, height, 12) // 使用12px圆角
+    ctx.fill()
     
     const chartOffsetX = 20 // 图表水平偏移
-    const chartOffsetY = 65 // 图表垂直向下偏移
+    const chartOffsetY = 27 // 图表垂直向下偏移 (65-16=49，向上移动16px)
     const margin = 48
-    const chartWidth = width - 2 * margin - 48
-    const chartHeight = height - 144 - 80
-    const adjustedMarginX = margin + chartOffsetX
-    const adjustedMarginY = margin + chartOffsetY
+    const baseChartWidth = width - 2 * margin - 48
+    const baseChartHeight = height - 144 - 80
+    const chartWidth = baseChartWidth * 0.85 // 缩放为85%
+    const chartHeight = baseChartHeight * 0.85 // 缩放为85%
+    const adjustedMarginX = margin + chartOffsetX + (baseChartWidth - chartWidth) / 2 // 居中对齐
+    const adjustedMarginY = margin + chartOffsetY + (baseChartHeight - chartHeight) / 2 // 居中对齐
     
     // 绘制网格
     drawGrid(ctx, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
@@ -1667,16 +1687,19 @@ const Section5WorkflowStep1 = () => {
   const playCard1Scene1 = async (ctx, width, height, signal) => {
     
     const chartOffsetX = 20 // 图表水平偏移
-    const chartOffsetY = 65 // 图表垂直向下偏移
+    const chartOffsetY = 27 // 图表垂直向下偏移 (65-16=49，向上移动16px)
     const margin = 48
-    const chartWidth = width - 2 * margin - 48
-    const chartHeight = height - 144 - 80
-    const adjustedMarginX = margin + chartOffsetX
-    const adjustedMarginY = margin + chartOffsetY
+    const baseChartWidth = width - 2 * margin - 48
+    const baseChartHeight = height - 144 - 80
+    const chartWidth = baseChartWidth * 0.85 // 缩放为85%
+    const chartHeight = baseChartHeight * 0.85 // 缩放为85%
+    const adjustedMarginX = margin + chartOffsetX + (baseChartWidth - chartWidth) / 2 // 居中对齐
+    const adjustedMarginY = margin + chartOffsetY + (baseChartHeight - chartHeight) / 2 // 居中对齐
     
-    // 设置背景
-    ctx.fillStyle = '#0F1116'
-    ctx.fillRect(0, 0, width, height)
+    // 设置背景 - 使用圆角矩形
+    ctx.fillStyle = '#111827'
+    roundRect(ctx, 0, 0, width, height, 12) // 使用12px圆角
+    ctx.fill()
     
     // 入场动画（0-1.2s）
     if (signal?.aborted) {
@@ -1725,8 +1748,9 @@ const Section5WorkflowStep1 = () => {
         const elapsed = Date.now() - startTime
         progress = Math.min(elapsed / duration, 1)
         
-        ctx.fillStyle = '#0F1116'
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillStyle = '#111827'
+        roundRect(ctx, 0, 0, width, height, 12)
+        ctx.fill()
         
         if (progress >= 0) {
           // 网格淡入
@@ -1814,8 +1838,9 @@ const Section5WorkflowStep1 = () => {
         progress = Math.min(elapsed / duration, 1)
         
         // 清除并重绘基础元素
-        ctx.fillStyle = '#0F1116'
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillStyle = '#111827'
+        roundRect(ctx, 0, 0, width, height, 12)
+        ctx.fill()
         
         drawGrid(ctx, marginX, marginY, chartWidth, chartHeight)
         drawAxes(ctx, marginX, marginY, width, height, chartWidth, chartHeight)
@@ -1844,7 +1869,7 @@ const Section5WorkflowStep1 = () => {
           const residualProgress = (progress - 0.07) / 0.36
           const visibleResiduals = Math.floor(residualProgress * dataPoints.length)
           
-          ctx.strokeStyle = '#F6AD55'
+          ctx.strokeStyle = '#60A5FA'
           ctx.lineWidth = 2
           ctx.setLineDash([6, 4])
           
@@ -1860,7 +1885,7 @@ const Section5WorkflowStep1 = () => {
               ctx.stroke()
               
               ctx.setLineDash([])
-              ctx.fillStyle = '#F6AD55'
+              ctx.fillStyle = '#3B82F6'
               ctx.beginPath()
               ctx.arc(predictedCoords.x, predictedCoords.y, 3, 0, Math.PI * 2)
               ctx.fill()
@@ -1880,16 +1905,12 @@ const Section5WorkflowStep1 = () => {
           currentRSS = currentLine.rss
         }
         
-        // 绘制公式牌和数值牌
-        if (progress >= 0.1) {
-          drawFormulaCard(ctx, width)
-          drawValueCard(ctx, currentLine, currentRSS, marginX, marginY, chartHeight)
-        }
+        // 绘制公式牌和数值牌（始终显示）
+        drawFormulaCard(ctx, width)
+        drawValueCard(ctx, currentLine, currentRSS, marginX, marginY, chartHeight)
         
-        // 绘制候选概览（高亮当前正在播放的直线）
-        if (progress >= 0.43) {
-          drawCandidateOverview(ctx, width, lineIndex, marginX, marginY, chartWidth, chartHeight)
-        }
+        // 绘制候选概览（始终显示，高亮当前正在播放的直线）
+        drawCandidateOverview(ctx, width, lineIndex, marginX, marginY, chartWidth, chartHeight)
         
         if (progress < 1 && !animationShouldStop) {
           requestAnimationFrame(animate)
@@ -1906,7 +1927,7 @@ const Section5WorkflowStep1 = () => {
   const animateFinale = async (ctx, width, height, marginX, marginY, chartWidth, chartHeight) => {
     return new Promise(resolve => {
       // 最终显示最佳拟合线
-      ctx.fillStyle = '#0F1116'
+      ctx.fillStyle = '#111827'
       ctx.fillRect(0, 0, width, height)
       
       drawGrid(ctx, marginX, marginY, chartWidth, chartHeight)
@@ -1947,7 +1968,7 @@ const Section5WorkflowStep1 = () => {
     const marginY = 64
     
     // 背景
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     
     // 入场动画（0-1.2s）
@@ -1990,8 +2011,9 @@ const Section5WorkflowStep1 = () => {
         const elapsed = Date.now() - startTime
         progress = Math.min(elapsed / duration, 1)
         
-        ctx.fillStyle = '#0F1116'
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillStyle = '#111827'
+        roundRect(ctx, 0, 0, width, height, 12)
+        ctx.fill()
         
         // 始终显示底部UI组件
         drawTimeOptFormulaCard(ctx, width)
@@ -2061,8 +2083,9 @@ const Section5WorkflowStep1 = () => {
         progress = Math.min(elapsed / duration, 1)
         
         // 清除并绘制基础场景
-        ctx.fillStyle = '#0F1116'
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillStyle = '#111827'
+        roundRect(ctx, 0, 0, width, height, 12)
+        ctx.fill()
         
         drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
         drawTimeOptAxes(ctx, marginX, marginY, chartWidth, chartHeight)
@@ -2169,13 +2192,13 @@ const Section5WorkflowStep1 = () => {
     const coords = getTimeOptCanvasCoords(x, y, marginX, marginY, chartWidth, chartHeight)
     
     // 外圈微光
-    ctx.fillStyle = 'rgba(231, 237, 248, 0.3)'
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.2)'
     ctx.beginPath()
     ctx.arc(coords.x, coords.y, 10, 0, Math.PI * 2)
     ctx.fill()
     
     // 内圈质点
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.beginPath()
     ctx.arc(coords.x, coords.y, 6, 0, Math.PI * 2)
     ctx.fill()
@@ -2185,7 +2208,7 @@ const Section5WorkflowStep1 = () => {
   const animateBrachistochroneFinale = async (ctx, width, height, marginX, marginY, chartWidth, chartHeight) => {
     const bestPath = timeOptData.paths[3] // 方案D - 摆线
     
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     
     drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
@@ -2218,7 +2241,7 @@ const Section5WorkflowStep1 = () => {
     const marginX = margin
     const marginY = 64
     
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     
     drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
@@ -2258,7 +2281,7 @@ const Section5WorkflowStep1 = () => {
         id: 'A',
         name: '直线',
         description: '看起来最短',
-        color: '#ED8936',
+        color: '#F59E0B',
         time: 1.190,
         type: 'linear',
         // y = (2/π) * x
@@ -2269,7 +2292,7 @@ const Section5WorkflowStep1 = () => {
         id: 'B', 
         name: '折线',
         description: '先陡后缓的直觉',
-        color: '#4299E1',
+        color: '#3B82F6',
         time: 1.050,
         type: 'polyline',
         // S -> K(1.2, 1.5) -> T
@@ -2327,7 +2350,7 @@ const Section5WorkflowStep1 = () => {
     const offsetY = canvasHeight * 0.05
     marginY += offsetY
     // 次级网格
-    ctx.strokeStyle = '#252933'
+    ctx.strokeStyle = '#374151'
     ctx.globalAlpha = 0.4
     ctx.lineWidth = 1
     ctx.setLineDash([])
@@ -2351,7 +2374,7 @@ const Section5WorkflowStep1 = () => {
     }
     
     // 主网格
-    ctx.strokeStyle = '#2F3642'
+    ctx.strokeStyle = '#4B5563'
     ctx.globalAlpha = 0.7
     ctx.lineWidth = 1
     
@@ -2381,7 +2404,7 @@ const Section5WorkflowStep1 = () => {
     const canvasHeight = ctx.canvas.height
     const offsetY = canvasHeight * 0.05
     marginY += offsetY
-    ctx.strokeStyle = '#E7EDF8'
+    ctx.strokeStyle = '#E5E7EB'
     ctx.lineWidth = 2
     ctx.setLineDash([])
     
@@ -2397,7 +2420,7 @@ const Section5WorkflowStep1 = () => {
     ctx.lineTo(marginX + chartWidth + 5, marginY + chartHeight - 3)
     ctx.lineTo(marginX + chartWidth + 5, marginY + chartHeight + 3)
     ctx.closePath()
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.fill()
     
     // Y轴
@@ -2415,7 +2438,7 @@ const Section5WorkflowStep1 = () => {
     ctx.fill()
     
     // 轴标签
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '16px KaTeX_Math, Times New Roman, serif'
     ctx.textAlign = 'center'
     ctx.fillText('x', marginX + chartWidth + 20, marginY + chartHeight + 5)
@@ -2431,8 +2454,8 @@ const Section5WorkflowStep1 = () => {
     const canvasHeight = ctx.canvas.height
     const offsetY = canvasHeight * 0.05
     marginY += offsetY
-    ctx.strokeStyle = '#BFC9DA'
-    ctx.fillStyle = '#BFC9DA'
+    ctx.strokeStyle = '#9CA3AF'
+    ctx.fillStyle = '#D1D5DB'
     ctx.lineWidth = 1
     ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
     ctx.textAlign = 'center'
@@ -2526,7 +2549,7 @@ const Section5WorkflowStep1 = () => {
     ctx.fill()
     
     // S标识符向右下移动10px
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
     ctx.textAlign = 'center'
     ctx.fillText('S', startCoords.x + 16, startCoords.y + 5)
@@ -2537,7 +2560,7 @@ const Section5WorkflowStep1 = () => {
     ctx.arc(targetCoords.x, targetCoords.y, 6 * scale, 0, Math.PI * 2)
     ctx.fill()
     
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.fillText('T', targetCoords.x, targetCoords.y - 12)
   }
   // 绘制重力箭头
@@ -2547,8 +2570,8 @@ const Section5WorkflowStep1 = () => {
     const offsetY = canvasHeight * 0.05
     marginY += offsetY
     ctx.globalAlpha = alpha
-    ctx.strokeStyle = '#F6AD55'
-    ctx.fillStyle = '#F6AD55'
+    ctx.strokeStyle = '#60A5FA'
+    ctx.fillStyle = '#3B82F6'
     ctx.lineWidth = 2
     
     const arrowX = marginX + chartWidth * 0.85
@@ -2570,7 +2593,7 @@ const Section5WorkflowStep1 = () => {
     ctx.fill()
     
     // 标签"g"
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '16px KaTeX_Math, Times New Roman, serif'
     ctx.textAlign = 'center'
     ctx.fillText('g', arrowX, arrowY - 8)
@@ -2697,26 +2720,19 @@ const Section5WorkflowStep1 = () => {
     marginY += offsetY
     const cardWidth = 280
     const cardHeight = 100
-    const cardGap = 20 // 距离图表底部的间隙
     const x = marginX + 20 // 相对于图表左边距
-    const y = marginY + chartHeight + cardGap
+    const y = ctx.canvas.height - 130 // 统一Y坐标位置
     
     // 背景
-    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-    ctx.shadowBlur = 4
-    ctx.shadowOffsetY = 1
-    
-    ctx.beginPath()
-    ctx.roundRect(x, y, cardWidth, cardHeight, 8)
+    ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+    ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+    ctx.lineWidth = 1
+    roundRect(ctx, x, y, cardWidth, cardHeight, 8)
     ctx.fill()
-    
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
+    ctx.stroke()
     
     // 文字
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
     ctx.textAlign = 'left'
     
@@ -2724,12 +2740,12 @@ const Section5WorkflowStep1 = () => {
     ctx.fillText(`当前方案：${currentPath.id} - ${currentPath.name}`, x + 12, y + 22)
     
     // 第二行：描述
-    ctx.fillStyle = '#9AA5B1'
+    ctx.fillStyle = '#9CA3AF'
     ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
     ctx.fillText(currentPath.description, x + 12, y + 42)
     
     // 第三行：总时间
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
     ctx.fillText('总时间 T = ', x + 12, y + 65)
     ctx.fillStyle = '#2EC4B6'
@@ -2737,7 +2753,7 @@ const Section5WorkflowStep1 = () => {
     ctx.fillText(`${currentTime.toFixed(3)} s`, x + 80, y + 65)
     
     // 第四行：物理提示
-    ctx.fillStyle = '#9AA5B1'
+    ctx.fillStyle = '#9CA3AF'
     ctx.font = '11px ui-sans-serif, -apple-system, sans-serif'
     ctx.fillText('越早获得纵向下落速度，整体用时越短', x + 12, y + 85)
   }
@@ -2749,26 +2765,19 @@ const Section5WorkflowStep1 = () => {
     marginY += offsetY
     const barWidth = 400
     const barHeight = 100
-    const cardGap = 20 // 距离图表底部的间隙
     const x = marginX + chartWidth - barWidth - 20 // 相对于图表右边距
-    const y = marginY + chartHeight + cardGap
+    const y = ctx.canvas.height - 130 // 统一Y坐标位置
     
     // 背景
-    ctx.fillStyle = 'rgba(11, 18, 32, 0.85)'
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-    ctx.shadowBlur = 4
-    ctx.shadowOffsetY = 1
-    
-    ctx.beginPath()
-    ctx.roundRect(x, y, barWidth, barHeight, 8)
+    ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
+    ctx.strokeStyle = 'rgba(75, 85, 99, 0.3)'
+    ctx.lineWidth = 1
+    roundRect(ctx, x, y, barWidth, barHeight, 8)
     ctx.fill()
-    
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
+    ctx.stroke()
     
     // 标题
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
     ctx.textAlign = 'left'
     ctx.fillText('方案时间对比', x + 12, y + 20)
@@ -2850,7 +2859,7 @@ const Section5WorkflowStep1 = () => {
     ctx.roundRect(coords.x - 25, coords.y - 25, 50, 20, 4)
     ctx.fill()
     
-    ctx.fillStyle = '#E7EDF8'
+    ctx.fillStyle = '#F3F4F6'
     ctx.font = '10px ui-sans-serif, -apple-system, sans-serif'
     ctx.textAlign = 'center'
     ctx.fillText(text, coords.x, coords.y - 10)
@@ -2968,7 +2977,7 @@ const Section5WorkflowStep1 = () => {
       }
       
       // 主网格线
-      ctx.strokeStyle = '#2F3642'
+      ctx.strokeStyle = '#4B5563'
       ctx.lineWidth = 0.5
       ctx.setLineDash([])
       
@@ -2993,7 +3002,7 @@ const Section5WorkflowStep1 = () => {
       }
       
       // 次网格线
-      ctx.strokeStyle = '#252933'
+      ctx.strokeStyle = '#374151'
       ctx.lineWidth = 0.3
       
       for (let i = -6000; i <= 6000; i += 1000) {
@@ -3383,7 +3392,7 @@ const Section5WorkflowStep1 = () => {
     }
     
     // 入场动画（简化版本）
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     
     // 绘制基础场景
@@ -3402,7 +3411,7 @@ const Section5WorkflowStep1 = () => {
       setCurrentConfidenceScheme(scheme.id)
       
       // 清空并绘制基础元素
-      ctx.fillStyle = '#0F1116'
+      ctx.fillStyle = '#111827'
       ctx.fillRect(0, 0, width, height)
       drawGrid()
       drawTargetPoint()
@@ -3431,8 +3440,9 @@ const Section5WorkflowStep1 = () => {
         const easeProgress = 1 - Math.pow(1 - progress, 3) // ease-out cubic
         
         // 重新绘制基础元素
-        ctx.fillStyle = '#0F1116'
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillStyle = '#111827'
+        roundRect(ctx, 0, 0, width, height, 12)
+        ctx.fill()
         drawGrid()
         drawTargetPoint()
         drawBudgetCircle()
@@ -3454,7 +3464,7 @@ const Section5WorkflowStep1 = () => {
     setCurrentConfidenceScheme(bestScheme.id)
     
     // 最终状态：显示最优方案的完整信息
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawGrid()
     drawTargetPoint()
@@ -3502,7 +3512,7 @@ const Section5WorkflowStep1 = () => {
     }
     
     // 主网格线
-    ctx.strokeStyle = '#2F3642'
+    ctx.strokeStyle = '#4B5563'
     ctx.lineWidth = 0.5
     ctx.setLineDash([])
     
@@ -3527,7 +3537,7 @@ const Section5WorkflowStep1 = () => {
     }
     
     // 次网格线
-    ctx.strokeStyle = '#252933'
+    ctx.strokeStyle = '#374151'
     ctx.lineWidth = 0.3
     
     for (let i = -6000; i <= 6000; i += 1000) {
@@ -3846,7 +3856,7 @@ const Section5WorkflowStep1 = () => {
 
   // 其他卡片的临时实现
   const drawCard2Scene1 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '连续变量（位姿/点坐标/参数）', width/2, height/2, {
       fontSize: 16,
@@ -3855,7 +3865,7 @@ const Section5WorkflowStep1 = () => {
     })
   }
   const drawCard2Scene2 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '离散变量（索引/标号/选择）', width/2, height/2, {
       fontSize: 16,
@@ -3865,7 +3875,7 @@ const Section5WorkflowStep1 = () => {
   }
 
   const drawCard2Scene3 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '混合变量（连续+离散）', width/2, height/2, {
       fontSize: 16,
@@ -3875,7 +3885,7 @@ const Section5WorkflowStep1 = () => {
   }
 
   const drawCard3Scene1 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '目标函数 f(x) / 代价', width/2, height/2, {
       fontSize: 16,
@@ -3885,7 +3895,7 @@ const Section5WorkflowStep1 = () => {
   }
 
   const drawCard3Scene2 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '等式约束 g(x)=0', width/2, height/2, {
       fontSize: 16,
@@ -3895,7 +3905,7 @@ const Section5WorkflowStep1 = () => {
   }
 
   const drawCard3Scene3 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '不等式约束 h(x)≤0', width/2, height/2, {
       fontSize: 16,
@@ -3905,7 +3915,7 @@ const Section5WorkflowStep1 = () => {
   }
 
   const drawCard3Scene4 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '集合/结构约束（拓扑/锥/半定）', width/2, height/2, {
       fontSize: 16,
@@ -3915,7 +3925,7 @@ const Section5WorkflowStep1 = () => {
   }
 
   const drawCard3Scene5 = (ctx, width, height) => {
-    ctx.fillStyle = '#0F1116'
+    ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     drawText(ctx, '正则项 R(x)（L1/L2/TV）', width/2, height/2, {
       fontSize: 16,
