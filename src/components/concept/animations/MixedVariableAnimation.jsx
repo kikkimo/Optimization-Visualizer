@@ -671,87 +671,183 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     ctx.fillRect(rearWindowLeft + rearWindowWidth * 0.1, bodyTop + windowInset + windowHeight * 0.1,
                 rearWindowWidth * 0.8, windowHeight * 0.15)
     
-    // 车灯 - 前大灯（温白色）
+    // LED前大灯组 - 现代化设计
+    const headlightSize = vehicleWidth * 0.1
+    const headlightY1 = -vehicleWidth/2 + vehicleWidth * 0.22
+    const headlightY2 = vehicleWidth/2 - vehicleWidth * 0.22
+    const headlightX = frontRight - headlightSize * 0.6
+    
+    // 大灯外壳
+    ctx.fillStyle = '#E5E7EB'
+    ctx.strokeStyle = '#9CA3AF'
+    ctx.lineWidth = 1
+    
+    // 左前大灯外壳
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY1, headlightSize * 0.6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 右前大灯外壳
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY2, headlightSize * 0.6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // LED灯珠
     ctx.fillStyle = '#F9FAFB'
-    ctx.strokeStyle = '#E5E7EB'
-    ctx.lineWidth = 0.8
+    ctx.strokeStyle = '#F3F4F6'
+    ctx.lineWidth = 0.5
     
-    const headlightSize = vehicleWidth * 0.12
-    const headlightY1 = -vehicleWidth/2 + vehicleWidth * 0.2
-    const headlightY2 = vehicleWidth/2 - vehicleWidth * 0.2
-    const headlightX = frontRight - headlightSize/2
-    
-    // 左前大灯
+    // 左LED
     ctx.beginPath()
-    ctx.arc(headlightX, headlightY1, headlightSize/2, 0, Math.PI * 2)
+    ctx.arc(headlightX, headlightY1, headlightSize * 0.3, 0, Math.PI * 2)
     ctx.fill()
     ctx.stroke()
     
-    // 右前大灯
+    // 右LED
     ctx.beginPath()
-    ctx.arc(headlightX, headlightY2, headlightSize/2, 0, Math.PI * 2)
+    ctx.arc(headlightX, headlightY2, headlightSize * 0.3, 0, Math.PI * 2)
     ctx.fill()
     ctx.stroke()
     
-    // 车灯 - 后尾灯（橙红色）
+    // LED光晕效果
+    const ledGradient = ctx.createRadialGradient(headlightX, headlightY1, 0, headlightX, headlightY1, headlightSize * 0.8)
+    ledGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)')
+    ledGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)')
+    ledGradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+    
+    ctx.fillStyle = ledGradient
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY1, headlightSize * 0.8, 0, Math.PI * 2)
+    ctx.fill()
+    
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY2, headlightSize * 0.8, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // 现代化LED尾灯组
+    const taillightWidth = vehicleWidth * 0.15
+    const taillightHeight = vehicleWidth * 0.06
+    const taillightY1 = -vehicleWidth/2 + vehicleWidth * 0.2
+    const taillightY2 = vehicleWidth/2 - vehicleWidth * 0.26
+    const taillightX = rearLeft + rearLength * 0.3
+    
+    // 尾灯外壳
+    ctx.fillStyle = '#1F2937'
+    ctx.strokeStyle = '#111827'
+    ctx.lineWidth = 1
+    
+    // 左尾灯组
+    ctx.fillRect(taillightX - taillightWidth/2, taillightY1 - taillightHeight/2, 
+                taillightWidth, taillightHeight)
+    ctx.strokeRect(taillightX - taillightWidth/2, taillightY1 - taillightHeight/2, 
+                  taillightWidth, taillightHeight)
+    
+    // 右尾灯组
+    ctx.fillRect(taillightX - taillightWidth/2, taillightY2 - taillightHeight/2, 
+                taillightWidth, taillightHeight)
+    ctx.strokeRect(taillightX - taillightWidth/2, taillightY2 - taillightHeight/2, 
+                  taillightWidth, taillightHeight)
+    
+    // LED尾灯
     ctx.fillStyle = '#F97316'
     ctx.strokeStyle = '#EA580C'
+    ctx.lineWidth = 0.5
     
-    const taillightSize = vehicleWidth * 0.08
-    const taillightY1 = -vehicleWidth/2 + vehicleWidth * 0.25
-    const taillightY2 = vehicleWidth/2 - vehicleWidth * 0.25
-    const taillightX = rearLeft + taillightSize/2
+    const ledSpacing = taillightWidth / 4
+    for (let i = 0; i < 3; i++) {
+      const ledX = taillightX - taillightWidth/2 + ledSpacing/2 + i * ledSpacing
+      const ledSize = taillightHeight * 0.6
+      
+      // 上尾灯LED
+      ctx.beginPath()
+      ctx.arc(ledX, taillightY1, ledSize/2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 下尾灯LED  
+      ctx.beginPath()
+      ctx.arc(ledX, taillightY2, ledSize/2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
     
-    // 左后尾灯
-    ctx.beginPath()
-    ctx.arc(taillightX, taillightY1, taillightSize/2, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-    
-    // 右后尾灯
-    ctx.beginPath()
-    ctx.arc(taillightX, taillightY2, taillightSize/2, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-    
-    // 车身高光效果
-    ctx.fillStyle = 'rgba(156, 163, 175, 0.3)'
-    const highlightHeight = vehicleWidth * 0.15
+    // 车身高光和装饰条
+    ctx.fillStyle = 'rgba(156, 163, 175, 0.4)'
+    const highlightHeight = vehicleWidth * 0.12
     ctx.fillRect(bodyLeft + bodyLength * 0.1, bodyTop, 
                 bodyLength * 0.8, highlightHeight)
     
-    // 轮胎 - 黑色
-    ctx.fillStyle = '#111827'
-    ctx.strokeStyle = '#374151'
-    ctx.lineWidth = 1
+    // 侧装饰条
+    ctx.fillStyle = 'rgba(107, 114, 128, 0.6)'
+    const sideStripeY = (bodyTop + bodyBottom) / 2
+    ctx.fillRect(bodyLeft, sideStripeY - 1, bodyLength, 2)
     
-    const wheelRadius = vehicleWidth * 0.08
-    const wheelOffsetX = vehicleLength * 0.25
-    const wheelOffsetY = vehicleWidth * 0.35
+    // 精细车轮设计
+    const wheelRadius = vehicleWidth * 0.09
+    const tireWidth = wheelRadius * 0.3
+    const wheelOffsetX = vehicleLength * 0.28
+    const wheelOffsetY = vehicleWidth * 0.38
     
-    // 前轮 - 左
-    ctx.beginPath()
-    ctx.arc(wheelOffsetX, -wheelOffsetY, wheelRadius, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
+    // 轮胎绘制函数
+    const drawWheel = (x, y) => {
+      // 轮胎外圈
+      ctx.fillStyle = '#111827'
+      ctx.strokeStyle = '#1F2937'
+      ctx.lineWidth = 1.2
+      ctx.beginPath()
+      ctx.arc(x, y, wheelRadius, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 轮毂
+      ctx.fillStyle = '#6B7280'
+      ctx.strokeStyle = '#4B5563'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(x, y, wheelRadius * 0.7, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 轮毂辐条
+      ctx.strokeStyle = '#374151'
+      ctx.lineWidth = 1.5
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + Math.cos(angle) * wheelRadius * 0.6, 
+                  y + Math.sin(angle) * wheelRadius * 0.6)
+        ctx.stroke()
+      }
+      
+      // 轮毂中心
+      ctx.fillStyle = '#1F2937'
+      ctx.beginPath()
+      ctx.arc(x, y, wheelRadius * 0.25, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // 轮胎花纹
+      ctx.strokeStyle = '#374151'
+      ctx.lineWidth = 0.8
+      const treadLines = 12
+      for (let i = 0; i < treadLines; i++) {
+        const angle = (i * Math.PI * 2) / treadLines
+        const innerR = wheelRadius * 0.85
+        const outerR = wheelRadius * 0.95
+        ctx.beginPath()
+        ctx.moveTo(x + Math.cos(angle) * innerR, y + Math.sin(angle) * innerR)
+        ctx.lineTo(x + Math.cos(angle) * outerR, y + Math.sin(angle) * outerR)
+        ctx.stroke()
+      }
+    }
     
-    // 前轮 - 右
-    ctx.beginPath()
-    ctx.arc(wheelOffsetX, wheelOffsetY, wheelRadius, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-    
-    // 后轮 - 左
-    ctx.beginPath()
-    ctx.arc(-wheelOffsetX, -wheelOffsetY, wheelRadius, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
-    
-    // 后轮 - 右
-    ctx.beginPath()
-    ctx.arc(-wheelOffsetX, wheelOffsetY, wheelRadius, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.stroke()
+    // 绘制四个车轮
+    drawWheel(wheelOffsetX, -wheelOffsetY)   // 前左
+    drawWheel(wheelOffsetX, wheelOffsetY)    // 前右
+    drawWheel(-wheelOffsetX, -wheelOffsetY)  // 后左
+    drawWheel(-wheelOffsetX, wheelOffsetY)   // 后右
     
     // 方向指示箭头（在车顶中央）
     ctx.strokeStyle = '#10B981'
