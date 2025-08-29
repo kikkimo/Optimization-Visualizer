@@ -2162,6 +2162,10 @@ const Section5WorkflowStep1 = () => {
   
   // 绘制移动的质点
   const drawMovingBall = (ctx, x, y, marginX, marginY, chartWidth, chartHeight) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     const coords = getTimeOptCanvasCoords(x, y, marginX, marginY, chartWidth, chartHeight)
     
     // 外圈微光
@@ -2318,6 +2322,10 @@ const Section5WorkflowStep1 = () => {
   
   // 绘制网格
   const drawTimeOptGrid = (ctx, marginX, marginY, chartWidth, chartHeight) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     // 次级网格
     ctx.strokeStyle = '#252933'
     ctx.globalAlpha = 0.4
@@ -2369,6 +2377,10 @@ const Section5WorkflowStep1 = () => {
   }
   // 绘制坐标轴
   const drawTimeOptAxes = (ctx, marginX, marginY, chartWidth, chartHeight) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     ctx.strokeStyle = '#E7EDF8'
     ctx.lineWidth = 2
     ctx.setLineDash([])
@@ -2415,6 +2427,10 @@ const Section5WorkflowStep1 = () => {
   
   // 绘制坐标刻度
   const drawTimeOptTicks = (ctx, marginX, marginY, chartWidth, chartHeight) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     ctx.strokeStyle = '#BFC9DA'
     ctx.fillStyle = '#BFC9DA'
     ctx.lineWidth = 1
@@ -2496,6 +2512,10 @@ const Section5WorkflowStep1 = () => {
   
   // 绘制起止点
   const drawTimeOptPoints = (ctx, marginX, marginY, chartWidth, chartHeight, scale = 1) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     const startCoords = getTimeOptCanvasCoords(timeOptData.start.x, timeOptData.start.y, marginX, marginY, chartWidth, chartHeight)
     const targetCoords = getTimeOptCanvasCoords(timeOptData.target.x, timeOptData.target.y, marginX, marginY, chartWidth, chartHeight)
     
@@ -2522,6 +2542,10 @@ const Section5WorkflowStep1 = () => {
   }
   // 绘制重力箭头
   const drawGravityArrow = (ctx, marginX, marginY, chartWidth, chartHeight, alpha = 1) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     ctx.globalAlpha = alpha
     ctx.strokeStyle = '#F6AD55'
     ctx.fillStyle = '#F6AD55'
@@ -2556,6 +2580,10 @@ const Section5WorkflowStep1 = () => {
   
   // 绘制路径
   const drawTimeOptPath = (ctx, path, marginX, marginY, chartWidth, chartHeight, alpha = 1, lineWidth = 3) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     ctx.globalAlpha = alpha
     ctx.strokeStyle = path.color
     ctx.lineWidth = lineWidth
@@ -2663,6 +2691,10 @@ const Section5WorkflowStep1 = () => {
   
   // 绘制数值卡片（相对图表区域底部定位）
   const drawTimeOptValueCard = (ctx, currentPath, currentTime = 0, marginX = 48, marginY = 64, chartHeight = 300) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     const cardWidth = 280
     const cardHeight = 100
     const cardGap = 20 // 距离图表底部的间隙
@@ -2711,6 +2743,10 @@ const Section5WorkflowStep1 = () => {
   }
   // 绘制时间对比条（相对图表区域底部定位）
   const drawTimeOptComparisonBar = (ctx, width, currentPathId, marginX = 48, marginY = 64, chartWidth = 500, chartHeight = 300) => {
+    // 添加15%的高度下移偏移
+    const canvasHeight = ctx.canvas.height
+    const offsetY = canvasHeight * 0.05
+    marginY += offsetY
     const barWidth = 400
     const barHeight = 100
     const cardGap = 20 // 距离图表底部的间隙
