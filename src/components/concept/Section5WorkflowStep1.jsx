@@ -1185,12 +1185,10 @@ const Section5WorkflowStep1 = () => {
         // 始终显示底部描述文字（不参与动画）
         drawCoverageDescriptionCard(ctx, width, height)
         
-        // 绘制其他UI组件（从进度20%开始显示）
-        if (progress >= 0.2) {
-          drawCoverageFormulaCard(ctx, width)
-          drawCoverageValueCard(ctx, plan, currentCoverage, marginX, marginY, chartHeight)
-          drawCoverageComparisonBar(ctx, width, plan.id, marginX, marginY, chartWidth, chartHeight)
-        }
+        // 绘制其他UI组件（始终显示）
+        drawCoverageFormulaCard(ctx, width)
+        drawCoverageValueCard(ctx, plan, currentCoverage, marginX, marginY, chartHeight)
+        drawCoverageComparisonBar(ctx, width, plan.id, marginX, marginY, chartWidth, chartHeight)
         
         // 再次检查停止信号
         if (animationShouldStop) {
@@ -1248,7 +1246,7 @@ const Section5WorkflowStep1 = () => {
     const cardWidth = 220
     const cardHeight = 100
     const x = marginX + 50 // 相对于图表左边距
-    const y = ctx.canvas.height - 130 // 统一Y坐标位置 
+    const y = ctx.canvas.height - 180 // 统一Y坐标位置 
     
     // 绘制卡片背景
     ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
@@ -1282,10 +1280,10 @@ const Section5WorkflowStep1 = () => {
 
   // 绘制方案对比条（相对图表区域底部定位）
   const drawCoverageComparisonBar = (ctx, width, activePlanId = null, marginX = 48, marginY = 64, chartWidth = 500, chartHeight = 300) => {
-    const barWidth = 200
+    const barWidth = 280
     const barHeight = 100
     const x = marginX + chartWidth - barWidth - 50 // 相对于图表右边距
-    const y = ctx.canvas.height - 130 // 统一Y坐标位置
+    const y = ctx.canvas.height - 180 // 统一Y坐标位置
     
     // 绘制背景
     ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
@@ -1295,29 +1293,74 @@ const Section5WorkflowStep1 = () => {
     ctx.fill()
     ctx.stroke()
     
-    // 绘制方案对比
-    ctx.textAlign = 'left'
-    ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
+    // 定义方案配色（参考最大置信度配色）
+    const planColors = {
+      'A': '#8B5CF6', // 紫色
+      'B': '#10B981', // 绿色（最优方案）
+      'C': '#F59E0B', // 橙色
+      'D': '#EF4444'  // 红色
+    }
     
+    // 辅助函数：绘制文本（完全模仿置信度样式）
+    const drawText = (ctx, text, x, y, options = {}) => {
+      const {
+        fontSize = 11,
+        fontWeight = 'normal',
+        color = '#F3F4F6',
+        fontFamily = 'ui-sans-serif, -apple-system, sans-serif',
+        baseline = 'middle'
+      } = options
+      
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.fillStyle = color
+      ctx.textBaseline = baseline
+      ctx.textAlign = 'left'
+      ctx.fillText(text, x, y)
+    }
+    
+    // 对比条（完全模仿置信度样式，去掉标题，直接显示）
     coveragePlans.forEach((plan, index) => {
-      const textY = y + 25 + index * 18
+      const barY = y + 20 + index * 18  // 从顶部开始，增加行间距
+      const progressBarWidth = 140  // 减小进度条宽度
+      const fillWidth = progressBarWidth * (plan.coverage / 100)
+      const barCenterY = barY + 4  // 进度条中心Y坐标
+      
       const isActive = activePlanId === plan.id
       const isOptimal = plan.isOptimal
+      const planColor = planColors[plan.id]
       
-      if (isActive) {
-        ctx.fillStyle = '#ED8936'
-      } else if (isOptimal) {
-        ctx.fillStyle = '#38A169'
-      } else {
-        ctx.fillStyle = '#9CA3AF'
-      }
+      // 方案名称标签 - 垂直居中对齐进度条
+      drawText(ctx, `方案${plan.id}:`, x + 15, barCenterY, {
+        fontSize: 11,
+        color: isActive ? planColor : '#9CA3AF',
+        fontWeight: isActive ? 'bold' : 'normal',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
       
-      ctx.fillText(`${plan.id}:${plan.coverage.toFixed(1)}%`, x + 16, textY)
+      // 背景条
+      ctx.fillStyle = 'rgba(75, 85, 99, 0.3)'
+      ctx.fillRect(x + 60, barY, progressBarWidth, 8)
       
-      // 绘制最优标记
+      // 填充条
+      ctx.fillStyle = planColor
+      ctx.fillRect(x + 60, barY, fillWidth, 8)
+      
+      // 覆盖率百分比 - 垂直居中对齐进度条
+      const textColor = isOptimal ? '#22C55E' : (isActive ? '#3B82F6' : '#9CA3AF')
+      drawText(ctx, `${plan.coverage.toFixed(1)}%`, x + 210, barCenterY, {
+        fontSize: 10,
+        color: textColor,
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 最优方案奖杯（右侧留出空间）- 垂直居中对齐进度条
       if (isOptimal) {
-        ctx.fillStyle = '#38A169'
-        ctx.fillText('🏆', x + 80, textY)
+        drawText(ctx, '🏆', x + 250, barCenterY, {
+          fontSize: 10,
+          baseline: 'middle'
+        })
       }
     })
   }
