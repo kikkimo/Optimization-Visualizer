@@ -2,12 +2,14 @@ import React, { useRef, useEffect, useState } from 'react'
 import katex from 'katex'
 
 import MixedVariableAnimation from './animations/MixedVariableAnimation'
+import SetConstraintAnimation from './animations/SetConstraintAnimation'
 const Section5WorkflowStep1 = () => {
   // Stage1 Canvas 动画状态
   const [activeCard, setActiveCard] = useState(1) // 当前活跃的卡片 1-4
   const [activeExample, setActiveExample] = useState(0) // 当前活跃的胶囊索引
   const [animationState, setAnimationState] = useState('Idle@Card1') // 动画状态机
   const [isPlaying, setIsPlaying] = useState(false) // 是否正在播放
+  const [constraintAnimationInfo, setConstraintAnimationInfo] = useState(null) // 约束动画状态信息
   const canvasRef = useRef(null)
   const katexRef = useRef(null) // KaTeX渲染元素引用
 
@@ -94,6 +96,7 @@ const Section5WorkflowStep1 = () => {
     // 不允许的胶囊点击，直接返回，不做任何响应
     return
   }
+  
   
   // 对于其他卡片，保持原有逻辑
   // 立即更新状态
@@ -327,12 +330,12 @@ const Section5WorkflowStep1 = () => {
     }
   }
 
-  const playCard3SpecificScene = async (ctx, width, height, sceneIndex) => {
+  const playCard3SpecificScene = async (ctx, width, height, sceneIndex, signal) => {
     switch (sceneIndex) {
       case 0: return await playCard3Scene1(ctx, width, height)
       case 1: return await playCard3Scene2(ctx, width, height)
       case 2: return await playCard3Scene3(ctx, width, height)
-      case 3: return await playCard3Scene4(ctx, width, height)
+      case 3: return await playCard3Scene4(ctx, width, height, signal)
       case 4: return await playCard3Scene5(ctx, width, height)
       default: return await playCard3Scene1(ctx, width, height)
     }
@@ -3965,14 +3968,24 @@ const Section5WorkflowStep1 = () => {
     return new Promise(resolve => setTimeout(resolve, 2000))
   }
 
-  const playCard3Scene4 = async (ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height)
-    drawText(ctx, '集合/结构约束（拓扑/锥/半定）', width/2, height/2, {
-      fontSize: 16,
-      align: 'center',
-      color: '#1A202C'
+  const playCard3Scene4 = async (ctx, width, height, signal) => {
+    // 集合/结构约束动画现在由 SetConstraintAnimation 组件处理
+    // 这里需要等待动画完成的时间，但要响应中止信号
+    const animationDuration = 12500 // 12.5秒，与动画实际时长一致
+    
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        resolve()
+      }, animationDuration)
+      
+      // 监听中止信号
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId)
+          resolve()
+        })
+      }
     })
-    return new Promise(resolve => setTimeout(resolve, 2000))
   }
 
   const playCard3Scene5 = async (ctx, width, height) => {
@@ -4000,9 +4013,9 @@ const Section5WorkflowStep1 = () => {
       {/* 左侧 Canvas 区域 (75%) */}
       <div style={{ 
         flex: '3',
-        background: 'rgba(15, 23, 42, 0.2)',
+        background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%)',
         borderRadius: '16px',
-        border: '1px solid rgba(75, 85, 99, 0.1)',
+        border: '1px solid rgba(59, 130, 246, 0.15)',
         position: 'relative',
         overflow: 'hidden'
       }}>
@@ -4030,7 +4043,6 @@ const Section5WorkflowStep1 = () => {
             borderRadius: '8px',
             fontSize: '20px',
             color: '#E7EDF8',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
             zIndex: 10,
             pointerEvents: 'none',
             minWidth: '600px',
@@ -4052,7 +4064,14 @@ const Section5WorkflowStep1 = () => {
                 } else if (activeCard === 2) {
                   return 'x \\in \\mathbb{R}^n \\text{ (变量空间定义)}'
                 } else if (activeCard === 3) {
-                  return 'f: \\mathbb{R}^n \\rightarrow \\mathbb{R} \\text{ (目标函数构建)}'
+                  if (activeExample === 3) {
+                    return '\\begin{aligned}' +
+                           '\\text{流形约束：} & \\gamma \\in S^2_R \\\\' +
+                           '\\text{集合约束：} & \\gamma \\cap C^{(+\\delta)} = \\emptyset' +
+                           '\\end{aligned}'
+                  } else {
+                    return 'f: \\mathbb{R}^n \\rightarrow \\mathbb{R} \\text{ (目标函数构建)}'
+                  }
                 } else if (activeCard === 4) {
                   return '\\text{Problem Profile: } (\\text{目标}, \\text{约束}, \\text{变量}) \\rightarrow \\text{求解策略}'
                 } else {
@@ -4061,7 +4080,7 @@ const Section5WorkflowStep1 = () => {
               })(),
               {
                 throwOnError: false,
-                displayMode: false
+                displayMode: activeCard === 3 && activeExample === 3 ? true : false
               }
             )
           }}
@@ -4094,6 +4113,135 @@ const Section5WorkflowStep1 = () => {
           </div>
         )}
         
+        {/* 集合约束动画层 */}
+        {activeCard === 3 && activeExample === 3 && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 5,
+            visibility: 'visible',
+            opacity: 1
+          }}>
+            <SetConstraintAnimation 
+              isPlaying={(() => {
+                const shouldPlay = isPlaying && activeCard === 3 && activeExample === 3
+                return shouldPlay
+              })()}
+              onAnimationUpdate={(animationStage) => {
+                setConstraintAnimationInfo(animationStage)
+              }}
+              onComplete={() => {
+                setIsPlaying(false)
+                setAnimationState(`Idle@Card${activeCard}`)
+                // 设置最终状态
+                setConstraintAnimationInfo({
+                  stage: 'complete',
+                  title: '约束演示完成',
+                  content: [
+                    '集合/结构约束演示完成',
+                    '点击播放按钮重新观看演示过程'
+                  ]
+                })
+                const canvas = canvasRef.current
+                if (canvas) {
+                  const ctx = canvas.getContext('2d')
+                  drawCurrentCardStaticScene(ctx, canvas.clientWidth, canvas.clientHeight)
+                }
+              }}
+            />
+          </div>
+        )}
+        
+        {/* 底部信息公式区域 - 仅在集合约束动画时显示 */}
+        {activeCard === 3 && activeExample === 3 && constraintAnimationInfo && (
+          <div style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 6,
+            backgroundColor: 'rgba(17, 24, 39, 0.92)',
+            border: '1.5px solid rgba(59, 130, 246, 0.25)',
+            borderRadius: '8px',
+            padding: '16px 20px',
+            maxWidth: '80%',
+            minWidth: '55%',
+            maxHeight: '35vh', // 增加最大高度到35%
+            textAlign: 'center',
+            overflow: 'visible'
+          }}>
+            <div style={{ 
+              color: '#E7EDF8', 
+              fontSize: '14px', 
+              fontFamily: 'Consolas, monospace',
+              lineHeight: '1.4',
+              maxHeight: 'none',
+              overflowY: 'visible'
+            }}>
+              {/* 动态标题 */}
+              <div style={{ 
+                fontSize: '16px', 
+                fontWeight: 'bold', 
+                marginBottom: '8px',
+                color: '#4A90E2'
+              }}>
+                {constraintAnimationInfo.title}
+              </div>
+              
+              {/* 动态内容 */}
+              {constraintAnimationInfo.content.map((line, index) => (
+                <div key={index} style={{ 
+                  marginBottom: index === constraintAnimationInfo.content.length - 1 ? '0' : '6px',
+                  fontSize: line.includes('•') ? '12px' : '14px',
+                  textAlign: line.includes('•') ? 'left' : 'center'
+                }}>
+                  {line.includes('γ ∈ S²ᵣ') ? (
+                    <span>
+                      流形约束：
+                      <span 
+                        dangerouslySetInnerHTML={{
+                          __html: katex.renderToString('\\gamma \\in S^2_R', {
+                            throwOnError: false,
+                            displayMode: false
+                          })
+                        }}
+                        style={{ 
+                          color: '#4A90E2',
+                          fontSize: '18px',
+                          marginLeft: '8px'
+                        }}
+                      />
+                    </span>
+                  ) : line.includes('γ ∩ C⁽⁺ᵟ⁾ = ∅') ? (
+                    <span>
+                      集合约束：
+                      <span 
+                        dangerouslySetInnerHTML={{
+                          __html: katex.renderToString('\\gamma \\cap C^{(+\\delta)} = \\emptyset', {
+                            throwOnError: false,
+                            displayMode: false
+                          })
+                        }}
+                        style={{ 
+                          color: '#4A90E2',
+                          fontSize: '18px',
+                          marginLeft: '8px'
+                        }}
+                      />
+                    </span>
+                  ) : (
+                    line
+                  )}
+                </div>
+              ))}
+              
+            </div>
+          </div>
+        )}
+        
         {/* 右上角播放按钮 */}
         <div style={{
           position: 'absolute',
@@ -4105,10 +4253,10 @@ const Section5WorkflowStep1 = () => {
             onClick={() => playSpecificExample(activeCard, activeExample)}
             style={{
               padding: '8px 12px',
-              background: 'rgba(60, 230, 192, 0.1)',
-              border: '1px solid rgba(60, 230, 192, 0.3)',
-              borderRadius: '6px',
-              color: '#3ce6c0',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              borderRadius: '8px',
+              color: '#60A5FA',
               fontSize: '12px',
               cursor: isPlaying ? 'not-allowed' : 'pointer',
               opacity: isPlaying ? 0.6 : 1
@@ -4133,9 +4281,9 @@ const Section5WorkflowStep1 = () => {
             onClick={() => handleCardClick(card.id)}
             style={{
               background: activeCard === card.id 
-                ? 'rgba(43, 108, 176, 0.1)' 
-                : 'rgba(15, 23, 42, 0.3)',
-              border: `1px solid ${activeCard === card.id ? '#2B6CB0' : 'rgba(75, 85, 99, 0.2)'}`,
+                ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%)' 
+                : 'linear-gradient(135deg, rgba(31, 41, 55, 0.6) 0%, rgba(17, 24, 39, 0.8) 100%)',
+              border: `1px solid ${activeCard === card.id ? 'rgba(59, 130, 246, 0.4)' : 'rgba(75, 85, 99, 0.3)'}`,
               borderRadius: '12px',
               padding: '16px',
               cursor: 'pointer',
@@ -4149,7 +4297,7 @@ const Section5WorkflowStep1 = () => {
             <h4 style={{
               fontSize: '14px',
               fontWeight: '600',
-              color: activeCard === card.id ? '#2B6CB0' : '#E8EAED',
+              color: activeCard === card.id ? '#3B82F6' : '#F1F5F9',
               marginBottom: '6px',
               lineHeight: '1.3'
             }}>
@@ -4190,14 +4338,14 @@ const Section5WorkflowStep1 = () => {
                       borderRadius: '999px',
                       fontSize: '10px',
                       background: activeCard === card.id && activeExample === index
-                        ? 'rgba(43, 108, 176, 0.2)'
-                        : 'rgba(75, 85, 99, 0.15)',
+                        ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.15) 100%)'
+                        : 'rgba(55, 65, 81, 0.4)',
                       color: activeCard === card.id && activeExample === index
-                        ? '#2B6CB0'
-                        : 'rgba(156, 163, 175, 0.9)',
+                        ? '#3B82F6'
+                        : '#CBD5E1',
                       border: activeCard === card.id && activeExample === index
-                        ? '1px solid #2B6CB0'
-                        : '1px solid transparent',
+                        ? '1px solid rgba(59, 130, 246, 0.5)'
+                        : '1px solid rgba(75, 85, 99, 0.3)',
                       whiteSpace: 'nowrap',
                       transition: 'all 0.3s ease',
                       cursor: 'pointer'
