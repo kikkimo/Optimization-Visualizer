@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react'
 import katex from 'katex'
 
+import MixedVariableAnimation from './animations/MixedVariableAnimation'
 const Section5WorkflowStep1 = () => {
   // Stage1 Canvas 动画状态
   const [activeCard, setActiveCard] = useState(1) // 当前活跃的卡片 1-4
@@ -308,12 +309,12 @@ const Section5WorkflowStep1 = () => {
     }
   }
 
-  const playCard2SpecificScene = async (ctx, width, height, sceneIndex) => {
+  const playCard2SpecificScene = async (ctx, width, height, sceneIndex, signal) => {
     switch (sceneIndex) {
-      case 0: return await playCard2Scene1(ctx, width, height)
-      case 1: return await playCard2Scene2(ctx, width, height)
-      case 2: return await playCard2Scene3(ctx, width, height)
-      default: return await playCard2Scene1(ctx, width, height)
+      case 0: return await playCard2Scene1(ctx, width, height, signal)
+      case 1: return await playCard2Scene2(ctx, width, height, signal)
+      case 2: return await playCard2Scene3(ctx, width, height, signal)
+      default: return await playCard2Scene1(ctx, width, height, signal)
     }
   }
 
@@ -3875,27 +3876,58 @@ const Section5WorkflowStep1 = () => {
     })
   }
 
-  const playCard2Scene1 = async (ctx, width, height) => {
+  const playCard2Scene1 = async (ctx, width, height, signal) => {
     drawCard2Scene1(ctx, width, height)
-    return new Promise(resolve => setTimeout(resolve, 2000))
+    
+    return new Promise(resolve => {
+      const timeoutId = setTimeout(resolve, 2000)
+      
+      // 监听中止信号
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId)
+          resolve()
+        })
+      }
+    })
   }
 
-  const playCard2Scene2 = async (ctx, width, height) => {
+  const playCard2Scene2 = async (ctx, width, height, signal) => {
     ctx.clearRect(0, 0, width, height)
     drawText(ctx, '离散变量（选址/路径/布设）', width/2, height/2, {
       fontSize: 16,
       align: 'center',
       color: '#1A202C'
     })
-    return new Promise(resolve => setTimeout(resolve, 2000))
+    
+    return new Promise(resolve => {
+      const timeoutId = setTimeout(resolve, 2000)
+      
+      // 监听中止信号
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId)
+          resolve()
+        })
+      }
+    })
   }
 
-  const playCard2Scene3 = async (ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height)
-    drawText(ctx, '混合变量（整数开关 + 连续参数）', width/2, height/2, {
-      fontSize: 16,
-      align: 'center',
-      color: '#1A202C'
+  const playCard2Scene3 = async (ctx, width, height, signal) => {
+    // 混合变量动画现在由 MixedVariableAnimation 组件处理
+    // 这里需要等待动画完成的时间，但要响应中止信号
+    const animationDuration = 12000 // 12秒
+    
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(resolve, animationDuration)
+      
+      // 监听中止信号
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId)
+          resolve()
+        })
+      }
     })
   }
 
@@ -4026,11 +4058,39 @@ const Section5WorkflowStep1 = () => {
           }}
         />
         
+        {/* 混合变量动画层 */}
+        {activeCard === 2 && activeExample === 2 && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 5,
+            visibility: 'visible',
+            opacity: 1
+          }}>
+            <MixedVariableAnimation 
+              isPlaying={isPlaying && activeCard === 2 && activeExample === 2}
+              onComplete={() => {
+                setIsPlaying(false)
+                setAnimationState(`Idle@Card${activeCard}`)
+                const canvas = canvasRef.current
+                if (canvas) {
+                  const ctx = canvas.getContext('2d')
+                  drawCurrentCardStaticScene(ctx, canvas.clientWidth, canvas.clientHeight)
+                }
+              }}
+            />
+          </div>
+        )}
+        
         {/* 右上角播放按钮 */}
         <div style={{
           position: 'absolute',
           top: '16px',
-          right: '16px'
+          right: '16px',
+          zIndex: 10
         }}>
           <button
             onClick={() => playSpecificExample(activeCard, activeExample)}
