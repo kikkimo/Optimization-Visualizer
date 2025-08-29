@@ -41,9 +41,17 @@ const Section5WorkflowStep1 = () => {
 
   // 处理卡片点击
   const handleCardClick = (cardId) => {
-    // 切换到新卡片，重置活跃胶囊为第一个
+    // 切换到新卡片
     setActiveCard(cardId)
-    setActiveExample(0)
+    
+    // 如果是确定变量卡片(cardId=2)，默认选中混合变量胶囊(index=2)
+    if (cardId === 2) {
+      setActiveExample(2)
+    } else {
+      // 其他卡片重置活跃胶囊为第一个
+      setActiveExample(0)
+    }
+    
     setIsPlaying(false)
     
     // 不自动播放，只切换静态显示
@@ -58,19 +66,10 @@ const Section5WorkflowStep1 = () => {
 
   // 处理胶囊点击
   const handleExampleClick = (cardId, exampleIndex) => {
-    // 立即更新状态
+  // 如果是确定变量卡片(cardId=2)，始终强制选择混合变量胶囊(index=2)，不允许切换
+  if (cardId === 2) {
     setActiveCard(cardId)
-    setActiveExample(exampleIndex)
-    
-    // 如果点击的是覆盖动画胶囊，更新覆盖方案状态
-    if (cardId === 1 && exampleIndex === 1) {
-      setCurrentCoveragePlan('B') // 默认显示最优方案B (站点3,5,6 - 75.33%)
-    }
-    
-    // 如果点击的是置信度动画胶囊，更新置信度方案状态
-    if (cardId === 1 && exampleIndex === 3) {
-      setCurrentConfidenceScheme('B') // 默认显示最优方案B (95.2%)
-    }
+    setActiveExample(2) // 强制设置为混合变量胶囊索引
     
     // 立即绘制对应的静态场景
     const canvas = canvasRef.current
@@ -81,9 +80,38 @@ const Section5WorkflowStep1 = () => {
       drawCurrentCardStaticScene(ctx, width, height)
     }
     
-    // 然后播放动画
-    playSpecificExample(cardId, exampleIndex)
+    // 然后播放混合变量的动画
+    playSpecificExample(cardId, 2)
+    return // 直接返回，不执行后续逻辑
   }
+  
+  // 对于其他卡片，保持原有逻辑
+  // 立即更新状态
+  setActiveCard(cardId)
+  setActiveExample(exampleIndex)
+  
+  // 如果点击的是覆盖动画胶囊，更新覆盖方案状态
+  if (cardId === 1 && exampleIndex === 1) {
+    setCurrentCoveragePlan('B') // 默认显示最优方案B (站点3,5,6 - 75.33%)
+  }
+  
+  // 如果点击的是置信度动画胶囊，更新置信度方案状态
+  if (cardId === 1 && exampleIndex === 3) {
+    setCurrentConfidenceScheme('B') // 默认显示最优方案B (95.2%)
+  }
+  
+  // 立即绘制对应的静态场景
+  const canvas = canvasRef.current
+  if (canvas) {
+    const ctx = canvas.getContext('2d')
+    const width = canvas.clientWidth
+    const height = canvas.clientHeight
+    drawCurrentCardStaticScene(ctx, width, height)
+  }
+  
+  // 然后播放动画
+  playSpecificExample(cardId, exampleIndex)
+}
 
   // 播放特定胶囊的动画
   const playSpecificExample = async (cardId, exampleIndex) => {
@@ -176,10 +204,42 @@ const Section5WorkflowStep1 = () => {
         }
         break
       case 2:
-        drawCard2Scene1(ctx, width, height)
+        // 根据当前胶囊显示不同的静态场景
+        switch (activeExample) {
+          case 0:
+            drawCard2Scene1(ctx, width, height) // 连续变量
+            break
+          case 1:
+            drawCard2Scene2(ctx, width, height) // 离散变量
+            break
+          case 2:
+            drawCard2Scene3(ctx, width, height) // 混合变量
+            break
+          default:
+            drawCard2Scene1(ctx, width, height)
+        }
         break
       case 3:
-        drawCard3Scene1(ctx, width, height)
+        // 根据当前胶囊显示不同的静态场景
+        switch (activeExample) {
+          case 0:
+            drawCard3Scene1(ctx, width, height) // 目标函数 f(x) / 代价
+            break
+          case 1:
+            drawCard3Scene2(ctx, width, height) // 等式约束 g(x)=0
+            break
+          case 2:
+            drawCard3Scene3(ctx, width, height) // 不等式约束 h(x)≤0
+            break
+          case 3:
+            drawCard3Scene4(ctx, width, height) // 集合/结构约束
+            break
+          case 4:
+            drawCard3Scene5(ctx, width, height) // 正则项 R(x)
+            break
+          default:
+            drawCard3Scene1(ctx, width, height)
+        }
         break
       case 4:
         // 卡片4没有静态场景，显示标题
@@ -3737,20 +3797,81 @@ const Section5WorkflowStep1 = () => {
 
   // 其他卡片的临时实现
   const drawCard2Scene1 = (ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height)
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
     drawText(ctx, '连续变量（位姿/点坐标/参数）', width/2, height/2, {
       fontSize: 16,
       align: 'center',
-      color: '#1A202C'
+      color: '#E7EDF8'
+    })
+  }
+  const drawCard2Scene2 = (ctx, width, height) => {
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    drawText(ctx, '离散变量（索引/标号/选择）', width/2, height/2, {
+      fontSize: 16,
+      align: 'center',
+      color: '#E7EDF8'
+    })
+  }
+
+  const drawCard2Scene3 = (ctx, width, height) => {
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    drawText(ctx, '混合变量（连续+离散）', width/2, height/2, {
+      fontSize: 16,
+      align: 'center',
+      color: '#E7EDF8'
     })
   }
 
   const drawCard3Scene1 = (ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height)
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
     drawText(ctx, '目标函数 f(x) / 代价', width/2, height/2, {
       fontSize: 16,
       align: 'center',
-      color: '#1A202C'
+      color: '#E7EDF8'
+    })
+  }
+
+  const drawCard3Scene2 = (ctx, width, height) => {
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    drawText(ctx, '等式约束 g(x)=0', width/2, height/2, {
+      fontSize: 16,
+      align: 'center',
+      color: '#E7EDF8'
+    })
+  }
+
+  const drawCard3Scene3 = (ctx, width, height) => {
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    drawText(ctx, '不等式约束 h(x)≤0', width/2, height/2, {
+      fontSize: 16,
+      align: 'center',
+      color: '#E7EDF8'
+    })
+  }
+
+  const drawCard3Scene4 = (ctx, width, height) => {
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    drawText(ctx, '集合/结构约束（拓扑/锥/半定）', width/2, height/2, {
+      fontSize: 16,
+      align: 'center',
+      color: '#E7EDF8'
+    })
+  }
+
+  const drawCard3Scene5 = (ctx, width, height) => {
+    ctx.fillStyle = '#0F1116'
+    ctx.fillRect(0, 0, width, height)
+    drawText(ctx, '正则项 R(x)（L1/L2/TV）', width/2, height/2, {
+      fontSize: 16,
+      align: 'center',
+      color: '#E7EDF8'
     })
   }
 
@@ -3776,7 +3897,6 @@ const Section5WorkflowStep1 = () => {
       align: 'center',
       color: '#1A202C'
     })
-    return new Promise(resolve => setTimeout(resolve, 2000))
   }
 
   const playCard3Scene1 = async (ctx, width, height) => {
@@ -3970,44 +4090,49 @@ const Section5WorkflowStep1 = () => {
               flexWrap: 'wrap', 
               gap: '6px' 
             }}>
-              {(card.examples || card.labels || []).map((item, index) => (
-                <span
-                  key={index}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleExampleClick(card.id, index)
-                  }}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '999px',
-                    fontSize: '10px',
-                    background: activeCard === card.id && activeExample === index
-                      ? 'rgba(43, 108, 176, 0.2)'
-                      : 'rgba(75, 85, 99, 0.15)',
-                    color: activeCard === card.id && activeExample === index
-                      ? '#2B6CB0'
-                      : 'rgba(156, 163, 175, 0.9)',
-                    border: activeCard === card.id && activeExample === index
-                      ? '1px solid #2B6CB0'
-                      : '1px solid transparent',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!(activeCard === card.id && activeExample === index)) {
-                      e.currentTarget.style.background = 'rgba(75, 85, 99, 0.25)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!(activeCard === card.id && activeExample === index)) {
-                      e.currentTarget.style.background = 'rgba(75, 85, 99, 0.15)'
-                    }
-                  }}
-                >
-                  {item}
-                </span>
-              ))}
+              {(card.examples || card.labels || []).map((item, index) => {
+                // 检查是否为确定变量卡片的非混合变量胶囊（应该禁用点击）
+                const isClickDisabled = card.id === 2 && index !== 2
+                
+                return (
+                  <span
+                    key={index}
+                    onClick={isClickDisabled ? undefined : (e) => {
+                      e.stopPropagation()
+                      handleExampleClick(card.id, index)
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '999px',
+                      fontSize: '10px',
+                      background: activeCard === card.id && activeExample === index
+                        ? 'rgba(43, 108, 176, 0.2)'
+                        : 'rgba(75, 85, 99, 0.15)',
+                      color: activeCard === card.id && activeExample === index
+                        ? '#2B6CB0'
+                        : 'rgba(156, 163, 175, 0.9)',
+                      border: activeCard === card.id && activeExample === index
+                        ? '1px solid #2B6CB0'
+                        : '1px solid transparent',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!(activeCard === card.id && activeExample === index)) {
+                        e.currentTarget.style.background = 'rgba(75, 85, 99, 0.25)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!(activeCard === card.id && activeExample === index)) {
+                        e.currentTarget.style.background = 'rgba(75, 85, 99, 0.15)'
+                      }
+                    }}
+                  >
+                    {item}
+                  </span>
+                )
+              })}
             </div>
           </div>
         ))}
