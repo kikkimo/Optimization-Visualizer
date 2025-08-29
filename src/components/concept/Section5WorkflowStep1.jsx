@@ -48,6 +48,9 @@ const Section5WorkflowStep1 = () => {
     // 如果是确定变量卡片(cardId=2)，默认选中混合变量胶囊(index=2)
     if (cardId === 2) {
       setActiveExample(2)
+    } else if (cardId === 3) {
+      // 如果是构建函数卡片(cardId=3)，默认选中集合/结构约束胶囊(index=3)
+      setActiveExample(3)
     } else {
       // 其他卡片重置活跃胶囊为第一个
       setActiveExample(0)
@@ -84,6 +87,12 @@ const Section5WorkflowStep1 = () => {
     // 然后播放混合变量的动画
     playSpecificExample(cardId, 2)
     return // 直接返回，不执行后续逻辑
+  }
+  
+  // 如果是构建函数卡片(cardId=3)，只允许集合/结构约束(index=3)和正则项(index=4)点击
+  if (cardId === 3 && exampleIndex !== 3 && exampleIndex !== 4) {
+    // 不允许的胶囊点击，直接返回，不做任何响应
+    return
   }
   
   // 对于其他卡片，保持原有逻辑
@@ -4164,8 +4173,10 @@ const Section5WorkflowStep1 = () => {
               gap: '6px' 
             }}>
               {(card.examples || card.labels || []).map((item, index) => {
-                // 检查是否为确定变量卡片的非混合变量胶囊（应该禁用点击）
-                const isClickDisabled = card.id === 2 && index !== 2
+                // 检查是否为禁用点击的胶囊
+                // 确定变量卡片：只允许混合变量胶囊(index=2)
+                // 构建函数卡片：只允许集合/结构约束(index=3)和正则项(index=4)
+                const isClickDisabled = (card.id === 2 && index !== 2) || (card.id === 3 && index !== 3 && index !== 4)
                 
                 return (
                   <span
