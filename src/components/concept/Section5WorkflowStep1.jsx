@@ -2324,7 +2324,7 @@ const Section5WorkflowStep1 = () => {
         id: 'A',
         name: '直线',
         description: '看起来最短',
-        color: '#F59E0B',
+        color: '#8B5CF6',
         time: 1.190,
         type: 'linear',
         // y = (2/π) * x
@@ -2335,7 +2335,7 @@ const Section5WorkflowStep1 = () => {
         id: 'B', 
         name: '折线',
         description: '先陡后缓的直觉',
-        color: '#3B82F6',
+        color: '#10B981',
         time: 1.050,
         type: 'polyline',
         // S -> K(1.2, 1.5) -> T
@@ -2348,7 +2348,7 @@ const Section5WorkflowStep1 = () => {
         id: 'C',
         name: '二次曲线',
         description: '陡起步的平滑版本',  
-        color: '#8B5CF6',
+        color: '#F59E0B',
         time: 1.044,
         type: 'quadratic',
         // y = αx + βx^2, α=1.3, β≈-0.2111605
@@ -2361,7 +2361,7 @@ const Section5WorkflowStep1 = () => {
         id: 'D',
         name: '摆线',
         description: '最速曲线',
-        color: '#38A169',
+        color: '#EF4444',
         time: 1.003,
         type: 'cycloid',
         isBest: true,
@@ -2764,7 +2764,7 @@ const Section5WorkflowStep1 = () => {
     const cardWidth = 280
     const cardHeight = 100
     const x = marginX + 20 // 相对于图表左边距
-    const y = ctx.canvas.height - 130 // 统一Y坐标位置
+    const y = ctx.canvas.height - 190 // 统一Y坐标位置
     
     // 背景
     ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
@@ -2806,10 +2806,10 @@ const Section5WorkflowStep1 = () => {
     const canvasHeight = ctx.canvas.height
     const offsetY = canvasHeight * 0.05
     marginY += offsetY
-    const barWidth = 400
+    const barWidth = 300
     const barHeight = 100
     const x = marginX + chartWidth - barWidth - 20 // 相对于图表右边距
-    const y = ctx.canvas.height - 130 // 统一Y坐标位置
+    const y = ctx.canvas.height - 190 // 统一Y坐标位置
     
     // 背景
     ctx.fillStyle = 'rgba(15, 17, 22, 0.95)'
@@ -2819,59 +2819,82 @@ const Section5WorkflowStep1 = () => {
     ctx.fill()
     ctx.stroke()
     
-    // 标题
-    ctx.fillStyle = '#F3F4F6'
-    ctx.font = '14px ui-sans-serif, -apple-system, sans-serif'
-    ctx.textAlign = 'left'
-    ctx.fillText('方案时间对比', x + 12, y + 20)
+    // 辅助函数：绘制文本（完全模仿置信度样式）
+    const drawText = (ctx, text, x, y, options = {}) => {
+      const {
+        fontSize = 11,
+        fontWeight = 'normal',
+        color = '#F3F4F6',
+        fontFamily = 'ui-sans-serif, -apple-system, sans-serif',
+        baseline = 'middle'
+      } = options
+      
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+      ctx.fillStyle = color
+      ctx.textBaseline = baseline
+      ctx.textAlign = 'left'
+      ctx.fillText(text, x, y)
+    }
     
-    // 绘制每个方案的时间条
-    const startY = y + 35
+    // 获取最大时间用于进度条归一化
     const maxTime = Math.max(...timeOptData.paths.map(p => p.time))
     const isFinaleState = !currentPathId // 空字符串表示结束状态
     
+    // 对比条（完全模仿置信度样式，去掉标题，直接显示）
     timeOptData.paths.forEach((path, index) => {
-      const itemY = startY + index * 16
-      const barLength = (path.time / maxTime) * 200
+      const barY = y + 20 + index * 18  // 从顶部开始，增加行间距
+      const progressBarWidth = 140  // 减小进度条宽度
+      const fillWidth = progressBarWidth * (path.time / maxTime)
+      const barCenterY = barY + 4  // 进度条中心Y坐标
       
-      // 方案名称（使用路径颜色）
+      const isActive = path.id === currentPathId
+      const isOptimal = path.isBest
+      
+      // 方案名称标签 - 垂直居中对齐进度条
+      drawText(ctx, `路线${path.id}:`, x + 15, barCenterY, {
+        fontSize: 11,
+        color: isActive ? path.color : '#9CA3AF',
+        fontWeight: isActive ? 'bold' : 'normal',
+        fontFamily: 'ui-sans-serif, -apple-system, sans-serif',
+        baseline: 'middle'
+      })
+      
+      // 背景条
+      ctx.fillStyle = 'rgba(75, 85, 99, 0.3)'
+      ctx.fillRect(x + 60, barY, progressBarWidth, 8)
+      
+      // 填充条
       ctx.fillStyle = path.color
-      ctx.font = '12px ui-sans-serif, -apple-system, sans-serif'
-      ctx.fillText(`路线${path.id}`, x + 12, itemY)
+      ctx.fillRect(x + 60, barY, fillWidth, 8)
       
-      // 时间数值（根据状态设置颜色）
-      let timeColor = '#9AA5B1' // 默认灰色
-      
+      // 时间数值 - 垂直居中对齐进度条
+      let timeColor = '#9CA3AF' // 默认灰色
       if (isFinaleState) {
         // 结束状态：最优为绿色，其他为白色
-        timeColor = path.isBest ? '#38A169' : '#E7EDF8'
+        timeColor = isOptimal ? '#22C55E' : '#F3F4F6'
       } else {
         // 播放状态：当前为蓝色，最优为绿色，其他为灰色
-        if (path.id === currentPathId) {
-          timeColor = '#4299E1' // 当前播放：蓝色
-        } else if (path.isBest) {
-          timeColor = '#38A169' // 最优方案：绿色
+        if (isActive) {
+          timeColor = '#3B82F6' // 当前播放：蓝色
+        } else if (isOptimal) {
+          timeColor = '#22C55E' // 最优方案：绿色
         }
       }
       
-      ctx.fillStyle = timeColor
-      ctx.font = '12px ui-monospace, Menlo, monospace'
-      ctx.fillText(`${path.time.toFixed(3)}s`, x + 50, itemY)
+      drawText(ctx, `${path.time.toFixed(3)}s`, x + 210, barCenterY, {
+        fontSize: 10,
+        color: timeColor,
+        fontFamily: 'ui-monospace, Menlo, monospace',
+        baseline: 'middle'
+      })
       
-      // 奖杯（仅最优方案）
-      if (path.isBest) {
-        ctx.fillStyle = '#38A169'
-        ctx.fillText('🏆', x + 110, itemY)
+      // 最优方案奖杯（右侧留出空间）- 垂直居中对齐进度条
+      if (isOptimal) {
+        drawText(ctx, '🏆', x + 260, barCenterY, {
+          fontSize: 10,
+          baseline: 'middle'
+        })
       }
-      
-      // 时间条
-      ctx.fillStyle = path.color + '40' // 半透明
-      ctx.fillRect(x + 130, itemY - 8, barLength, 10)
-      
-      // 时间条边框
-      ctx.strokeStyle = path.color
-      ctx.lineWidth = 1
-      ctx.strokeRect(x + 130, itemY - 8, barLength, 10)
     })
   }
   
