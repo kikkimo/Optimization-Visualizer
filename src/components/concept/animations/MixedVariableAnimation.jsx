@@ -43,24 +43,135 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
   const TARGET_SLOT = { id: 'B5', center: { x: 15.0, y: 2.5 }, heading: Math.PI / 2 }
 
   // 路径控制点 - 根据MATLAB代码优化后的参数
-  const PATH_SEGMENTS = {
-    forward: {
-      bezier: {
-        P0: { x: 2.0, y: 8.0 },
-        P1: { x: 6.0, y: 8.0 },
-        P2: { x: 12.0, y: 6.5 },
-        P3: { x: 15.0, y: 5.5 }
-      }
-    },
-    reverse: {
-      bezier: {
-        P0: { x: 15.0, y: 5.5 },
-        P1: { x: 15.0, y: 4.5 },
-        P2: { x: 15.0, y: 3.5 },
-        P3: { x: 15.0, y: 2.5 }
+  // 根据MATLAB代码实现真实的停车路径规划
+  const generateParkingPath = () => {
+    // MATLAB参数
+    const Rmin = R_MIN
+    const S = [2.0, 8.0]  // 起始点
+    const C = [15.0, 2.6] // 目标停车位中心
+    
+    // 通过参数搜索找到的最优参数 (基于MATLAB结果)
+    const L0 = 4.25      // 入场直线长度
+    const phi1 = Math.PI * 20 / 180  // 第一个右弯角度 (20度)
+    const margin = Math.PI * 8 / 180  // 左弯终角削减 (8度)
+    
+    // 计算中间直线长度
+    const R = Rmin * 1.3  // 使用略大的转弯半径以产生变化的曲率
+    const Delta = Math.PI/2 + phi1 - margin
+    const Sx = S[0], Sy = S[1]
+    const Lmid = (15 - Sx - L0 - R*(2*Math.sin(phi1) + Math.cos(margin))) / Math.cos(phi1)
+    
+    // 生成路径各段
+    const segments = {
+      // 段0: 直线前进
+      seg0: [],
+      // 段1: 右弯
+      seg1: [],
+      // 段2: 斜直线
+      seg2: [],
+      // 段3: 左弯
+      seg3: [],
+      // 段4: 倒车直下
+      seg4: []
+    }
+    
+    // 段0: 入场直线 (S -> S1)
+    const N0 = 40
+    for (let i = 0; i < N0; i++) {
+      const t = i / (N0 - 1)
+      segments.seg0.push({
+        x: S[0] + t * L0,
+        y: S[1],
+        heading: 0,
+        curvature: 0  // 直线段曲率为0
+      })
+    }
+    
+    // 段1: 右弯 (S1 -> S2) - 修复heading方向
+    const S1 = [S[0] + L0, S[1]]
+    const N1 = 140
+    for (let i = 0; i < N1; i++) {
+      const t = i / (N1 - 1)
+      const ph = t * phi1
+      // 渐变曲率：从0逐渐增加到最大值，然后逐渐减小
+      const curvatureScale = Math.sin(t * Math.PI) // 正弦曲线，中间最大
+      segments.seg1.push({
+        x: S1[0] + R * Math.sin(ph),
+        y: S1[1] - R * (1 - Math.cos(ph)),
+        heading: -ph,  // 右转时heading应该为负值，车头向下
+        curvature: (1.0 / R) * curvatureScale  // 渐变曲率
+      })
+    }
+    
+    // 段2: 斜直线 (S2 -> S3)
+    const S2 = segments.seg1[segments.seg1.length - 1]
+    const thS = -phi1
+    const N2 = 220
+    for (let i = 0; i < N2; i++) {
+      const t = i / (N2 - 1)
+      segments.seg2.push({
+        x: S2.x + t * Lmid * Math.cos(thS),
+        y: S2.y + t * Lmid * Math.sin(thS),
+        heading: thS,
+        curvature: 0  // 直线段曲率为0
+      })
+    }
+    
+    // 段3: 左弯 (S3 -> S4)
+    const S3 = segments.seg2[segments.seg2.length - 1]
+    const N3 = 220
+    for (let i = 0; i < N3; i++) {
+      const t = i / (N3 - 1)
+      const psi = t * Delta
+      // 渐变曲率：从0逐渐增加到最大值，然后逐渐减小
+      const curvatureScale = Math.sin(t * Math.PI) // 正弦曲线，中间最大
+      segments.seg3.push({
+        x: S3.x + R * (Math.sin(thS + psi) - Math.sin(thS)),
+        y: S3.y - R * (Math.cos(thS + psi) - Math.cos(thS)),
+        heading: thS + psi,
+        curvature: (1.0 / R) * curvatureScale  // 渐变曲率
+      })
+    }
+    
+    // 段4: 倒车直下 (S4 -> C)
+    const S4 = segments.seg3[segments.seg3.length - 1]
+    const N4 = 240
+    for (let i = 0; i < N4; i++) {
+      const t = i / (N4 - 1)
+      segments.seg4.push({
+        x: 15.0,  // 直线倒车，x恒定
+        y: S4.y + (C[1] - S4.y) * t,
+        heading: Math.PI / 2,  // 车头朝上
+        curvature: 0  // 直线段曲率为0
+      })
+    }
+    
+    // 合并所有段落
+    const allPoints = [
+      ...segments.seg0,
+      ...segments.seg1.slice(1), // 去掉重复点
+      ...segments.seg2.slice(1),
+      ...segments.seg3.slice(1),
+      ...segments.seg4.slice(1)
+    ]
+    
+    // 计算段落索引
+    const forwardEndIndex = segments.seg0.length + segments.seg1.length - 1 + 
+                           segments.seg2.length - 1 + segments.seg3.length - 1
+    
+    return {
+      path: allPoints,
+      forwardEndIndex: forwardEndIndex,
+      segments: {
+        seg0: { start: 0, length: segments.seg0.length },
+        seg1: { start: segments.seg0.length, length: segments.seg1.length - 1 },
+        seg2: { start: segments.seg0.length + segments.seg1.length - 1, length: segments.seg2.length - 1 },
+        seg3: { start: segments.seg0.length + segments.seg1.length + segments.seg2.length - 2, length: segments.seg3.length - 1 },
+        seg4: { start: forwardEndIndex, length: segments.seg4.length - 1 }
       }
     }
   }
+  const PATH_SEGMENTS = generateParkingPath()
 
   // 颜色主题
   const COLORS = {
@@ -314,6 +425,49 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
 
     ctx.setLineDash([])
   }
+  // 绘制真实路径（基于MATLAB算法）
+  const drawRealPath = (ctx, canvasWidth, canvasHeight) => {
+    if (!PATH_SEGMENTS.path || PATH_SEGMENTS.path.length === 0) return
+    
+    const path = PATH_SEGMENTS.path
+    const forwardEndIndex = PATH_SEGMENTS.forwardEndIndex
+    
+    // 绘制前进路径 (蓝色实线)
+    ctx.strokeStyle = COLORS.forwardPath
+    ctx.lineWidth = 2.5
+    ctx.setLineDash([])
+    ctx.beginPath()
+    
+    for (let i = 0; i <= forwardEndIndex; i++) {
+      const point = worldToScreen(path[i].x, path[i].y, canvasWidth, canvasHeight)
+      if (i === 0) {
+        ctx.moveTo(point.x, point.y)
+      } else {
+        ctx.lineTo(point.x, point.y)
+      }
+    }
+    ctx.stroke()
+    
+    // 绘制倒车路径 (橙色虚线)
+    if (forwardEndIndex < path.length - 1) {
+      ctx.strokeStyle = COLORS.reversePath
+      ctx.lineWidth = 2.5
+      ctx.setLineDash([8, 4])
+      ctx.beginPath()
+      
+      for (let i = forwardEndIndex; i < path.length; i++) {
+        const point = worldToScreen(path[i].x, path[i].y, canvasWidth, canvasHeight)
+        if (i === forwardEndIndex) {
+          ctx.moveTo(point.x, point.y)
+        } else {
+          ctx.lineTo(point.x, point.y)
+        }
+      }
+      ctx.stroke()
+    }
+    
+    ctx.setLineDash([])
+  }
 
   // 绘制车辆
   const drawVehicle = (ctx, canvasWidth, canvasHeight, position, heading, showSafetyHull = false) => {
@@ -336,21 +490,280 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
       ctx.fillRect(-safeLength/2, -safeWidth/2, safeLength, safeWidth)
     }
 
-    // 车体
-    ctx.fillStyle = COLORS.vehicle
-    ctx.strokeStyle = COLORS.vehicle
+    // 绘制更精致的车辆外形
+    const frontLength = vehicleLength * 0.28  // 车头长度
+    const rearLength = vehicleLength * 0.18   // 车尾长度
+    const bodyLength = vehicleLength - frontLength - rearLength
+    const cornerRadius = Math.min(vehicleWidth * 0.08, vehicleLength * 0.04)
+    
+    // 阴影效果 - 为车辆添加深度
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'
+    const shadowOffset = 2
+    ctx.fillRect(-vehicleLength/2 + shadowOffset, -vehicleWidth/2 + shadowOffset, 
+                vehicleLength, vehicleWidth)
+    
+    // 车身主体 - 渐变背景
+    const bodyLeft = -vehicleLength/2 + rearLength
+    const bodyRight = vehicleLength/2 - frontLength
+    const bodyTop = -vehicleWidth/2
+    const bodyBottom = vehicleWidth/2
+    
+    // 创建渐变效果
+    const gradient = ctx.createLinearGradient(0, bodyTop, 0, bodyBottom)
+    gradient.addColorStop(0, '#4B5563')  // 顶部亮一些
+    gradient.addColorStop(0.3, '#374151') // 主色
+    gradient.addColorStop(0.7, '#374151') // 主色
+    gradient.addColorStop(1, '#1F2937')   // 底部暗一些
+    
+    ctx.fillStyle = gradient
+    ctx.strokeStyle = '#1F2937'
     ctx.lineWidth = 1.8
-    ctx.fillRect(-vehicleLength/2, -vehicleWidth/2, vehicleLength, vehicleWidth)
-    ctx.strokeRect(-vehicleLength/2, -vehicleWidth/2, vehicleLength, vehicleWidth)
-
-    // 车头箭头
-    ctx.strokeStyle = COLORS.vehicleArrow
-    ctx.lineWidth = 2
+    
+    // 车身主体路径
     ctx.beginPath()
-    ctx.moveTo(vehicleLength/4, 0)
-    ctx.lineTo(vehicleLength/2 - 8, -6)
-    ctx.moveTo(vehicleLength/4, 0)
-    ctx.lineTo(vehicleLength/2 - 8, 6)
+    ctx.moveTo(bodyLeft + cornerRadius, bodyTop)
+    ctx.lineTo(bodyRight - cornerRadius, bodyTop)
+    ctx.quadraticCurveTo(bodyRight, bodyTop, bodyRight, bodyTop + cornerRadius)
+    ctx.lineTo(bodyRight, bodyBottom - cornerRadius)
+    ctx.quadraticCurveTo(bodyRight, bodyBottom, bodyRight - cornerRadius, bodyBottom)
+    ctx.lineTo(bodyLeft + cornerRadius, bodyBottom)
+    ctx.quadraticCurveTo(bodyLeft, bodyBottom, bodyLeft, bodyBottom - cornerRadius)
+    ctx.lineTo(bodyLeft, bodyTop + cornerRadius)
+    ctx.quadraticCurveTo(bodyLeft, bodyTop, bodyLeft + cornerRadius, bodyTop)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    
+    // 车顶装饰线
+    ctx.strokeStyle = '#6B7280'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(bodyLeft + bodyLength * 0.1, bodyTop + vehicleWidth * 0.15)
+    ctx.lineTo(bodyRight - bodyLength * 0.1, bodyTop + vehicleWidth * 0.15)
+    ctx.stroke()
+    
+    // 车头 - 更立体的设计
+    const frontLeft = bodyRight
+    const frontRight = vehicleLength/2
+    const frontTopInset = vehicleWidth * 0.12
+    
+    // 车头渐变
+    const frontGradient = ctx.createLinearGradient(0, bodyTop + frontTopInset, 0, bodyBottom - frontTopInset)
+    frontGradient.addColorStop(0, '#9CA3AF')
+    frontGradient.addColorStop(0.5, '#6B7280')
+    frontGradient.addColorStop(1, '#4B5563')
+    
+    ctx.fillStyle = frontGradient
+    ctx.strokeStyle = '#374151'
+    ctx.lineWidth = 1.5
+    
+    ctx.beginPath()
+    ctx.moveTo(frontLeft, bodyTop + frontTopInset)
+    ctx.lineTo(frontRight - cornerRadius * 0.7, bodyTop + frontTopInset)
+    ctx.quadraticCurveTo(frontRight, bodyTop + frontTopInset, frontRight, bodyTop + frontTopInset + cornerRadius * 0.7)
+    ctx.lineTo(frontRight, bodyBottom - frontTopInset - cornerRadius * 0.7)
+    ctx.quadraticCurveTo(frontRight, bodyBottom - frontTopInset, frontRight - cornerRadius * 0.7, bodyBottom - frontTopInset)
+    ctx.lineTo(frontLeft, bodyBottom - frontTopInset)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    
+    // 车头格栅
+    ctx.strokeStyle = '#1F2937'
+    ctx.lineWidth = 1.2
+    const grillY = bodyTop + frontTopInset + vehicleWidth * 0.2
+    const grillHeight = vehicleWidth * 0.15
+    const grillLeft = frontLeft + frontLength * 0.1
+    const grillRight = frontRight - frontLength * 0.2
+    
+    ctx.beginPath()
+    ctx.rect(grillLeft, grillY, grillRight - grillLeft, grillHeight)
+    ctx.stroke()
+    
+    // 格栅横线
+    for (let i = 1; i < 4; i++) {
+      const y = grillY + (grillHeight * i / 4)
+      ctx.beginPath()
+      ctx.moveTo(grillLeft + 1, y)
+      ctx.lineTo(grillRight - 1, y)
+      ctx.stroke()
+    }
+    
+    // 车尾 - 更立体的设计
+    const rearLeft = -vehicleLength/2
+    const rearRight = bodyLeft
+    const rearTopInset = vehicleWidth * 0.08
+    
+    const rearGradient = ctx.createLinearGradient(0, bodyTop + rearTopInset, 0, bodyBottom - rearTopInset)
+    rearGradient.addColorStop(0, '#374151')
+    rearGradient.addColorStop(0.5, '#1F2937')
+    rearGradient.addColorStop(1, '#111827')
+    
+    ctx.fillStyle = rearGradient
+    ctx.strokeStyle = '#111827'
+    ctx.lineWidth = 1.5
+    
+    ctx.beginPath()
+    ctx.moveTo(rearLeft + cornerRadius * 0.7, bodyTop + rearTopInset)
+    ctx.lineTo(rearRight, bodyTop + rearTopInset)
+    ctx.lineTo(rearRight, bodyBottom - rearTopInset)
+    ctx.lineTo(rearLeft + cornerRadius * 0.7, bodyBottom - rearTopInset)
+    ctx.quadraticCurveTo(rearLeft, bodyBottom - rearTopInset, rearLeft, bodyBottom - rearTopInset - cornerRadius * 0.7)
+    ctx.lineTo(rearLeft, bodyTop + rearTopInset + cornerRadius * 0.7)
+    ctx.quadraticCurveTo(rearLeft, bodyTop + rearTopInset, rearLeft + cornerRadius * 0.7, bodyTop + rearTopInset)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    
+    // A柱和C柱（车门框架）
+    ctx.fillStyle = '#1F2937'
+    ctx.lineWidth = 1
+    const pillarWidth = vehicleWidth * 0.08
+    
+    // A柱（前门柱）
+    ctx.fillRect(bodyLeft + bodyLength * 0.15, bodyTop + vehicleWidth * 0.1, 
+                pillarWidth, vehicleWidth * 0.8)
+    // B柱（中门柱）                
+    ctx.fillRect(bodyLeft + bodyLength * 0.5, bodyTop + vehicleWidth * 0.1, 
+                pillarWidth, vehicleWidth * 0.8)
+    // C柱（后门柱）
+    ctx.fillRect(bodyRight - bodyLength * 0.15 - pillarWidth, bodyTop + vehicleWidth * 0.1, 
+                pillarWidth, vehicleWidth * 0.8)
+    
+    // 车窗 - 深蓝色玻璃效果
+    const windowGradient = ctx.createLinearGradient(0, bodyTop, 0, bodyBottom)
+    windowGradient.addColorStop(0, '#1E3A8A')
+    windowGradient.addColorStop(0.3, '#3B82F6')
+    windowGradient.addColorStop(0.7, '#1E40AF')
+    windowGradient.addColorStop(1, '#1E3A8A')
+    
+    ctx.fillStyle = windowGradient
+    ctx.strokeStyle = '#1E40AF'
+    ctx.lineWidth = 1
+    
+    const windowInset = vehicleWidth * 0.12
+    const windowHeight = vehicleWidth - 2 * windowInset
+    
+    // 前窗
+    const frontWindowLeft = bodyLeft + bodyLength * 0.05
+    const frontWindowWidth = bodyLength * 0.15 - pillarWidth
+    ctx.fillRect(frontWindowLeft, bodyTop + windowInset, frontWindowWidth, windowHeight)
+    ctx.strokeRect(frontWindowLeft, bodyTop + windowInset, frontWindowWidth, windowHeight)
+    
+    // 中窗（主窗）
+    const mainWindowLeft = bodyLeft + bodyLength * 0.15 + pillarWidth
+    const mainWindowWidth = bodyLength * 0.35 - pillarWidth
+    ctx.fillRect(mainWindowLeft, bodyTop + windowInset, mainWindowWidth, windowHeight)
+    ctx.strokeRect(mainWindowLeft, bodyTop + windowInset, mainWindowWidth, windowHeight)
+    
+    // 后窗
+    const rearWindowLeft = bodyLeft + bodyLength * 0.5 + pillarWidth
+    const rearWindowWidth = bodyLength * 0.35 - pillarWidth
+    ctx.fillRect(rearWindowLeft, bodyTop + windowInset, rearWindowWidth, windowHeight)
+    ctx.strokeRect(rearWindowLeft, bodyTop + windowInset, rearWindowWidth, windowHeight)
+    
+    // 窗户反光效果
+    ctx.fillStyle = 'rgba(147, 197, 253, 0.3)'
+    ctx.fillRect(frontWindowLeft + frontWindowWidth * 0.1, bodyTop + windowInset + windowHeight * 0.1,
+                frontWindowWidth * 0.8, windowHeight * 0.15)
+    ctx.fillRect(mainWindowLeft + mainWindowWidth * 0.1, bodyTop + windowInset + windowHeight * 0.1,
+                mainWindowWidth * 0.8, windowHeight * 0.15)
+    ctx.fillRect(rearWindowLeft + rearWindowWidth * 0.1, bodyTop + windowInset + windowHeight * 0.1,
+                rearWindowWidth * 0.8, windowHeight * 0.15)
+    
+    // 车灯 - 前大灯（温白色）
+    ctx.fillStyle = '#F9FAFB'
+    ctx.strokeStyle = '#E5E7EB'
+    ctx.lineWidth = 0.8
+    
+    const headlightSize = vehicleWidth * 0.12
+    const headlightY1 = -vehicleWidth/2 + vehicleWidth * 0.2
+    const headlightY2 = vehicleWidth/2 - vehicleWidth * 0.2
+    const headlightX = frontRight - headlightSize/2
+    
+    // 左前大灯
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY1, headlightSize/2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 右前大灯
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY2, headlightSize/2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 车灯 - 后尾灯（橙红色）
+    ctx.fillStyle = '#F97316'
+    ctx.strokeStyle = '#EA580C'
+    
+    const taillightSize = vehicleWidth * 0.08
+    const taillightY1 = -vehicleWidth/2 + vehicleWidth * 0.25
+    const taillightY2 = vehicleWidth/2 - vehicleWidth * 0.25
+    const taillightX = rearLeft + taillightSize/2
+    
+    // 左后尾灯
+    ctx.beginPath()
+    ctx.arc(taillightX, taillightY1, taillightSize/2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 右后尾灯
+    ctx.beginPath()
+    ctx.arc(taillightX, taillightY2, taillightSize/2, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 车身高光效果
+    ctx.fillStyle = 'rgba(156, 163, 175, 0.3)'
+    const highlightHeight = vehicleWidth * 0.15
+    ctx.fillRect(bodyLeft + bodyLength * 0.1, bodyTop, 
+                bodyLength * 0.8, highlightHeight)
+    
+    // 轮胎 - 黑色
+    ctx.fillStyle = '#111827'
+    ctx.strokeStyle = '#374151'
+    ctx.lineWidth = 1
+    
+    const wheelRadius = vehicleWidth * 0.08
+    const wheelOffsetX = vehicleLength * 0.25
+    const wheelOffsetY = vehicleWidth * 0.35
+    
+    // 前轮 - 左
+    ctx.beginPath()
+    ctx.arc(wheelOffsetX, -wheelOffsetY, wheelRadius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 前轮 - 右
+    ctx.beginPath()
+    ctx.arc(wheelOffsetX, wheelOffsetY, wheelRadius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 后轮 - 左
+    ctx.beginPath()
+    ctx.arc(-wheelOffsetX, -wheelOffsetY, wheelRadius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 后轮 - 右
+    ctx.beginPath()
+    ctx.arc(-wheelOffsetX, wheelOffsetY, wheelRadius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 方向指示箭头（在车顶中央）
+    ctx.strokeStyle = '#10B981'
+    ctx.lineWidth = 2.5
+    ctx.beginPath()
+    const arrowLength = vehicleLength * 0.15
+    const arrowX = vehicleLength * 0.1
+    ctx.moveTo(arrowX - arrowLength/2, 0)
+    ctx.lineTo(arrowX + arrowLength/2, 0)
+    ctx.moveTo(arrowX + arrowLength/2 - 4, -3)
+    ctx.lineTo(arrowX + arrowLength/2, 0)
+    ctx.lineTo(arrowX + arrowLength/2 - 4, 3)
     ctx.stroke()
 
     ctx.restore()
@@ -478,7 +891,7 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     const statusLines = [
       `t = ${time.toFixed(2)} s`,
       `s = ${distance.toFixed(2)} m`,
-      `|κ|/κmax = ${(curvature / KAPPA_MAX).toFixed(2)}`
+      `κ = ${Math.abs(curvature).toFixed(3)} m⁻¹`
     ]
 
     statusLines.forEach((line, index) => {
@@ -494,8 +907,8 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
     ctx.fillRect(barX, barY, barWidth, barHeight)
 
-    ctx.fillStyle = curvature > KAPPA_MAX * 0.8 ? '#EF4444' : COLORS.forwardPath
-    const fillWidth = Math.min(barWidth * (curvature / KAPPA_MAX), barWidth)
+    ctx.fillStyle = Math.abs(curvature) > KAPPA_MAX * 0.6 ? '#EF4444' : COLORS.forwardPath
+    const fillWidth = Math.min(barWidth * (Math.abs(curvature) / KAPPA_MAX), barWidth)
     ctx.fillRect(barX, barY, fillWidth, barHeight)
   }
 
@@ -505,15 +918,15 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     ctx.fillStyle = COLORS.background
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-    // 时间节点定义
-    const SCENE_FADE_IN = 1200    // [0-1.2s] 场景入场
-    const SLOT_SELECTION = 2200   // [1.2-2.2s] 车位选择
-    const PATH_PREVIEW = 3600     // [2.2-3.6s] 路径预览
-    const FORWARD_START = 3600    // [3.6s] 前进开始
-    const FORWARD_END = 7000      // [7.0s] 前进结束
-    const GEAR_SHIFT = 7500       // [7.5s] 换挡完成
-    const REVERSE_END = 10000     // [10.0s] 倒车结束
-    const TOTAL_DURATION = 12000  // [12.0s] 总时长
+    // 时间节点定义 - 立即开始播放，无延迟
+    const SCENE_FADE_IN = 0       // [0s] 场景立即显示  
+    const SLOT_SELECTION = 0      // [0s] 车位立即选择
+    const PATH_PREVIEW = 0        // [0s] 路径立即显示
+    const FORWARD_START = 500     // [0.5s] 前进开始
+    const FORWARD_END = 5500      // [5.5s] 前进结束，匀速5秒
+    const GEAR_SHIFT = 5800       // [5.8s] 换挡完成
+    const REVERSE_END = 7500      // [7.5s] 倒车结束，匀速1.7秒
+    const TOTAL_DURATION = 7500   // [7.5s] 停车后立即结束
 
     // 根据时间阶段渲染
     if (currentTime >= 0) {
@@ -526,106 +939,117 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
       drawParkingSlots(ctx, canvasWidth, canvasHeight, highlightB5)
     }
 
-    if (currentTime >= SCENE_FADE_IN) {
-      // 公式牌
-      drawFormulaCard(ctx, canvasWidth, canvasHeight)
-    }
+    // 公式牌 - 立即显示
+    drawFormulaCard(ctx, canvasWidth, canvasHeight)
 
-    if (currentTime >= PATH_PREVIEW) {
-      // 路径预览
-      drawControlPolygon(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.forward.bezier)
-      drawControlPolygon(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.reverse.bezier)
-      drawBezierPath(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.forward.bezier, COLORS.forwardPath)
-      drawBezierPath(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.reverse.bezier, COLORS.reversePath, true)
-    }
+    // 绘制真实路径 - 立即显示
+    drawRealPath(ctx, canvasWidth, canvasHeight)
 
-    // 车辆动画
+    // 车辆动画 - 使用真实路径数据
     let vehiclePos = START_POS
     let vehicleHeading = START_POS.heading
     let isForward = true
     let animTime = 0
     let distance = 0
     let curvature = 0
+    let currentSegment = ''
 
-    if (currentTime >= FORWARD_START && currentTime <= FORWARD_END) {
-      // 前进阶段
-      const progress = (currentTime - FORWARD_START) / (FORWARD_END - FORWARD_START)
-      const bezierProgress = Math.min(progress, 1)
-      
-      vehiclePos = bezierPoint(bezierProgress, 
-        PATH_SEGMENTS.forward.bezier.P0,
-        PATH_SEGMENTS.forward.bezier.P1,
-        PATH_SEGMENTS.forward.bezier.P2,
-        PATH_SEGMENTS.forward.bezier.P3
-      )
+    if (PATH_SEGMENTS.path && PATH_SEGMENTS.path.length > 0) {
+      const path = PATH_SEGMENTS.path
+      const forwardEndIndex = PATH_SEGMENTS.forwardEndIndex
 
-      // 计算朝向（从切向量）
-      const derivative = bezierDerivative(bezierProgress,
-        PATH_SEGMENTS.forward.bezier.P0,
-        PATH_SEGMENTS.forward.bezier.P1,
-        PATH_SEGMENTS.forward.bezier.P2,
-        PATH_SEGMENTS.forward.bezier.P3
-      )
-      vehicleHeading = Math.atan2(derivative.y, derivative.x)
-      
-      animTime = (currentTime - FORWARD_START) / 1000
-      distance = progress * 15 // 估算距离
-      curvature = 0.1 // 简化的曲率值
+      if (currentTime >= FORWARD_START && currentTime <= FORWARD_END) {
+        // 前进阶段 - 跟随真实路径前半段
+        const progress = (currentTime - FORWARD_START) / (FORWARD_END - FORWARD_START)
+        const pathIndex = Math.floor(progress * forwardEndIndex)
+        const clampedIndex = Math.min(pathIndex, forwardEndIndex - 1)
+        
+        if (path[clampedIndex]) {
+          vehiclePos = { x: path[clampedIndex].x, y: path[clampedIndex].y }
+          vehicleHeading = path[clampedIndex].heading
+          curvature = path[clampedIndex].curvature || 0  // 使用真实曲率
+          
+          // 计算当前所在段落
+          const segments = PATH_SEGMENTS.segments
+          if (clampedIndex < segments.seg0.start + segments.seg0.length) {
+            currentSegment = '直线前进'
+          } else if (clampedIndex < segments.seg1.start + segments.seg1.length) {
+            currentSegment = '右弯'
+          } else if (clampedIndex < segments.seg2.start + segments.seg2.length) {
+            currentSegment = '斜线'
+          } else {
+            currentSegment = '左弯'
+          }
+        }
+        
+        animTime = (currentTime - FORWARD_START) / 1000
+        distance = progress * 15 // 估算总距离
+        isForward = true
 
-    } else if (currentTime >= GEAR_SHIFT && currentTime <= REVERSE_END) {
-      // 倒车阶段
-      isForward = false
-      const progress = (currentTime - GEAR_SHIFT) / (REVERSE_END - GEAR_SHIFT)
-      const bezierProgress = Math.min(progress, 1)
-      
-      vehiclePos = bezierPoint(bezierProgress,
-        PATH_SEGMENTS.reverse.bezier.P0,
-        PATH_SEGMENTS.reverse.bezier.P1,
-        PATH_SEGMENTS.reverse.bezier.P2,
-        PATH_SEGMENTS.reverse.bezier.P3
-      )
+      } else if (currentTime > FORWARD_END && currentTime < GEAR_SHIFT) {
+        // 换挡阶段 - 保持在前进结束位置
+        const lastForwardIndex = Math.min(forwardEndIndex - 1, path.length - 1)
+        if (path[lastForwardIndex]) {
+          vehiclePos = { x: path[lastForwardIndex].x, y: path[lastForwardIndex].y }
+          vehicleHeading = path[lastForwardIndex].heading
+        }
+        
+        animTime = 5.0 // 前进阶段时间
+        distance = 15
+        curvature = 0
+        currentSegment = '换挡中'
+        isForward = false
 
-      // 倒车时车头朝向与运动方向相反
-      const derivative = bezierDerivative(bezierProgress,
-        PATH_SEGMENTS.reverse.bezier.P0,
-        PATH_SEGMENTS.reverse.bezier.P1,
-        PATH_SEGMENTS.reverse.bezier.P2,
-        PATH_SEGMENTS.reverse.bezier.P3
-      )
-      vehicleHeading = Math.atan2(-derivative.y, -derivative.x) // 反向
-      
-      animTime = (currentTime - GEAR_SHIFT) / 1000 + 3.4
-      distance = 15 + progress * 5 // 前进距离 + 倒车距离
-      curvature = 0.05
+      } else if (currentTime >= GEAR_SHIFT && currentTime <= REVERSE_END) {
+        // 倒车阶段 - 跟随真实路径后半段
+        isForward = false
+        const progress = (currentTime - GEAR_SHIFT) / (REVERSE_END - GEAR_SHIFT)
+        const reversePathLength = path.length - 1 - forwardEndIndex
+        const pathIndex = forwardEndIndex + Math.floor(progress * reversePathLength)
+        const clampedIndex = Math.min(pathIndex, path.length - 1)
+        
+        if (path[clampedIndex]) {
+          vehiclePos = { x: path[clampedIndex].x, y: path[clampedIndex].y }
+          vehicleHeading = path[clampedIndex].heading
+          curvature = Math.abs(path[clampedIndex].curvature || 0)  // 倒车时使用真实曲率
+        }
+        
+        animTime = (currentTime - GEAR_SHIFT) / 1000 + 3.4
+        distance = 15 + progress * 5 // 前进距离 + 倒车距离
+        currentSegment = '倒车入位'
 
-    } else if (currentTime > REVERSE_END) {
-      // 最终位置
-      vehiclePos = TARGET_SLOT.center
-      vehicleHeading = TARGET_SLOT.heading
-      isForward = false
-      animTime = 10.0
-      distance = 20.0
-      curvature = 0
+      } else if (currentTime > REVERSE_END) {
+        // 最终位置
+        vehiclePos = TARGET_SLOT.center
+        vehicleHeading = TARGET_SLOT.heading
+        isForward = false
+        animTime = 10.0
+        distance = 20.0
+        curvature = 0
+        currentSegment = '停车完成'
+      }
     }
 
-    // 绘制车辆
-    if (currentTime >= SCENE_FADE_IN) {
-      const showSafety = currentTime >= PATH_PREVIEW
-      drawVehicle(ctx, canvasWidth, canvasHeight, vehiclePos, vehicleHeading, showSafety)
-    }
+    // 绘制车辆 - 立即显示，无淡入延迟
+    drawVehicle(ctx, canvasWidth, canvasHeight, vehiclePos, vehicleHeading, true)
 
-    // 状态指示器
-    if (currentTime >= PATH_PREVIEW) {
-      drawStatusIndicators(ctx, canvasWidth, canvasHeight, isForward, animTime, distance, curvature)
-    }
+    // 状态指示器 - 立即显示
+    drawStatusIndicators(ctx, canvasWidth, canvasHeight, isForward, animTime, distance, curvature)
 
-    // 目标标签
-    if (currentTime >= SLOT_SELECTION) {
-      const targetCenter = worldToScreen(TARGET_SLOT.center.x, TARGET_SLOT.center.y + 1.5, canvasWidth, canvasHeight)
+    // 目标标签 - 已移除显示
+
+    // 段落状态显示 - 显示在D/R档位右侧居中
+    if (currentTime >= FORWARD_START && currentSegment) {
+      const padding = 16
+      const lightSize = 32
+      const textX = padding + lightSize + 12  // D/R档位右侧
+      const textY = padding + lightSize  // D和R之间的垂直中心位置
+      
       ctx.fillStyle = COLORS.text
       ctx.font = '12px Consolas'
-      ctx.textAlign = 'center'
-      ctx.fillText('目标姿态 θ≈90°', targetCenter.x, targetCenter.y)
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(`当前: ${currentSegment}`, textX, textY)
     }
   }
 
@@ -641,11 +1065,8 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     drawLanes(ctx, canvasWidth, canvasHeight)
     drawParkingSlots(ctx, canvasWidth, canvasHeight, true) // 高亮B5
 
-    // 显示路径预览
-    drawControlPolygon(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.forward.bezier)
-    drawControlPolygon(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.reverse.bezier)
-    drawBezierPath(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.forward.bezier, COLORS.forwardPath)
-    drawBezierPath(ctx, canvasWidth, canvasHeight, PATH_SEGMENTS.reverse.bezier, COLORS.reversePath, true)
+    // 显示真实路径预览（替换旧的Bézier路径）
+    drawRealPath(ctx, canvasWidth, canvasHeight)
 
     // 车辆在起始位置
     drawVehicle(ctx, canvasWidth, canvasHeight, START_POS, START_POS.heading, true)
@@ -654,12 +1075,6 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     drawFormulaCard(ctx, canvasWidth, canvasHeight)
     drawStatusIndicators(ctx, canvasWidth, canvasHeight, true, 0, 0, 0)
 
-    // 目标标签
-    const targetCenter = worldToScreen(TARGET_SLOT.center.x, TARGET_SLOT.center.y + 1.5, canvasWidth, canvasHeight)
-    ctx.fillStyle = COLORS.text
-    ctx.font = '12px Consolas'
-    ctx.textAlign = 'center'
-    ctx.fillText('目标姿态 θ≈90°', targetCenter.x, targetCenter.y)
   }
 
   // 动画循环

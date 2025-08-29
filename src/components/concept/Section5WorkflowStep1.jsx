@@ -3916,7 +3916,7 @@ const Section5WorkflowStep1 = () => {
   const playCard2Scene3 = async (ctx, width, height, signal) => {
     // 混合变量动画现在由 MixedVariableAnimation 组件处理
     // 这里需要等待动画完成的时间，但要响应中止信号
-    const animationDuration = 12000 // 12秒
+    const animationDuration = 8000 // 8.0秒，与动画实际时长一致
     
     return new Promise((resolve) => {
       const timeoutId = setTimeout(resolve, animationDuration)
