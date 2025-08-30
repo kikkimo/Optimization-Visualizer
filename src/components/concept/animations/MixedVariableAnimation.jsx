@@ -15,6 +15,8 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
   const WORLD_WIDTH = 24
   const WORLD_HEIGHT = 16
   const CANVAS_PADDING = 0.06 // 6% padding
+  const SCALE_FACTOR = 0.81 // 整体缩放因子 (0.9 * 0.9 = 0.81)
+  const VERTICAL_OFFSET = -15 // 上移15px
 
   // 停车场几何
   const PARKING_GEOMETRY = {
@@ -175,9 +177,9 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
 
   // 颜色主题
   const COLORS = {
-    background: '#0F1116',
-    majorGrid: 'rgba(47, 54, 66, 0.7)',
-    minorGrid: 'rgba(37, 41, 51, 0.4)',
+    background: '#111827',
+    majorGrid: 'rgba(75, 85, 99, 0.7)',
+    minorGrid: 'rgba(55, 65, 81, 0.4)',
     lane: 'rgba(191, 201, 218, 0.6)',
     emptySlot: 'rgba(49, 130, 206, 0.15)',
     occupiedSlot: 'rgba(160, 174, 192, 0.25)',
@@ -190,17 +192,20 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     safetyHull: 'rgba(246, 173, 85, 0.25)',
     controlPolygon: 'rgba(231, 237, 248, 0.4)',
     text: '#E7EDF8',
-    formulaBackground: 'rgba(11, 18, 32, 0.85)'
+    formulaBackground: 'rgba(15, 17, 22, 0.95)'
   }
 
   // 坐标系转换
   const worldToScreen = (worldX, worldY, canvasWidth, canvasHeight) => {
-    const scale = Math.min(
+    const baseScale = Math.min(
       (canvasWidth * (1 - 2 * CANVAS_PADDING)) / WORLD_WIDTH,
       (canvasHeight * (1 - 2 * CANVAS_PADDING)) / WORLD_HEIGHT
     )
-    const offsetX = (canvasWidth - WORLD_WIDTH * scale) / 2
-    const offsetY = (canvasHeight - WORLD_HEIGHT * scale) / 2
+    const scale = baseScale * SCALE_FACTOR
+    const scaledWorldWidth = WORLD_WIDTH * scale
+    const scaledWorldHeight = WORLD_HEIGHT * scale
+    const offsetX = (canvasWidth - scaledWorldWidth) / 2
+    const offsetY = (canvasHeight - scaledWorldHeight) / 2 + VERTICAL_OFFSET
     
     return {
       x: offsetX + worldX * scale,
@@ -277,10 +282,31 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
   // 绘制停车位
   const drawParkingSlots = (ctx, canvasWidth, canvasHeight, highlightB5 = false) => {
     const { slotWidth, slotDepth, bottomSlots, topSlots } = PARKING_GEOMETRY
+    
+    // 定义已占用的车位和随机配色 (排除B5和B5上方的T5)
+    const occupiedBottomSlots = [3, 6, 9, 18] // B1, B2, B3, B6 有车
+    const occupiedTopSlots = [3, 6, 9, 12, 18] // T1, T2, T3, T4, T6 有车，T5空着
+    
+    // 为每个车位分配随机颜色方案
+    const bottomSlotColors = {
+      3: 'white',    // B1 - 珍珠白
+      6: 'glacier',  // B2 - 冰川蓝  
+      9: 'black',    // B3 - 墨玉黑
+      18: 'gold',    // B6 - 香槟金
+    }
+    
+    const topSlotColors = {
+      3: 'gray',     // T1 - 钛金灰 (与B1珍珠白不同)
+      6: 'gold',     // T2 - 香槟金 (与B2冰川蓝不同)
+      9: 'white',    // T3 - 珍珠白 (与B3墨玉黑不同) 
+      12: 'glacier', // T4 - 冰川蓝
+      18: 'gray'     // T6 - 钛金灰 (与B6香槟金不同)
+    }
 
     // 绘制下排停车位 (B1-B6)
     bottomSlots.centers.forEach((centerX, index) => {
       const isB5 = centerX === 15
+      const isOccupied = occupiedBottomSlots.includes(centerX)
       const slotLeft = centerX - slotWidth / 2
       const slotRight = centerX + slotWidth / 2
       const slotBottom = 0
@@ -294,7 +320,11 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
       ]
 
       // 填充颜色
-      ctx.fillStyle = isB5 ? COLORS.emptySlot : COLORS.occupiedSlot
+      if (isB5) {
+        ctx.fillStyle = COLORS.emptySlot
+      } else {
+        ctx.fillStyle = isOccupied ? COLORS.occupiedSlot : COLORS.emptySlot
+      }
       ctx.beginPath()
       ctx.moveTo(corners[0].x, corners[0].y)
       corners.forEach(corner => ctx.lineTo(corner.x, corner.y))
@@ -324,10 +354,19 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
         ctx.textBaseline = 'middle'
         ctx.fillText('B5', center.x, center.y)
       }
+      
+      // 绘制占用车位中的车辆（使用不同配色方案）
+      if (isOccupied && !isB5) {
+        const vehiclePos = { x: centerX, y: bottomSlots.y }
+        const vehicleHeading = Math.PI / 2 // 垂直停放
+        const colorType = bottomSlotColors[centerX] || 'white'
+        drawParkedVehicle(ctx, canvasWidth, canvasHeight, vehiclePos, vehicleHeading, colorType)
+      }
     })
 
-    // 绘制上排停车位 (T1-T6) - 都是占用状态
+    // 绘制上排停车位 (T1-T6)
     topSlots.centers.forEach(centerX => {
+      const isOccupied = occupiedTopSlots.includes(centerX)
       const slotLeft = centerX - slotWidth / 2
       const slotRight = centerX + slotWidth / 2
       const slotBottom = 11
@@ -340,7 +379,7 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
         worldToScreen(slotLeft, slotTop, canvasWidth, canvasHeight)
       ]
 
-      ctx.fillStyle = COLORS.occupiedSlot
+      ctx.fillStyle = isOccupied ? COLORS.occupiedSlot : COLORS.emptySlot
       ctx.beginPath()
       ctx.moveTo(corners[0].x, corners[0].y)
       corners.forEach(corner => ctx.lineTo(corner.x, corner.y))
@@ -350,6 +389,14 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
       ctx.strokeStyle = COLORS.slotBorder
       ctx.lineWidth = 1.2
       ctx.stroke()
+      
+      // 绘制占用车位中的车辆（使用不同配色方案）
+      if (isOccupied) {
+        const vehiclePos = { x: centerX, y: topSlots.y }
+        const vehicleHeading = -Math.PI / 2 // 倒向停放
+        const colorType = topSlotColors[centerX] || 'gray'
+        drawParkedVehicle(ctx, canvasWidth, canvasHeight, vehiclePos, vehicleHeading, colorType)
+      }
     })
   }
 
@@ -467,6 +514,440 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     }
     
     ctx.setLineDash([])
+  }
+
+  // 绘制已停放车辆（完全复制主车辆的精美绘制，仅修改配色）
+  const drawParkedVehicle = (ctx, canvasWidth, canvasHeight, position, heading, colorType) => {
+    const center = worldToScreen(position.x, position.y, canvasWidth, canvasHeight)
+    
+    ctx.save()
+    ctx.translate(center.x, center.y)
+    ctx.rotate(-heading) // 注意Y轴翻转，所以旋转角度取负
+
+    const scale = center.scale
+    const vehicleLength = VEHICLE.length * scale * 0.85 // 稍微缩小停放的车辆
+    const vehicleWidth = VEHICLE.width * scale * 0.85
+
+    // 根据颜色类型选择不同的车辆颜色方案
+    const colorSchemes = {
+      white: {  // 珍珠白
+        bodyMain: '#F8FAFC',
+        bodyMid: '#E2E8F0', 
+        bodyDark: '#CBD5E1',
+        frontMain: '#FFFFFF',
+        frontMid: '#F1F5F9',
+        frontDark: '#E2E8F0',
+        rearMain: '#E2E8F0',
+        rearMid: '#CBD5E1',
+        rearDark: '#94A3B8'
+      },
+      glacier: {  // 冰川蓝
+        bodyMain: '#0EA5E9',
+        bodyMid: '#0284C7', 
+        bodyDark: '#0369A1',
+        frontMain: '#38BDF8',
+        frontMid: '#0EA5E9',
+        frontDark: '#0284C7',
+        rearMain: '#0284C7',
+        rearMid: '#0369A1',
+        rearDark: '#075985'
+      },
+      gray: {  // 钛金灰
+        bodyMain: '#64748B',
+        bodyMid: '#475569', 
+        bodyDark: '#334155',
+        frontMain: '#94A3B8',
+        frontMid: '#64748B',
+        frontDark: '#475569',
+        rearMain: '#475569',
+        rearMid: '#334155',
+        rearDark: '#1E293B'
+      },
+      black: { // 墨玉黑
+        bodyMain: '#1E293B',
+        bodyMid: '#0F172A', 
+        bodyDark: '#020617',
+        frontMain: '#334155',
+        frontMid: '#1E293B',
+        frontDark: '#0F172A',
+        rearMain: '#0F172A',
+        rearMid: '#020617',
+        rearDark: '#000000'
+      },
+      gold: { // 香槟金
+        bodyMain: '#D97706',
+        bodyMid: '#B45309', 
+        bodyDark: '#92400E',
+        frontMain: '#F59E0B',
+        frontMid: '#D97706',
+        frontDark: '#B45309',
+        rearMain: '#B45309',
+        rearMid: '#92400E',
+        rearDark: '#78350F'
+      }
+    }
+    
+    const colors = colorSchemes[colorType] || colorSchemes.white // 默认使用珍珠白
+
+    // 阴影效果 - 为车辆添加深度
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'
+    const shadowOffset = 2
+    ctx.fillRect(-vehicleLength/2 + shadowOffset, -vehicleWidth/2 + shadowOffset, 
+                vehicleLength, vehicleWidth)
+    
+    // 车身主体 - 渐变背景
+    const frontLength = vehicleLength * 0.28  // 车头长度
+    const rearLength = vehicleLength * 0.18   // 车尾长度
+    const bodyLength = vehicleLength - frontLength - rearLength
+    const cornerRadius = Math.min(vehicleWidth * 0.08, vehicleLength * 0.04)
+    
+    const bodyLeft = -vehicleLength/2 + rearLength
+    const bodyRight = vehicleLength/2 - frontLength
+    const bodyTop = -vehicleWidth/2
+    const bodyBottom = vehicleWidth/2
+    
+    // 创建渐变效果
+    const gradient = ctx.createLinearGradient(0, bodyTop, 0, bodyBottom)
+    gradient.addColorStop(0, colors.bodyMid)  // 顶部亮一些
+    gradient.addColorStop(0.3, colors.bodyMain) // 主色
+    gradient.addColorStop(0.7, colors.bodyMain) // 主色
+    gradient.addColorStop(1, colors.bodyDark)   // 底部暗一些
+    
+    ctx.fillStyle = gradient
+    ctx.strokeStyle = colors.bodyDark
+    ctx.lineWidth = 1.8
+    
+    // 车身主体路径
+    ctx.beginPath()
+    ctx.moveTo(bodyLeft + cornerRadius, bodyTop)
+    ctx.lineTo(bodyRight - cornerRadius, bodyTop)
+    ctx.quadraticCurveTo(bodyRight, bodyTop, bodyRight, bodyTop + cornerRadius)
+    ctx.lineTo(bodyRight, bodyBottom - cornerRadius)
+    ctx.quadraticCurveTo(bodyRight, bodyBottom, bodyRight - cornerRadius, bodyBottom)
+    ctx.lineTo(bodyLeft + cornerRadius, bodyBottom)
+    ctx.quadraticCurveTo(bodyLeft, bodyBottom, bodyLeft, bodyBottom - cornerRadius)
+    ctx.lineTo(bodyLeft, bodyTop + cornerRadius)
+    ctx.quadraticCurveTo(bodyLeft, bodyTop, bodyLeft + cornerRadius, bodyTop)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    
+    // 车顶装饰线
+    ctx.strokeStyle = colors.bodyMid
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(bodyLeft + bodyLength * 0.1, bodyTop + vehicleWidth * 0.15)
+    ctx.lineTo(bodyRight - bodyLength * 0.1, bodyTop + vehicleWidth * 0.15)
+    ctx.stroke()
+    
+    // 车头 - 更立体的设计
+    const frontLeft = bodyRight
+    const frontRight = vehicleLength/2
+    const frontTopInset = vehicleWidth * 0.12
+    
+    // 车头渐变
+    const frontGradient = ctx.createLinearGradient(0, bodyTop + frontTopInset, 0, bodyBottom - frontTopInset)
+    frontGradient.addColorStop(0, colors.frontMain)
+    frontGradient.addColorStop(0.5, colors.frontMid)
+    frontGradient.addColorStop(1, colors.frontDark)
+    
+    ctx.fillStyle = frontGradient
+    ctx.strokeStyle = colors.bodyMain
+    ctx.lineWidth = 1.5
+    
+    ctx.beginPath()
+    ctx.moveTo(frontLeft, bodyTop + frontTopInset)
+    ctx.lineTo(frontRight - cornerRadius * 0.7, bodyTop + frontTopInset)
+    ctx.quadraticCurveTo(frontRight, bodyTop + frontTopInset, frontRight, bodyTop + frontTopInset + cornerRadius * 0.7)
+    ctx.lineTo(frontRight, bodyBottom - frontTopInset - cornerRadius * 0.7)
+    ctx.quadraticCurveTo(frontRight, bodyBottom - frontTopInset, frontRight - cornerRadius * 0.7, bodyBottom - frontTopInset)
+    ctx.lineTo(frontLeft, bodyBottom - frontTopInset)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    
+    // 车头格栅
+    ctx.strokeStyle = colors.bodyDark
+    ctx.lineWidth = 1.2
+    const grillY = bodyTop + frontTopInset + vehicleWidth * 0.2
+    const grillHeight = vehicleWidth * 0.15
+    const grillLeft = frontLeft + frontLength * 0.1
+    const grillRight = frontRight - frontLength * 0.2
+    
+    ctx.beginPath()
+    ctx.rect(grillLeft, grillY, grillRight - grillLeft, grillHeight)
+    ctx.stroke()
+    
+    // 格栅横线
+    for (let i = 1; i < 4; i++) {
+      const y = grillY + (grillHeight * i / 4)
+      ctx.beginPath()
+      ctx.moveTo(grillLeft + 1, y)
+      ctx.lineTo(grillRight - 1, y)
+      ctx.stroke()
+    }
+    
+    // 车尾 - 更立体的设计
+    const rearLeft = -vehicleLength/2
+    const rearRight = bodyLeft
+    const rearTopInset = vehicleWidth * 0.08
+    
+    const rearGradient = ctx.createLinearGradient(0, bodyTop + rearTopInset, 0, bodyBottom - rearTopInset)
+    rearGradient.addColorStop(0, colors.rearMain)
+    rearGradient.addColorStop(0.5, colors.rearMid)
+    rearGradient.addColorStop(1, colors.rearDark)
+    
+    ctx.fillStyle = rearGradient
+    ctx.strokeStyle = colors.rearDark
+    ctx.lineWidth = 1.5
+    
+    ctx.beginPath()
+    ctx.moveTo(rearLeft + cornerRadius * 0.7, bodyTop + rearTopInset)
+    ctx.lineTo(rearRight, bodyTop + rearTopInset)
+    ctx.lineTo(rearRight, bodyBottom - rearTopInset)
+    ctx.lineTo(rearLeft + cornerRadius * 0.7, bodyBottom - rearTopInset)
+    ctx.quadraticCurveTo(rearLeft, bodyBottom - rearTopInset, rearLeft, bodyBottom - rearTopInset - cornerRadius * 0.7)
+    ctx.lineTo(rearLeft, bodyTop + rearTopInset + cornerRadius * 0.7)
+    ctx.quadraticCurveTo(rearLeft, bodyTop + rearTopInset, rearLeft + cornerRadius * 0.7, bodyTop + rearTopInset)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    
+    // A柱和C柱（车门框架）
+    ctx.fillStyle = colors.bodyDark
+    ctx.lineWidth = 1
+    const pillarWidth = vehicleWidth * 0.08
+    
+    // A柱（前门柱）
+    ctx.fillRect(bodyLeft + bodyLength * 0.15, bodyTop + vehicleWidth * 0.1, 
+                pillarWidth, vehicleWidth * 0.8)
+    // B柱（中门柱）                
+    ctx.fillRect(bodyLeft + bodyLength * 0.5, bodyTop + vehicleWidth * 0.1, 
+                pillarWidth, vehicleWidth * 0.8)
+    // C柱（后门柱）
+    ctx.fillRect(bodyRight - bodyLength * 0.15 - pillarWidth, bodyTop + vehicleWidth * 0.1, 
+                pillarWidth, vehicleWidth * 0.8)
+    
+    // 车窗 - 深蓝色玻璃效果
+    const windowGradient = ctx.createLinearGradient(0, bodyTop, 0, bodyBottom)
+    windowGradient.addColorStop(0, '#1E3A8A')
+    windowGradient.addColorStop(0.3, '#3B82F6')
+    windowGradient.addColorStop(0.7, '#1E40AF')
+    windowGradient.addColorStop(1, '#1E3A8A')
+    
+    ctx.fillStyle = windowGradient
+    ctx.strokeStyle = '#1E40AF'
+    ctx.lineWidth = 1
+    
+    const windowInset = vehicleWidth * 0.12
+    const windowHeight = vehicleWidth - 2 * windowInset
+    
+    // 前窗
+    const frontWindowLeft = bodyLeft + bodyLength * 0.05
+    const frontWindowWidth = bodyLength * 0.15 - pillarWidth
+    ctx.fillRect(frontWindowLeft, bodyTop + windowInset, frontWindowWidth, windowHeight)
+    ctx.strokeRect(frontWindowLeft, bodyTop + windowInset, frontWindowWidth, windowHeight)
+    
+    // 中窗（主窗）
+    const mainWindowLeft = bodyLeft + bodyLength * 0.15 + pillarWidth
+    const mainWindowWidth = bodyLength * 0.35 - pillarWidth
+    ctx.fillRect(mainWindowLeft, bodyTop + windowInset, mainWindowWidth, windowHeight)
+    ctx.strokeRect(mainWindowLeft, bodyTop + windowInset, mainWindowWidth, windowHeight)
+    
+    // 后窗
+    const rearWindowLeft = bodyLeft + bodyLength * 0.5 + pillarWidth
+    const rearWindowWidth = bodyLength * 0.35 - pillarWidth
+    ctx.fillRect(rearWindowLeft, bodyTop + windowInset, rearWindowWidth, windowHeight)
+    ctx.strokeRect(rearWindowLeft, bodyTop + windowInset, rearWindowWidth, windowHeight)
+    
+    // 窗户反光效果
+    ctx.fillStyle = 'rgba(147, 197, 253, 0.3)'
+    ctx.fillRect(frontWindowLeft + frontWindowWidth * 0.1, bodyTop + windowInset + windowHeight * 0.1,
+                frontWindowWidth * 0.8, windowHeight * 0.15)
+    ctx.fillRect(mainWindowLeft + mainWindowWidth * 0.1, bodyTop + windowInset + windowHeight * 0.1,
+                mainWindowWidth * 0.8, windowHeight * 0.15)
+    ctx.fillRect(rearWindowLeft + rearWindowWidth * 0.1, bodyTop + windowInset + windowHeight * 0.1,
+                rearWindowWidth * 0.8, windowHeight * 0.15)
+    
+    // LED前大灯组 - 现代化设计
+    const headlightSize = vehicleWidth * 0.1
+    const headlightY1 = -vehicleWidth/2 + vehicleWidth * 0.22
+    const headlightY2 = vehicleWidth/2 - vehicleWidth * 0.22
+    const headlightX = frontRight - headlightSize * 0.6
+    
+    // 大灯外壳
+    ctx.fillStyle = '#E5E7EB'
+    ctx.strokeStyle = '#9CA3AF'
+    ctx.lineWidth = 1
+    
+    // 左前大灯外壳
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY1, headlightSize * 0.6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 右前大灯外壳
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY2, headlightSize * 0.6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // LED灯珠
+    ctx.fillStyle = '#F9FAFB'
+    ctx.strokeStyle = '#F3F4F6'
+    ctx.lineWidth = 0.5
+    
+    // 左LED
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY1, headlightSize * 0.3, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 右LED
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY2, headlightSize * 0.3, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    
+    // LED光晕效果
+    const ledGradient = ctx.createRadialGradient(headlightX, headlightY1, 0, headlightX, headlightY1, headlightSize * 0.8)
+    ledGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)')
+    ledGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)')
+    ledGradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+    
+    ctx.fillStyle = ledGradient
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY1, headlightSize * 0.8, 0, Math.PI * 2)
+    ctx.fill()
+    
+    ctx.beginPath()
+    ctx.arc(headlightX, headlightY2, headlightSize * 0.8, 0, Math.PI * 2)
+    ctx.fill()
+    
+    // 现代化LED尾灯组
+    const taillightWidth = vehicleWidth * 0.15
+    const taillightHeight = vehicleWidth * 0.06
+    const taillightY1 = -vehicleWidth/2 + vehicleWidth * 0.2
+    const taillightY2 = vehicleWidth/2 - vehicleWidth * 0.26
+    const taillightX = rearLeft + rearLength * 0.3
+    
+    // 尾灯外壳
+    ctx.fillStyle = colors.rearDark
+    ctx.strokeStyle = colors.rearDark
+    ctx.lineWidth = 1
+    
+    // 左尾灯组
+    ctx.fillRect(taillightX - taillightWidth/2, taillightY1 - taillightHeight/2, 
+                taillightWidth, taillightHeight)
+    ctx.strokeRect(taillightX - taillightWidth/2, taillightY1 - taillightHeight/2, 
+                  taillightWidth, taillightHeight)
+    
+    // 右尾灯组
+    ctx.fillRect(taillightX - taillightWidth/2, taillightY2 - taillightHeight/2, 
+                taillightWidth, taillightHeight)
+    ctx.strokeRect(taillightX - taillightWidth/2, taillightY2 - taillightHeight/2, 
+                  taillightWidth, taillightHeight)
+    
+    // LED尾灯
+    ctx.fillStyle = '#F97316'
+    ctx.strokeStyle = '#EA580C'
+    ctx.lineWidth = 0.5
+    
+    const ledSpacing = taillightWidth / 4
+    for (let i = 0; i < 3; i++) {
+      const ledX = taillightX - taillightWidth/2 + ledSpacing/2 + i * ledSpacing
+      const ledSize = taillightHeight * 0.6
+      
+      // 上尾灯LED
+      ctx.beginPath()
+      ctx.arc(ledX, taillightY1, ledSize/2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 下尾灯LED  
+      ctx.beginPath()
+      ctx.arc(ledX, taillightY2, ledSize/2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+    
+    // 车身高光和装饰条
+    ctx.fillStyle = `rgba(255, 255, 255, 0.2)`
+    const highlightHeight = vehicleWidth * 0.12
+    ctx.fillRect(bodyLeft + bodyLength * 0.1, bodyTop, 
+                bodyLength * 0.8, highlightHeight)
+    
+    // 侧装饰条
+    ctx.fillStyle = colors.bodyMid
+    const sideStripeY = (bodyTop + bodyBottom) / 2
+    ctx.fillRect(bodyLeft, sideStripeY - 1, bodyLength, 2)
+    
+    // 精细车轮设计
+    const wheelRadius = vehicleWidth * 0.09
+    const tireWidth = wheelRadius * 0.3
+    const wheelOffsetX = vehicleLength * 0.28
+    const wheelOffsetY = vehicleWidth * 0.38
+    
+    // 轮胎绘制函数
+    const drawWheel = (x, y) => {
+      // 轮胎外圈
+      ctx.fillStyle = '#111827'
+      ctx.strokeStyle = '#1F2937'
+      ctx.lineWidth = 1.2
+      ctx.beginPath()
+      ctx.arc(x, y, wheelRadius, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 轮毂
+      ctx.fillStyle = '#6B7280'
+      ctx.strokeStyle = '#4B5563'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(x, y, wheelRadius * 0.7, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 轮毂辐条
+      ctx.strokeStyle = '#374151'
+      ctx.lineWidth = 1.5
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + Math.cos(angle) * wheelRadius * 0.6, 
+                  y + Math.sin(angle) * wheelRadius * 0.6)
+        ctx.stroke()
+      }
+      
+      // 轮毂中心
+      ctx.fillStyle = '#1F2937'
+      ctx.beginPath()
+      ctx.arc(x, y, wheelRadius * 0.25, 0, Math.PI * 2)
+      ctx.fill()
+      
+      // 轮胎花纹
+      ctx.strokeStyle = '#374151'
+      ctx.lineWidth = 0.8
+      const treadLines = 12
+      for (let i = 0; i < treadLines; i++) {
+        const angle = (i * Math.PI * 2) / treadLines
+        const innerR = wheelRadius * 0.85
+        const outerR = wheelRadius * 0.95
+        ctx.beginPath()
+        ctx.moveTo(x + Math.cos(angle) * innerR, y + Math.sin(angle) * innerR)
+        ctx.lineTo(x + Math.cos(angle) * outerR, y + Math.sin(angle) * outerR)
+        ctx.stroke()
+      }
+    }
+    
+    // 绘制四个车轮
+    drawWheel(wheelOffsetX, -wheelOffsetY)   // 前左
+    drawWheel(wheelOffsetX, wheelOffsetY)    // 前右
+    drawWheel(-wheelOffsetX, -wheelOffsetY)  // 后左
+    drawWheel(-wheelOffsetX, wheelOffsetY)   // 后右
+
+    ctx.restore()
   }
 
   // 绘制车辆
@@ -868,11 +1349,11 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
   // 绘制公式牌 - 移动到底部左侧
   const drawFormulaCard = (ctx, canvasWidth, canvasHeight) => {
     const padding = 16
-    const cardWidth = 280
-    const cardHeight = 120
+    const cardWidth = 300
+    const cardHeight = 140
     const borderRadius = 8
-    const topMargin = 10  // 增加与动画区域的间隙
-    const leftMargin = 45
+    const topMargin = -10  // 增加与动画区域的间隙
+    const leftMargin = 100
 
     // 定位到底部左侧，增加顶部间隙
     const cardX = padding + leftMargin
@@ -898,25 +1379,111 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     ctx.lineWidth = 1
     ctx.stroke()
 
-    // 标题
-    ctx.fillStyle = COLORS.text
-    ctx.font = 'bold 16px Consolas'
+    // 公式编辑器风格的数学表达式渲染函数
+    const renderMathExpression = (ctx, x, y, parts) => {
+      let currentX = x
+      parts.forEach(part => {
+        ctx.font = part.font
+        ctx.fillStyle = part.color
+        if (part.type === 'subscript') {
+          ctx.fillText(part.text, currentX, y + 5)
+          currentX += ctx.measureText(part.text).width
+        } else if (part.type === 'superscript') {
+          ctx.fillText(part.text, currentX, y - 4)
+          currentX += ctx.measureText(part.text).width
+        } else {
+          ctx.fillText(part.text, currentX, y)
+          currentX += ctx.measureText(part.text).width
+        }
+      })
+      return currentX
+    }
+
+    // 计算垂直居中的起始位置
+    const lineHeight = 26
+    const totalLines = 5
+    const contentHeight = totalLines * lineHeight - lineHeight * 0.2
+    const startY = cardY + (cardHeight - contentHeight) / 2
+
     ctx.textAlign = 'left'
-    ctx.textBaseline = 'top'
-    ctx.fillText('混合变量优化', cardX + 16, cardY + 16)
+    ctx.textBaseline = 'alphabetic' // 使用基线对齐获得更好的数学公式效果
 
-    // 内容
-    ctx.font = '12px Consolas'
-    const lines = [
-      '离散：车位选择 z_i∈{0,1}, Σz_i=1',
-      '      段落开关 g_k∈{+1,-1}',
-      '连续：Bézier控制点 {P}、速度 v(t)',
-      '约束：|κ|≤0.259 m⁻¹、安全廓+0.30m'
+    // 离散变量行
+    ctx.font = 'bold 14px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#4299E1'
+    ctx.fillText('离散：', cardX + 16, startY + 14) // 调整基线位置
+    
+    ctx.font = '13px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#9CA3AF'
+    ctx.fillText('车位选择 ', cardX + 80, startY + 14)
+    
+    // z_i ∈ {0,1}, ∑z_i = 1 公式
+    const discreteFormula = [
+      { text: 'z', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: 'i', font: '12px "Times New Roman", serif', color: '#9CA3AF', type: 'subscript' },
+      { text: ' ∈ {0,1}, ', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: '∑', font: '18px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: 'z', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: 'i', font: '12px "Times New Roman", serif', color: '#9CA3AF', type: 'subscript' },
+      { text: ' = 1', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' }
     ]
+    renderMathExpression(ctx, cardX + 148, startY + 14, discreteFormula)
 
-    lines.forEach((line, index) => {
-      ctx.fillText(line, cardX + 16, cardY + 44 + index * 16)
-    })
+    // 档位选择行  
+    ctx.font = '13px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#9CA3AF'
+    ctx.fillText('档位选择 ', cardX + 80, startY + lineHeight + 14)
+    
+    const gearFormula = [
+      { text: 'g', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: 'k', font: '12px "Times New Roman", serif', color: '#9CA3AF', type: 'subscript' },
+      { text: ' ∈ {前进,倒车}', font: '13px "Microsoft YaHei", sans-serif', color: '#9CA3AF', type: 'normal' }
+    ]
+    renderMathExpression(ctx, cardX + 148, startY + lineHeight + 14, gearFormula)
+
+    // 连续变量行
+    ctx.font = 'bold 14px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#4299E1'
+    ctx.fillText('连续：', cardX + 16, startY + 2 * lineHeight + 14)
+    
+    ctx.font = '13px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#9CA3AF'
+    ctx.fillText('Bézier控制点 ', cardX + 80, startY + 2 * lineHeight + 14)
+    
+    const continuousFormula = [
+      { text: '{P}', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: '、速度 ', font: '13px "Microsoft YaHei", sans-serif', color: '#9CA3AF', type: 'normal' },
+      { text: 'v(t)', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' }
+    ]
+    renderMathExpression(ctx, cardX + 188, startY + 2 * lineHeight + 14, continuousFormula)
+
+    // 约束条件行
+    ctx.font = 'bold 14px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#4299E1'
+    ctx.fillText('约束：', cardX + 16, startY + 3 * lineHeight + 14)
+    
+    const constraintFormula = [
+      { text: '|κ| ≤ 0.259 m', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: '−1', font: '12px "Times New Roman", serif', color: '#9CA3AF', type: 'superscript' },
+      { text: '、安全廓+0.30m', font: '13px "Microsoft YaHei", sans-serif', color: '#9CA3AF', type: 'normal' }
+    ]
+    renderMathExpression(ctx, cardX + 80, startY + 3 * lineHeight + 14, constraintFormula)
+
+    // 目标函数行
+    ctx.font = 'bold 14px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#4299E1'
+    ctx.fillText('目标：', cardX + 16, startY + 4 * lineHeight + 14)
+    
+    ctx.font = '13px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#9CA3AF'
+    ctx.fillText('min ', cardX + 80, startY + 4 * lineHeight + 14)
+    
+    const objectiveFormula = [
+      { text: 'T', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' },
+      { text: 'total', font: '12px "Times New Roman", serif', color: '#9CA3AF', type: 'subscript' },
+      { text: ' + λ·Safety', font: '15px "Times New Roman", serif', color: '#9CA3AF', type: 'normal' }
+    ]
+    renderMathExpression(ctx, cardX + 110, startY + 4 * lineHeight + 14, objectiveFormula)
   }
 
   // 绘制状态指示器
@@ -944,11 +1511,11 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     ctx.fillText('R', lightX + lightSize/2, lightY + lightSize + 8 + lightSize/2)
 
     // 数值显示 - 移动到底部右侧，与左侧公式卡片垂直对齐，增加间隙
-    const statusWidth = 200
-    const statusHeight = 120  // 与左侧卡片高度一致
+    const statusWidth = 220
+    const statusHeight = 140  // 与左侧卡片高度一致
     const borderRadius = 8   // 与左侧卡片圆角一致
-    const topMargin = 10     // 与左侧卡片保持相同的顶部间隙
-    const leftMargin = -40     // 与左侧卡片保持相同的顶部间隙
+    const topMargin = -10     // 与左侧卡片保持相同的顶部间隙
+    const leftMargin = -102     // 与左侧卡片保持相同的顶部间隙
     const statusX = canvasWidth - statusWidth - padding + leftMargin
     const statusY = canvasHeight - statusHeight - padding + topMargin  // 增加顶部间隙与左侧卡片对齐
 
@@ -972,15 +1539,15 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     ctx.lineWidth = 1
     ctx.stroke()
 
-    // 标题
-    ctx.fillStyle = COLORS.text
-    ctx.font = 'bold 16px Consolas'
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'top'
-    ctx.fillText('运动状态', statusX + 12, statusY + 16)
+    // 计算垂直居中的起始位置 - 将曲率条形图视为第4行
+    const lineHeight = 28
+    const totalLines = 4 // 3行数据 + 1行条形图
+    const contentHeight = totalLines * lineHeight - lineHeight * 0.3 // 最后一行不需要完整行间距
+    const startY = statusY + (statusHeight - contentHeight) / 2
 
-    // 数值显示
-    ctx.font = '12px Consolas'
+    // 数值显示 - 去掉标题，内容垂直居中
+    ctx.fillStyle = '#9CA3AF' // 灰色内容文字
+    ctx.font = '16px "Microsoft YaHei", sans-serif'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
 
@@ -991,14 +1558,14 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     ]
 
     statusLines.forEach((line, index) => {
-      ctx.fillText(line, statusX + 12, statusY + 44 + index * 16)
+      ctx.fillText(line, statusX + 16, startY + index * lineHeight)
     })
 
-    // 曲率条形图 - 调整位置以适应新的卡片高度
-    const barWidth = 120
-    const barHeight = 8
-    const barX = statusX + 12
-    const barY = statusY + 96
+    // 曲率条形图 - 作为第4行，与文字等间距
+    const barWidth = 160
+    const barHeight = 10
+    const barX = statusX + 16
+    const barY = startY + 3 * lineHeight + 8 // 稍微调整位置使其视觉上更好
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
     ctx.fillRect(barX, barY, barWidth, barHeight)
