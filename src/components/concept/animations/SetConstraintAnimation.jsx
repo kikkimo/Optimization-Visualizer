@@ -18,11 +18,11 @@ const SetConstraintAnimation = ({ isPlaying = false, onComplete = () => {}, onAn
   // 动画参数
   const ANIMATION_DURATION = 14000 // 14秒总时长，与动画逻辑保持一致
   
-  // 颜色定义
+  // 颜色定义 - 与MixedVariableAnimation保持一致
   const COLORS = {
-    background: '#0F1116',
-    gridPrimary: 'rgba(47, 54, 66, 0.7)',
-    gridSecondary: 'rgba(37, 41, 51, 0.4)',
+    background: '#111827',
+    gridPrimary: 'rgba(75, 85, 99, 0.7)',
+    gridSecondary: 'rgba(55, 65, 81, 0.4)',
     ocean: '#1B2130',
     land: '#253043',
     pointA: '#38A169', // 起点绿色
@@ -34,7 +34,7 @@ const SetConstraintAnimation = ({ isPlaying = false, onComplete = () => {}, onAn
     bufferZone: 'rgba(237, 137, 54, 0.15)', // 缓冲带橙色
     bufferBorder: '#ED8936',
     feasibleHighlight: 'rgba(56, 178, 172, 0.1)', // 可行域高亮
-    infoBackground: 'rgba(11, 18, 32, 0.85)',
+    infoBackground: 'rgba(15, 17, 22, 0.95)', // 与MixedVariableAnimation一致
     infoText: '#E7EDF8',
     constraintTag: '#BFC9DA',
     referencePoint: '#E7EDF8'
@@ -300,7 +300,7 @@ const SetConstraintAnimation = ({ isPlaying = false, onComplete = () => {}, onAn
   }
 
   // 绘制3D地球
-  const draw3DEarth = (ctx, canvasWidth, canvasHeight, alpha = 0.5) => {
+  const draw3DEarth = (ctx, canvasWidth, canvasHeight, alpha = 0.25) => {
     const centerX = canvasWidth / 2
     const centerY = canvasHeight / 2
     const baseRadius = Math.min(canvasWidth, canvasHeight) * 0.2
