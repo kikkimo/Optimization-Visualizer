@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 
 const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) => {
   
@@ -7,9 +7,16 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
   const animationStateRef = useRef({
     startTime: 0,
     currentTime: 0,
-    totalDuration: 12000, // 12 seconds
-    isRunning: false
+    totalDuration: 7500, // 7.5 seconds - 与render函数中的TOTAL_DURATION一致
+    isRunning: false,
+    hasInternallyCompleted: false // 内部完成标记，避免异步状态问题
   })
+  
+  // 跟踪动画是否已完成过（用于区分初始状态和结束状态）
+  const [hasCompletedAnimation, setHasCompletedAnimation] = useState(false)
+  
+  // 简单直接的完成状态跟踪
+  const [animationCompleted, setAnimationCompleted] = useState(false)
 
   // 画布与坐标系统
   const WORLD_WIDTH = 24
@@ -1577,6 +1584,7 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
 
   // 主渲染函数
   const render = (ctx, canvasWidth, canvasHeight, currentTime) => {
+
     // 清空画布
     ctx.fillStyle = COLORS.background
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
@@ -1622,31 +1630,63 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
       const forwardEndIndex = PATH_SEGMENTS.forwardEndIndex
 
       if (currentTime >= FORWARD_START && currentTime <= FORWARD_END) {
-        // 前进阶段 - 跟随真实路径前半段
+        // 前进阶段 - 使用平滑插值实现匀速运动
         const progress = (currentTime - FORWARD_START) / (FORWARD_END - FORWARD_START)
-        const pathIndex = Math.floor(progress * forwardEndIndex)
-        const clampedIndex = Math.min(pathIndex, forwardEndIndex - 1)
         
-        if (path[clampedIndex]) {
-          vehiclePos = { x: path[clampedIndex].x, y: path[clampedIndex].y }
-          vehicleHeading = path[clampedIndex].heading
-          curvature = path[clampedIndex].curvature || 0  // 使用真实曲率
+        // 使用平滑的路径插值，而不是简单的线性索引
+        const exactIndex = progress * (forwardEndIndex - 1)
+        const floorIndex = Math.floor(exactIndex)
+        const ceilIndex = Math.min(floorIndex + 1, forwardEndIndex - 1)
+        const t = exactIndex - floorIndex // 插值因子
+        
+        if (path[floorIndex] && path[ceilIndex]) {
+          // 平滑插值位置和方向
+          const pos1 = path[floorIndex]
+          const pos2 = path[ceilIndex]
+          
+          vehiclePos = {
+            x: pos1.x + (pos2.x - pos1.x) * t,
+            y: pos1.y + (pos2.y - pos1.y) * t
+          }
+          
+          // 平滑插值方向角
+          let heading1 = pos1.heading
+          let heading2 = pos2.heading
+          
+          // 处理角度跨越问题（-π到π的跳跃）
+          if (Math.abs(heading2 - heading1) > Math.PI) {
+            if (heading2 > heading1) {
+              heading1 += 2 * Math.PI
+            } else {
+              heading2 += 2 * Math.PI
+            }
+          }
+          
+          vehicleHeading = heading1 + (heading2 - heading1) * t
+          if (vehicleHeading > Math.PI) vehicleHeading -= 2 * Math.PI
+          if (vehicleHeading < -Math.PI) vehicleHeading += 2 * Math.PI
+          
+          // 平滑插值曲率
+          const curv1 = pos1.curvature || 0
+          const curv2 = pos2.curvature || 0
+          curvature = curv1 + (curv2 - curv1) * t
           
           // 计算当前所在段落
           const segments = PATH_SEGMENTS.segments
-          if (clampedIndex < segments.seg0.start + segments.seg0.length) {
+          const currentIndex = Math.round(exactIndex)
+          if (currentIndex < segments.seg0.start + segments.seg0.length) {
             currentSegment = '直线前进'
-          } else if (clampedIndex < segments.seg1.start + segments.seg1.length) {
+          } else if (currentIndex < segments.seg1.start + segments.seg1.length) {
             currentSegment = '右弯'
-          } else if (clampedIndex < segments.seg2.start + segments.seg2.length) {
+          } else if (currentIndex < segments.seg2.start + segments.seg2.length) {
             currentSegment = '斜线'
           } else {
             currentSegment = '左弯'
           }
         }
         
-        animTime = (currentTime - FORWARD_START) / 1000
-        distance = progress * 15 // 估算总距离
+        animTime = (currentTime / 1000) * 10 // 模拟真实时间：动画7.5秒对应75秒
+        distance = progress * 15 // 前进阶段的累积距离
         isForward = true
 
       } else if (currentTime > FORWARD_END && currentTime < GEAR_SHIFT) {
@@ -1657,28 +1697,59 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
           vehicleHeading = path[lastForwardIndex].heading
         }
         
-        animTime = 5.0 // 前进阶段时间
-        distance = 15
+        animTime = (currentTime / 1000) * 10 // 模拟真实时间：动画7.5秒对应75秒
+        distance = 15 // 前进阶段完成的距离
         curvature = 0
         currentSegment = '换挡中'
         isForward = false
 
       } else if (currentTime >= GEAR_SHIFT && currentTime <= REVERSE_END) {
-        // 倒车阶段 - 跟随真实路径后半段
+        // 倒车阶段 - 使用平滑插值实现匀速运动
         isForward = false
         const progress = (currentTime - GEAR_SHIFT) / (REVERSE_END - GEAR_SHIFT)
         const reversePathLength = path.length - 1 - forwardEndIndex
-        const pathIndex = forwardEndIndex + Math.floor(progress * reversePathLength)
-        const clampedIndex = Math.min(pathIndex, path.length - 1)
         
-        if (path[clampedIndex]) {
-          vehiclePos = { x: path[clampedIndex].x, y: path[clampedIndex].y }
-          vehicleHeading = path[clampedIndex].heading
-          curvature = Math.abs(path[clampedIndex].curvature || 0)  // 倒车时使用真实曲率
+        // 使用平滑的路径插值
+        const exactIndex = forwardEndIndex + progress * reversePathLength
+        const floorIndex = Math.floor(exactIndex)
+        const ceilIndex = Math.min(floorIndex + 1, path.length - 1)
+        const t = exactIndex - floorIndex // 插值因子
+        
+        if (path[floorIndex] && path[ceilIndex]) {
+          // 平滑插值位置
+          const pos1 = path[floorIndex]
+          const pos2 = path[ceilIndex]
+          
+          vehiclePos = {
+            x: pos1.x + (pos2.x - pos1.x) * t,
+            y: pos1.y + (pos2.y - pos1.y) * t
+          }
+          
+          // 平滑插值方向角
+          let heading1 = pos1.heading
+          let heading2 = pos2.heading
+          
+          // 处理角度跨越问题
+          if (Math.abs(heading2 - heading1) > Math.PI) {
+            if (heading2 > heading1) {
+              heading1 += 2 * Math.PI
+            } else {
+              heading2 += 2 * Math.PI
+            }
+          }
+          
+          vehicleHeading = heading1 + (heading2 - heading1) * t
+          if (vehicleHeading > Math.PI) vehicleHeading -= 2 * Math.PI
+          if (vehicleHeading < -Math.PI) vehicleHeading += 2 * Math.PI
+          
+          // 平滑插值曲率
+          const curv1 = Math.abs(pos1.curvature || 0)
+          const curv2 = Math.abs(pos2.curvature || 0)
+          curvature = curv1 + (curv2 - curv1) * t
         }
         
-        animTime = (currentTime - GEAR_SHIFT) / 1000 + 3.4
-        distance = 15 + progress * 5 // 前进距离 + 倒车距离
+        animTime = (currentTime / 1000) * 10 // 模拟真实时间：动画7.5秒对应75秒
+        distance = 15 + progress * 7 // 前进15m + 倒车进度*7m
         currentSegment = '倒车入位'
 
       } else if (currentTime > REVERSE_END) {
@@ -1686,10 +1757,16 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
         vehiclePos = TARGET_SLOT.center
         vehicleHeading = TARGET_SLOT.heading
         isForward = false
-        animTime = 10.0
-        distance = 20.0
-        curvature = 0
+        animTime = 75.0 // 模拟真实停车时间75秒
+        distance = 22.0 // 实际行驶总距离（前进15m + 倒车7m）
+        curvature = 0 // 停车时曲率为0
         currentSegment = '停车完成'
+        
+        // 立即设置动画完成状态
+        if (!animationCompleted) {
+          setAnimationCompleted(true)
+          setHasCompletedAnimation(true)
+        }
       }
     }
 
@@ -1714,10 +1791,12 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
       ctx.textBaseline = 'middle'
       ctx.fillText(`当前: ${currentSegment}`, textX, textY)
     }
+
   }
 
   // 渲染静态停车场场景
-  const renderStaticScene = (ctx, canvasWidth, canvasHeight) => {
+  // 初始静止场景（车辆在起始位置）
+  const renderInitialScene = (ctx, canvasWidth, canvasHeight) => {
     
     // 清空画布
     ctx.fillStyle = COLORS.background
@@ -1740,6 +1819,45 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
 
   }
 
+  // 结束静止场景（车辆停在停车位B5）
+  const renderCompletedScene = (ctx, canvasWidth, canvasHeight) => {
+    
+    // 清空画布
+    ctx.fillStyle = COLORS.background
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+    // 渲染基础场景
+    drawGrid(ctx, canvasWidth, canvasHeight)
+    drawLanes(ctx, canvasWidth, canvasHeight)
+    drawParkingSlots(ctx, canvasWidth, canvasHeight, true) // 高亮B5
+
+    // 显示完整的真实路径（已完成的路径）
+    drawRealPath(ctx, canvasWidth, canvasHeight)
+
+    // 车辆停在B5停车位（最终位置）
+    const finalPosition = { 
+      x: TARGET_SLOT.center.x, 
+      y: TARGET_SLOT.center.y, 
+      heading: TARGET_SLOT.heading 
+    }
+    drawVehicle(ctx, canvasWidth, canvasHeight, finalPosition, finalPosition.heading, true)
+
+    // 显示信息卡片，显示完成状态
+    drawFormulaCard(ctx, canvasWidth, canvasHeight)
+    drawStatusIndicators(ctx, canvasWidth, canvasHeight, false, 75.0, 22.0, 0) // 显示完成状态：75秒，22米，曲率0
+
+  }
+
+  // 根据动画状态选择渲染的场景
+  const renderStaticScene = (ctx, canvasWidth, canvasHeight) => {
+    
+    if (animationCompleted) {
+      renderCompletedScene(ctx, canvasWidth, canvasHeight)
+    } else {
+      renderInitialScene(ctx, canvasWidth, canvasHeight)
+    }
+  }
+
   // 动画循环
   const animate = () => {
     const canvas = canvasRef.current
@@ -1760,7 +1878,26 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     // 检查是否完成
     if (elapsed >= state.totalDuration) {
       state.isRunning = false
-      onComplete()
+      state.hasInternallyCompleted = true // 立即设置内部完成标记
+      
+      // 详细记录动画完成时的车辆位置信息
+      
+      // 先标记动画已完成，然后渲染最终场景
+      setHasCompletedAnimation(true)
+      
+      // 立即渲染完成后的场景，确保车辆停在停车位
+      setTimeout(() => {
+        const canvas = canvasRef.current
+        if (canvas) {
+          const ctx = canvas.getContext('2d')
+          
+          renderCompletedScene(ctx, canvas.width, canvas.height)
+          
+        }
+        
+        onComplete()
+      }, 50) // 延迟50ms确保状态更新完成
+      
       return
     }
 
@@ -1774,12 +1911,25 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     state.startTime = Date.now()
     state.currentTime = 0
     state.isRunning = true
+    state.hasInternallyCompleted = false // 重置内部完成标记
+    
+    // 重置所有完成状态
+    setAnimationCompleted(false)
+    setHasCompletedAnimation(false) // 关键：也要重置这个状态
+    
     animate()
   }
 
   // 停止动画
   const stopAnimation = () => {
     const state = animationStateRef.current
+    
+    // 在停止前检查是否应该标记为完成
+    if (state.isRunning && state.currentTime >= state.totalDuration) {
+      state.hasInternallyCompleted = true
+      setHasCompletedAnimation(true)
+    }
+    
     state.isRunning = false
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
@@ -1789,6 +1939,7 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
 
   // 响应播放状态变化
   useEffect(() => {
+
     if (isPlaying) {
       // 当开始播放时，重新检查Canvas尺寸
       const canvas = canvasRef.current
@@ -1810,12 +1961,17 @@ const MixedVariableAnimation = ({ isPlaying = false, onComplete = () => {} }) =>
     } else {
       stopAnimation()
       
-      // 停止时渲染静态场景
-      const canvas = canvasRef.current
-      if (canvas && canvas.width > 0 && canvas.height > 0) {
-        const ctx = canvas.getContext('2d')
-        renderStaticScene(ctx, canvas.width, canvas.height)
-      }
+      // 停止时延迟渲染静态场景，等待hasCompletedAnimation状态更新
+      setTimeout(() => {
+        const internallyCompleted = animationStateRef.current.hasInternallyCompleted
+        
+        
+        const canvas = canvasRef.current
+        if (canvas && canvas.width > 0 && canvas.height > 0) {
+          const ctx = canvas.getContext('2d')
+          renderStaticScene(ctx, canvas.width, canvas.height)
+        }
+      }, 100) // 延迟100ms等待状态更新
     }
 
     return () => stopAnimation()
