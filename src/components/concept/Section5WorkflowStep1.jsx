@@ -72,25 +72,13 @@ const Section5WorkflowStep1 = () => {
 
   // 处理胶囊点击
   const handleExampleClick = async (cardId, exampleIndex) => {
-  console.log('🔘 [胶囊点击] handleExampleClick 被调用', {
-    点击卡片: cardId,
-    点击胶囊: exampleIndex,
-    当前活动卡片: activeCard,
-    当前活动胶囊: activeExample,
-    当前播放状态: isPlaying
-  })
   
   // 如果是确定变量卡片(cardId=2)，始终强制选择混合变量胶囊(index=2)，不允许切换
   if (cardId === 2) {
     // 检查是否需要停止动画：如果当前不是该卡片和胶囊的组合，则停止动画
     const isDifferentSelection = activeCard !== cardId || activeExample !== 2
-    console.log('🔧 [确定变量卡片] 处理确定变量卡片点击', {
-      是否不同选择: isDifferentSelection,
-      需要停止动画: isDifferentSelection && isPlaying
-    })
     
     if (isDifferentSelection && isPlaying) {
-      console.log('⏹️ [确定变量卡片] 停止当前动画')
       // 停止当前动画
       if (animationControllerRef.current) {
         animationControllerRef.current.abort()
@@ -105,7 +93,6 @@ const Section5WorkflowStep1 = () => {
       
       // 立即重置停止信号，准备下次播放
       setAnimationShouldStop(false)
-      console.log('🔄 [确定变量卡片] 重置停止信号')
     }
     
     setActiveCard(cardId)
@@ -120,7 +107,6 @@ const Section5WorkflowStep1 = () => {
       drawCurrentCardStaticScene(ctx, width, height, true) // 传入true表示是胶囊切换触发的绘制
     }
     
-    console.log('✅ [确定变量卡片] 处理完成，返回')
     // 移除自动播放动画的调用
     // playSpecificExample(cardId, 2)
     return // 直接返回，不执行后续逻辑
@@ -128,21 +114,14 @@ const Section5WorkflowStep1 = () => {
   
   // 如果是构建函数卡片(cardId=3)，只允许集合/结构约束(index=3)和正则项(index=4)点击
   if (cardId === 3 && exampleIndex !== 3 && exampleIndex !== 4) {
-    console.log('❌ [构建函数卡片] 不允许的胶囊点击，忽略')
     // 不允许的胶囊点击，直接返回，不做任何响应
     return
   }
   
   // 检查是否需要停止动画：如果点击的是不同的卡片或胶囊组合，则停止当前动画
   const isDifferentSelection = activeCard !== cardId || activeExample !== exampleIndex
-  console.log('🔄 [胶囊切换] 检查是否需要停止动画', {
-    是否不同选择: isDifferentSelection,
-    当前播放状态: isPlaying,
-    需要停止动画: isDifferentSelection && isPlaying
-  })
   
   if (isDifferentSelection && isPlaying) {
-    console.log('⏹️ [胶囊切换] 停止当前动画')
     // 停止当前动画
     if (animationControllerRef.current) {
       animationControllerRef.current.abort()
@@ -157,12 +136,10 @@ const Section5WorkflowStep1 = () => {
     
     // 立即重置停止信号，准备下次播放
     setAnimationShouldStop(false)
-    console.log('🔄 [胶囊切换] 重置停止信号')
   }
   
   // 对于其他卡片，保持原有逻辑
   // 立即更新状态
-  console.log('🔄 [状态更新] 更新活动卡片和胶囊状态', {
     新卡片: cardId,
     新胶囊: exampleIndex
   })
@@ -171,13 +148,11 @@ const Section5WorkflowStep1 = () => {
   
   // 如果点击的是覆盖动画胶囊，更新覆盖方案状态
   if (cardId === 1 && exampleIndex === 1) {
-    console.log('🎯 [最大化覆盖率] 更新覆盖方案状态为B')
     setCurrentCoveragePlan('B') // 默认显示最优方案B (站点3,5,6 - 75.33%)
   }
   
   // 如果点击的是置信度动画胶囊，更新置信度方案状态
   if (cardId === 1 && exampleIndex === 3) {
-    console.log('🔒 [置信度] 更新置信度方案状态为B')
     setCurrentConfidenceScheme('B') // 默认显示最优方案B (95.2%)
   }
   
@@ -190,14 +165,12 @@ const Section5WorkflowStep1 = () => {
     drawCurrentCardStaticScene(ctx, width, height, true) // 传入true表示是胶囊切换触发的绘制
   }
   
-  console.log('✅ [胶囊点击] handleExampleClick 处理完成')
   // 移除自动播放动画的调用
   // playSpecificExample(cardId, exampleIndex)
 }
 
   // 播放特定胶囊的动画
   const playSpecificExample = async (cardId, exampleIndex) => {
-    console.log('🚀 [动画开始] playSpecificExample 被调用', {
       卡片ID: cardId,
       胶囊索引: exampleIndex,
       当前播放状态: isPlaying,
@@ -207,33 +180,27 @@ const Section5WorkflowStep1 = () => {
     
     // 1. 先取消之前的动画控制器
     if (animationControllerRef.current) {
-      console.log('⏹️ [动画控制] 取消之前的动画控制器')
       animationControllerRef.current.abort()
       animationControllerRef.current = null
     }
     
     // 2. 彻底停止所有当前动画状态
-    console.log('🛑 [动画控制] 设置停止状态')
     setAnimationShouldStop(true)
     setIsPlaying(false)
     setIsPlayingCoverage(false)
     
     // 3. 等待足够长的时间让动画完全停止
-    console.log('⏳ [动画控制] 等待300ms让动画完全停止')
     await new Promise(resolve => setTimeout(resolve, 300))
     
     // 4. 创建新的动画控制器
-    console.log('🆕 [动画控制] 创建新的动画控制器')
     animationControllerRef.current = new AbortController()
     
     // 5. 重置停止信号，准备开始新动画
-    console.log('▶️ [动画控制] 重置停止信号，准备开始新动画')
     setAnimationShouldStop(false)
     
     setIsPlaying(true)
     setAnimationState(`Playing@Card${cardId}[${exampleIndex + 1}]`)
     
-    console.log('🎯 [动画开始] 开始播放动画', {
       卡片ID: cardId,
       胶囊索引: exampleIndex,
       播放状态已设置为: true
@@ -241,7 +208,6 @@ const Section5WorkflowStep1 = () => {
     
     const canvas = canvasRef.current
     if (!canvas) {
-      console.log('❌ [动画错误] Canvas不存在')
       return
     }
     
@@ -257,38 +223,28 @@ const Section5WorkflowStep1 = () => {
       switch (cardId) {
         case 1:
           if (exampleIndex === 0) {
-            console.log('📊 [最小化误差] 开始播放最小化误差动画')
           } else if (exampleIndex === 1) {
-            console.log('🎯 [最大化覆盖率] 开始播放最大化覆盖率动画')
           } else if (exampleIndex === 2) {
-            console.log('⚡ [最短时间] 开始播放最短时间动画')
           } else if (exampleIndex === 3) {
-            console.log('🔒 [置信度] 开始播放置信度动画')
           }
           await playCard1SpecificScene(ctx, width, height, exampleIndex, signal)
           break
         case 2:
-          console.log('🔧 [确定变量] 开始播放确定变量动画')
           await playCard2SpecificScene(ctx, width, height, exampleIndex, signal)
           break
         case 3:
-          console.log('🏗️ [构建函数] 开始播放构建函数动画')
           await playCard3SpecificScene(ctx, width, height, exampleIndex, signal)
           break
         case 4:
-          console.log('🎮 [求解算法] 开始播放求解算法动画')
           await playCard4Scene(ctx, width, height, signal)
           break
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.log('⚠️ [动画中断] 动画被中断')
         return
       }
-      console.error('❌ [动画错误] Animation error:', error)
     }
     
-    console.log('✅ [动画完成] 动画播放完成', {
       卡片ID: cardId,
       胶囊索引: exampleIndex
     })
@@ -302,7 +258,6 @@ const Section5WorkflowStep1 = () => {
       ...prev,
       [animationKey]: true
     }))
-    console.log('🎯 [状态更新] 记录动画已播放', { 动画键: animationKey })
     
     // 动画结束后，绘制对应胶囊的静态场景（动画结束状态，保持方案信息）
     drawCurrentCardStaticScene(ctx, width, height, false) // 动画结束状态
@@ -325,7 +280,6 @@ const Section5WorkflowStep1 = () => {
       setLastActiveKey(currentAnimationKey)
     }
     
-    console.log('🎨 [绘制静态场景]', {
       活动卡片: activeCard,
       活动胶囊: activeExample,
       是否初次进入: isInitialState,
@@ -341,37 +295,29 @@ const Section5WorkflowStep1 = () => {
         if (activeExample === 0) {
           // 最小化误差动画的静态场景
           if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
-            console.log('📊 [最小化误差] 绘制初次进入/重新切换静态场景（仅基础元素）')
             drawMinimizeErrorInitialScene(ctx, width, height)
           } else {
-            console.log('📊 [最小化误差] 绘制动画结束/保持静态场景（包含最优方案）')
             drawCard1Scene1(ctx, width, height)
           }
         } else if (activeExample === 1) {
           // 最大化覆盖率动画的静态场景
           if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
-            console.log('🎯 [最大化覆盖率] 绘制初次进入/重新切换静态场景（仅基础元素）')
             drawCoverageInitialScene(ctx, width, height)
           } else {
-            console.log('🎯 [最大化覆盖率] 绘制动画结束/保持静态场景（包含方案信息）')
             drawCoverageStaticScene(ctx, width, height)
           }
         } else if (activeExample === 2) {
           // 最短时间动画的静态场景
           if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
-            console.log('⚡ [最短时间] 绘制初次进入/重新切换静态场景（4条曲线同等透明度）')
             drawTimeOptInitialScene(ctx, width, height)
           } else {
-            console.log('⚡ [最短时间] 绘制动画结束/保持静态场景（最速曲线高亮）')
             drawTimeOptStaticScene(ctx, width, height)
           }
         } else if (activeExample === 3) {
           // 最大置信度动画的静态场景
           if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
-            console.log('🔒 [最大置信度] 绘制初次进入/重新切换静态场景（仅基础元素）')
             drawConfidenceInitialScene(ctx, width, height)
           } else {
-            console.log('🔒 [最大置信度] 绘制动画结束/保持静态场景（包含方案信息）')
             drawConfidenceStaticScene(ctx, width, height)
           }
         } else {
@@ -393,7 +339,7 @@ const Section5WorkflowStep1 = () => {
             drawCard2Scene2(ctx, width, height) // 离散变量
             break
           case 2:
-            drawCard2Scene3(ctx, width, height) // 混合变量
+            // 混合变量胶囊由MixedVariableAnimation组件自己处理，不在这里绘制
             break
           default:
             drawCard2Scene1(ctx, width, height)
@@ -460,7 +406,11 @@ const Section5WorkflowStep1 = () => {
     canvas.style.height = rect.height + 'px'
     
     // 绘制初始状态（根据当前活跃卡片）
-    drawCurrentCardStaticScene(ctx, rect.width, rect.height)
+    // 混合变量胶囊由MixedVariableAnimation组件处理，不在这里绘制
+    if (!(activeCard === 2 && activeExample === 2)) {
+      drawCurrentCardStaticScene(ctx, rect.width, rect.height)
+    } else {
+    }
     
     // 窗口大小变化时重新初始化
     const handleResize = () => {
@@ -473,7 +423,11 @@ const Section5WorkflowStep1 = () => {
       
       // 重绘当前状态
       if (animationState.startsWith('Idle')) {
-        drawCurrentCardStaticScene(ctx, newRect.width, newRect.height)
+        // 混合变量胶囊由MixedVariableAnimation组件处理，不在这里绘制
+        if (!(activeCard === 2 && activeExample === 2)) {
+          drawCurrentCardStaticScene(ctx, newRect.width, newRect.height)
+        } else {
+        }
       }
     }
     
@@ -4652,15 +4606,17 @@ const Section5WorkflowStep1 = () => {
             opacity: 1
           }}>
             <MixedVariableAnimation 
+              key="mixed-variable-animation" // 固定key，保持动画完成状态
               isPlaying={isPlaying && activeCard === 2 && activeExample === 2}
               onComplete={() => {
                 setIsPlaying(false)
                 setAnimationState(`Idle@Card${activeCard}`)
-                const canvas = canvasRef.current
-                if (canvas) {
-                  const ctx = canvas.getContext('2d')
-                  drawCurrentCardStaticScene(ctx, canvas.clientWidth, canvas.clientHeight)
-                }
+                // 移除可能覆盖动画组件渲染的调用
+                // const canvas = canvasRef.current
+                // if (canvas) {
+                //   const ctx = canvas.getContext('2d')
+                //   drawCurrentCardStaticScene(ctx, canvas.clientWidth, canvas.clientHeight)
+                // }
               }}
             />
           </div>
@@ -4804,7 +4760,6 @@ const Section5WorkflowStep1 = () => {
         }}>
           <button
             onClick={() => {
-              console.log('🎬 [播放按钮] 点击播放按钮', {
                 当前卡片: activeCard,
                 当前胶囊: activeExample,
                 正在播放: isPlaying,
