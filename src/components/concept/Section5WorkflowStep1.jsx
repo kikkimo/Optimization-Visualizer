@@ -66,7 +66,7 @@ const Section5WorkflowStep1 = () => {
       const ctx = canvas.getContext('2d')
       const width = canvas.clientWidth
       const height = canvas.clientHeight
-      drawCurrentCardStaticScene(ctx, width, height)
+      drawCurrentCardStaticScene(ctx, width, height, true) // 初次进入状态
     }
   }
 
@@ -111,13 +111,13 @@ const Section5WorkflowStep1 = () => {
     setActiveCard(cardId)
     setActiveExample(2) // 强制设置为混合变量胶囊索引
     
-    // 立即绘制对应的静态场景
+    // 立即绘制对应的静态场景（由函数内部决定是初次进入还是保持动画结束状态）
     const canvas = canvasRef.current
     if (canvas) {
       const ctx = canvas.getContext('2d')
       const width = canvas.clientWidth
       const height = canvas.clientHeight
-      drawCurrentCardStaticScene(ctx, width, height)
+      drawCurrentCardStaticScene(ctx, width, height, true) // 传入true表示是胶囊切换触发的绘制
     }
     
     console.log('✅ [确定变量卡片] 处理完成，返回')
@@ -181,13 +181,13 @@ const Section5WorkflowStep1 = () => {
     setCurrentConfidenceScheme('B') // 默认显示最优方案B (95.2%)
   }
   
-  // 立即绘制对应的静态场景
+  // 立即绘制对应的静态场景（由函数内部决定是初次进入还是保持动画结束状态）
   const canvas = canvasRef.current
   if (canvas) {
     const ctx = canvas.getContext('2d')
     const width = canvas.clientWidth
     const height = canvas.clientHeight
-    drawCurrentCardStaticScene(ctx, width, height)
+    drawCurrentCardStaticScene(ctx, width, height, true) // 传入true表示是胶囊切换触发的绘制
   }
   
   console.log('✅ [胶囊点击] handleExampleClick 处理完成')
@@ -296,31 +296,91 @@ const Section5WorkflowStep1 = () => {
     setIsPlaying(false)
     setAnimationState(`Idle@Card${cardId}`)
     
-    // 动画结束后，绘制对应胶囊的静态场景
-    drawCurrentCardStaticScene(ctx, width, height)
+    // 记录当前胶囊已播放过动画
+    const animationKey = `${cardId}-${exampleIndex}`
+    setHasPlayedAnimation(prev => ({
+      ...prev,
+      [animationKey]: true
+    }))
+    console.log('🎯 [状态更新] 记录动画已播放', { 动画键: animationKey })
+    
+    // 动画结束后，绘制对应胶囊的静态场景（动画结束状态，保持方案信息）
+    drawCurrentCardStaticScene(ctx, width, height, false) // 动画结束状态
   }
 
   // 绘制当前卡片的静态场景
-  const drawCurrentCardStaticScene = (ctx, width, height) => {
+  const drawCurrentCardStaticScene = (ctx, width, height, isInitialState = true) => {
     // 强制清除画布
     ctx.fillStyle = '#111827'
     ctx.fillRect(0, 0, width, height)
     
+    // 检查当前胶囊是否播放过动画
+    const currentAnimationKey = `${activeCard}-${activeExample}`
+    const hasPlayedCurrentAnimation = hasPlayedAnimation[currentAnimationKey] || false
+    
+    // 检测是否是胶囊切换
+    const isSwitching = currentAnimationKey !== lastActiveKey
+    if (isSwitching) {
+      // 更新上一次活动的胶囊键
+      setLastActiveKey(currentAnimationKey)
+    }
+    
+    console.log('🎨 [绘制静态场景]', {
+      活动卡片: activeCard,
+      活动胶囊: activeExample,
+      是否初次进入: isInitialState,
+      当前胶囊是否播放过动画: hasPlayedCurrentAnimation,
+      动画键: currentAnimationKey,
+      上次动画键: lastActiveKey,
+      是否胶囊切换: isSwitching
+    })
+    
     switch (activeCard) {
       case 1:
         // 根据当前胶囊显示不同的静态场景
-        if (activeExample === 1) {
-          // 显示覆盖动画的静态场景
-          drawCoverageStaticScene(ctx, width, height)
+        if (activeExample === 0) {
+          // 最小化误差动画的静态场景
+          if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
+            console.log('📊 [最小化误差] 绘制初次进入/重新切换静态场景（仅基础元素）')
+            drawMinimizeErrorInitialScene(ctx, width, height)
+          } else {
+            console.log('📊 [最小化误差] 绘制动画结束/保持静态场景（包含最优方案）')
+            drawCard1Scene1(ctx, width, height)
+          }
+        } else if (activeExample === 1) {
+          // 最大化覆盖率动画的静态场景
+          if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
+            console.log('🎯 [最大化覆盖率] 绘制初次进入/重新切换静态场景（仅基础元素）')
+            drawCoverageInitialScene(ctx, width, height)
+          } else {
+            console.log('🎯 [最大化覆盖率] 绘制动画结束/保持静态场景（包含方案信息）')
+            drawCoverageStaticScene(ctx, width, height)
+          }
         } else if (activeExample === 2) {
-          // 显示最短时间的静态场景
-          drawTimeOptStaticScene(ctx, width, height)
+          // 最短时间动画的静态场景
+          if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
+            console.log('⚡ [最短时间] 绘制初次进入/重新切换静态场景（4条曲线同等透明度）')
+            drawTimeOptInitialScene(ctx, width, height)
+          } else {
+            console.log('⚡ [最短时间] 绘制动画结束/保持静态场景（最速曲线高亮）')
+            drawTimeOptStaticScene(ctx, width, height)
+          }
         } else if (activeExample === 3) {
-          // 显示最大置信度的静态场景
-          drawConfidenceStaticScene(ctx, width, height)
+          // 最大置信度动画的静态场景
+          if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
+            console.log('🔒 [最大置信度] 绘制初次进入/重新切换静态场景（仅基础元素）')
+            drawConfidenceInitialScene(ctx, width, height)
+          } else {
+            console.log('🔒 [最大置信度] 绘制动画结束/保持静态场景（包含方案信息）')
+            drawConfidenceStaticScene(ctx, width, height)
+          }
         } else {
-          // 显示最小化误差的静态场景
-          drawCard1Scene1(ctx, width, height)
+          // 其他情况，默认显示最小化误差
+          if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
+            drawMinimizeErrorInitialScene(ctx, width, height)
+          } else {
+            drawCard1Scene1(ctx, width, height)
+          }
         }
         break
       case 2:
@@ -375,7 +435,11 @@ const Section5WorkflowStep1 = () => {
         })
         break
       default:
-        drawCard1Scene1(ctx, width, height)
+        if ((isInitialState && isSwitching) || (isInitialState && !hasPlayedCurrentAnimation)) {
+          drawMinimizeErrorInitialScene(ctx, width, height)
+        } else {
+          drawCard1Scene1(ctx, width, height)
+        }
     }
   }
 
@@ -571,6 +635,8 @@ const Section5WorkflowStep1 = () => {
   const [coverageAnimationState, setCoverageAnimationState] = useState('Idle@PlanB')
   const [isPlayingCoverage, setIsPlayingCoverage] = useState(false)
   const [animationShouldStop, setAnimationShouldStop] = useState(false) // 动画停止信号
+  const [hasPlayedAnimation, setHasPlayedAnimation] = useState({}) // 记录每个胶囊是否播放过动画 格式: {`${cardId}-${exampleIndex}`: true}
+  const [lastActiveKey, setLastActiveKey] = useState(`${1}-${0}`) // 记录上一次活动的胶囊键，用于检测胶囊切换
   
   // 覆盖动画手动平移量配置
   const coverageOffsetX = 6  // X方向平移量
@@ -1573,6 +1639,38 @@ const Section5WorkflowStep1 = () => {
     drawCoverageComparisonBar(ctx, width, currentPlan.id, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
     drawCoverageDescriptionCard(ctx, width, height)
   }
+  // 最大化覆盖率的初次进入静态场景（仅显示基础元素，不显示方案信息）
+  const drawCoverageInitialScene = (ctx, width, height) => {
+    const margin = 48
+    const originalChartWidth = width - 2 * margin
+    const originalChartHeight = height - 144 - 80
+    // 缩小到85%
+    const scaleFactor = 0.85
+    const chartWidth = originalChartWidth * scaleFactor
+    const chartHeight = originalChartHeight * scaleFactor
+    // 计算居中的边距，并加入手动平移量
+    const centerOffsetX = (originalChartWidth - chartWidth) / 2
+    const centerOffsetY = (originalChartHeight - chartHeight) / 2
+    const adjustedMarginX = margin + centerOffsetX + coverageOffsetX
+    const adjustedMarginY = 64 + centerOffsetY + coverageOffsetY
+    
+    // 设置背景
+    ctx.fillStyle = '#111827'
+    ctx.fillRect(0, 0, width, height)
+    
+    // 仅绘制基础元素：格网、多边形、点
+    drawCoverageGrid(ctx, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
+    drawTargetRegion(ctx, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
+    
+    // 绘制所有候选站点（使用与动画一致的薄荷绿效果）
+    drawCandidateSites(ctx, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight, [])
+    
+    // 仅显示公式卡片（不显示其他UI组件）
+    drawCoverageFormulaCard(ctx, width)
+    
+    // 显示描述卡片
+    drawCoverageDescriptionCard(ctx, width, height)
+  }
 
   // 覆盖动画方案切换
   const playCoverageSpecificPlan = async (ctx, width, height, planId) => {
@@ -1828,6 +1926,38 @@ const Section5WorkflowStep1 = () => {
     
     // 绘制候选概览
     drawCandidateOverview(ctx, width, 0, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
+  }
+  // 最小化误差的初始静止动画（仅显示坐标轴、格网、点位分布，不显示任何直线）
+  const drawMinimizeErrorInitialScene = (ctx, width, height) => {
+    // 设置背景 - 使用圆角矩形
+    ctx.fillStyle = '#111827'
+    roundRect(ctx, 0, 0, width, height, 12) // 使用12px圆角
+    ctx.fill()
+    
+    const chartOffsetX = 20 // 图表水平偏移
+    const chartOffsetY = 27 // 图表垂直向下偏移 (65-16=49，向上移动16px)
+    const margin = 48
+    const baseChartWidth = width - 2 * margin - 48
+    const baseChartHeight = height - 144 - 80
+    const chartWidth = baseChartWidth * 0.85 // 缩放为85%
+    const chartHeight = baseChartHeight * 0.85 // 缩放为85%
+    const adjustedMarginX = margin + chartOffsetX + (baseChartWidth - chartWidth) / 2 // 居中对齐
+    const adjustedMarginY = margin + chartOffsetY + (baseChartHeight - chartHeight) / 2 // 居中对齐
+    
+    // 绘制网格
+    drawGrid(ctx, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
+    
+    // 绘制坐标轴
+    drawAxes(ctx, adjustedMarginX, adjustedMarginY, width, height, chartWidth, chartHeight)
+    
+    // 绘制刻度
+    drawTicks(ctx, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
+    
+    // 绘制数据点（不绘制任何直线和残差）
+    drawDataPoints(ctx, adjustedMarginX, adjustedMarginY, chartWidth, chartHeight)
+    
+    // 仅绘制公式牌（不显示数值牌和候选概览）
+    drawFormulaCard(ctx, width)
   }
 
   // 这里会添加所有的动画和绘制函数
@@ -2415,6 +2545,31 @@ const Section5WorkflowStep1 = () => {
     drawTimeOptFormulaCard(ctx, width)
     drawTimeOptValueCard(ctx, bestPath, bestPath.time, marginX, marginY, chartHeight)
     drawTimeOptComparisonBar(ctx, width, '', marginX, marginY, chartWidth, chartHeight) // 结束状态
+  }
+  // 最短时间的初始静止动画（显示4条曲线，同等透明度）
+  const drawTimeOptInitialScene = (ctx, width, height) => {
+    const margin = 48
+    const chartWidth = width - 2 * margin
+    const chartHeight = height - 144 - 80 - 120 // 为底部UI预留更多空间
+    const marginX = margin
+    const marginY = 64
+    
+    ctx.fillStyle = '#111827'
+    ctx.fillRect(0, 0, width, height)
+    
+    drawTimeOptGrid(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptAxes(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptTicks(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawTimeOptPoints(ctx, marginX, marginY, chartWidth, chartHeight)
+    drawGravityArrow(ctx, marginX, marginY, chartWidth, chartHeight)
+    
+    // 绘制所有路径，同等透明度（0.8），同等线宽（2.5）
+    timeOptData.paths.forEach(path => {
+      drawTimeOptPath(ctx, path, marginX, marginY, chartWidth, chartHeight, 0.8, 2.5)
+    })
+    
+    // 仅绘制公式卡片（不显示数值卡片和比较条）
+    drawTimeOptFormulaCard(ctx, width)
   }
 
   // ===== 最短时间动画相关数据和函数 =====
@@ -4025,6 +4180,185 @@ const Section5WorkflowStep1 = () => {
         }
       })
     }
+  }
+  // 最大置信度的初次进入静态场景（仅显示基础元素，不显示方案信息）
+  const drawConfidenceInitialScene = (ctx, width, height) => {
+    const margin = 80
+    const originalChartWidth = width - 2 * margin
+    const originalChartHeight = height - 200
+    
+    // 整体缩放到0.85
+    const scaleFactor = 0.85
+    const chartWidth = originalChartWidth * scaleFactor
+    const chartHeight = originalChartHeight * scaleFactor
+    
+    const centerX = width / 2
+    const centerY = (height - 200) / 2 + 80
+    
+    // 坐标变换：E/N ∈ [-6000,6000] m 映射到画布
+    const scale = Math.min(chartWidth, chartHeight) / 12000
+    const transform = (E, N) => {
+      return {
+        x: centerX + E * scale,
+        y: centerY - N * scale  // N轴向上
+      }
+    }
+    
+    // 绘制网格（去掉坐标轴）
+    const gridBounds = {
+      left: centerX - chartWidth / 2,
+      right: centerX + chartWidth / 2,
+      top: centerY - chartHeight / 2,
+      bottom: centerY + chartHeight / 2
+    }
+    
+    // 主网格线
+    ctx.strokeStyle = '#4B5563'
+    ctx.lineWidth = 0.5
+    ctx.setLineDash([])
+    
+    for (let i = -6000; i <= 6000; i += 2000) {
+      if (i !== 0) {
+        const coords = transform(i, 0)
+        if (coords.x >= gridBounds.left && coords.x <= gridBounds.right) {
+          ctx.beginPath()
+          ctx.moveTo(coords.x, gridBounds.top)
+          ctx.lineTo(coords.x, gridBounds.bottom)
+          ctx.stroke()
+        }
+        
+        const coordsN = transform(0, i)
+        if (coordsN.y >= gridBounds.top && coordsN.y <= gridBounds.bottom) {
+          ctx.beginPath()
+          ctx.moveTo(gridBounds.left, coordsN.y)
+          ctx.lineTo(gridBounds.right, coordsN.y)
+          ctx.stroke()
+        }
+      }
+    }
+    
+    // 次网格线
+    ctx.strokeStyle = '#374151'
+    ctx.lineWidth = 0.3
+    
+    for (let i = -6000; i <= 6000; i += 1000) {
+      if (i !== 0 && i % 2000 !== 0) {
+        const coords = transform(i, 0)
+        if (coords.x >= gridBounds.left && coords.x <= gridBounds.right) {
+          ctx.beginPath()
+          ctx.moveTo(coords.x, gridBounds.top)
+          ctx.lineTo(coords.x, gridBounds.bottom)
+          ctx.stroke()
+        }
+        
+        const coordsN = transform(0, i)
+        if (coordsN.y >= gridBounds.top && coordsN.y <= gridBounds.bottom) {
+          ctx.beginPath()
+          ctx.moveTo(gridBounds.left, coordsN.y)
+          ctx.lineTo(gridBounds.right, coordsN.y)
+          ctx.stroke()
+        }
+      }
+    }
+    
+    // 绘制目标点P
+    const targetCoords = transform(confidenceData.targetPoint.E, confidenceData.targetPoint.N)
+    
+    // 外圈微光
+    const gradient = ctx.createRadialGradient(targetCoords.x, targetCoords.y, 0, targetCoords.x, targetCoords.y, 12)
+    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.8)')
+    gradient.addColorStop(1, 'rgba(16, 185, 129, 0)')
+    
+    ctx.fillStyle = gradient
+    ctx.beginPath()
+    ctx.arc(targetCoords.x, targetCoords.y, 12, 0, 2 * Math.PI)
+    ctx.fill()
+    
+    // 绿色圆点
+    ctx.fillStyle = '#10B981'
+    ctx.beginPath()
+    ctx.arc(targetCoords.x, targetCoords.y, 6, 0, 2 * Math.PI)
+    ctx.fill()
+    
+    drawText(ctx, 'P', targetCoords.x + 15, targetCoords.y - 5, {
+      fontSize: 12,
+      color: '#10B981',
+      fontWeight: 'bold'
+    })
+    
+    // 绘制固定面积预算圈
+    const budgetRadius = Math.sqrt(confidenceData.budgetArea / Math.PI) * scale * 1000
+    ctx.fillStyle = 'rgba(237, 137, 54, 0.6)'
+    ctx.strokeStyle = '#ED8936'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(targetCoords.x, targetCoords.y, budgetRadius, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 绘制全站仪（使用各自的颜色，但无选中状态，不显示连线）
+    confidenceData.stations.forEach(station => {
+      const coords = transform(station.E, station.N)
+      
+      // 噪声小圆 - 使用动画中一致的颜色和透明度
+      const noiseRadius = station.sigma * 6500
+      ctx.globalAlpha = 0.2
+      ctx.fillStyle = station.color // 使用站点自己的颜色
+      ctx.strokeStyle = station.color
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(coords.x, coords.y, noiseRadius, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.stroke()
+      
+      // 三角形标记（使用站点颜色）
+      const size = 6
+      ctx.globalAlpha = 1.0 // 使用完全不透明
+      ctx.fillStyle = station.color
+      ctx.strokeStyle = station.color
+      ctx.lineWidth = 2
+      
+      ctx.beginPath()
+      ctx.moveTo(coords.x, coords.y - size)
+      ctx.lineTo(coords.x - size * 0.866, coords.y + size * 0.5)
+      ctx.lineTo(coords.x + size * 0.866, coords.y + size * 0.5)
+      ctx.fill()
+      ctx.stroke()
+      
+      drawText(ctx, station.id, coords.x, coords.y - size - 10, {
+        fontSize: 10,
+        align: 'center',
+        color: station.color // 使用站点颜色
+      })
+      
+      ctx.globalAlpha = 1
+    })
+    
+    // 绘制静态A*预算误差椭圆（始终显示）
+    const budgetRadiusEllipse = Math.sqrt(confidenceData.budgetArea / Math.PI) * scale * 1000 * 88
+    const aStatic = budgetRadiusEllipse * 1.1  // 长半轴
+    const bStatic = budgetRadiusEllipse * 0.9  // 短半轴
+    
+    // A*预算椭圆（浅灰色、实线、发光）
+    ctx.fillStyle = 'rgba(156, 163, 175, 0.15)' // 浅灰色，15%透明度
+    ctx.strokeStyle = '#9CA3AF' // 浅灰色边框
+    ctx.lineWidth = 2
+    ctx.setLineDash([]) // 实线
+    
+    // 添加发光效果
+    ctx.shadowColor = '#9CA3AF'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    
+    ctx.beginPath()
+    ctx.ellipse(targetCoords.x, targetCoords.y, aStatic, bStatic, 0, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.stroke()
+    
+    // 重置阴影
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
   }
 
   // 其他卡片的临时实现
