@@ -294,15 +294,6 @@ const Section1Definition = ({ id }) => {
           }} />
         </div>
         
-        {/* 优化收敛指示器 */}
-        <div className="absolute top-[20%] right-[15%] opacity-[0.5]">
-          <div className="flex items-center space-x-2 animate-convergence-indicator">
-            <div className="w-2 h-2 bg-teal-400 rounded-full animate-ping" style={{ animationDelay: '0s' }}></div>
-            <div className="w-2 h-2 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
-            <span className="text-xs text-gray-300 font-mono">收敛中...</span>
-          </div>
-        </div>
       </div>
       
       {/* 主要内容区域 - 仿照TSP页面的布局结构 */}
