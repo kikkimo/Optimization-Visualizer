@@ -71,9 +71,43 @@ const Section5WorkflowStep1 = () => {
   }
 
   // 处理胶囊点击
-  const handleExampleClick = (cardId, exampleIndex) => {
+  const handleExampleClick = async (cardId, exampleIndex) => {
+  console.log('🔘 [胶囊点击] handleExampleClick 被调用', {
+    点击卡片: cardId,
+    点击胶囊: exampleIndex,
+    当前活动卡片: activeCard,
+    当前活动胶囊: activeExample,
+    当前播放状态: isPlaying
+  })
+  
   // 如果是确定变量卡片(cardId=2)，始终强制选择混合变量胶囊(index=2)，不允许切换
   if (cardId === 2) {
+    // 检查是否需要停止动画：如果当前不是该卡片和胶囊的组合，则停止动画
+    const isDifferentSelection = activeCard !== cardId || activeExample !== 2
+    console.log('🔧 [确定变量卡片] 处理确定变量卡片点击', {
+      是否不同选择: isDifferentSelection,
+      需要停止动画: isDifferentSelection && isPlaying
+    })
+    
+    if (isDifferentSelection && isPlaying) {
+      console.log('⏹️ [确定变量卡片] 停止当前动画')
+      // 停止当前动画
+      if (animationControllerRef.current) {
+        animationControllerRef.current.abort()
+        animationControllerRef.current = null
+      }
+      setAnimationShouldStop(true)
+      setIsPlaying(false)
+      setIsPlayingCoverage(false)
+      
+      // 等待动画完全停止，确保状态同步
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // 立即重置停止信号，准备下次播放
+      setAnimationShouldStop(false)
+      console.log('🔄 [确定变量卡片] 重置停止信号')
+    }
+    
     setActiveCard(cardId)
     setActiveExample(2) // 强制设置为混合变量胶囊索引
     
@@ -86,30 +120,64 @@ const Section5WorkflowStep1 = () => {
       drawCurrentCardStaticScene(ctx, width, height)
     }
     
-    // 然后播放混合变量的动画
-    playSpecificExample(cardId, 2)
+    console.log('✅ [确定变量卡片] 处理完成，返回')
+    // 移除自动播放动画的调用
+    // playSpecificExample(cardId, 2)
     return // 直接返回，不执行后续逻辑
   }
   
   // 如果是构建函数卡片(cardId=3)，只允许集合/结构约束(index=3)和正则项(index=4)点击
   if (cardId === 3 && exampleIndex !== 3 && exampleIndex !== 4) {
+    console.log('❌ [构建函数卡片] 不允许的胶囊点击，忽略')
     // 不允许的胶囊点击，直接返回，不做任何响应
     return
   }
   
+  // 检查是否需要停止动画：如果点击的是不同的卡片或胶囊组合，则停止当前动画
+  const isDifferentSelection = activeCard !== cardId || activeExample !== exampleIndex
+  console.log('🔄 [胶囊切换] 检查是否需要停止动画', {
+    是否不同选择: isDifferentSelection,
+    当前播放状态: isPlaying,
+    需要停止动画: isDifferentSelection && isPlaying
+  })
+  
+  if (isDifferentSelection && isPlaying) {
+    console.log('⏹️ [胶囊切换] 停止当前动画')
+    // 停止当前动画
+    if (animationControllerRef.current) {
+      animationControllerRef.current.abort()
+      animationControllerRef.current = null
+    }
+    setAnimationShouldStop(true)
+    setIsPlaying(false)
+    setIsPlayingCoverage(false)
+    
+    // 等待动画完全停止，确保状态同步
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // 立即重置停止信号，准备下次播放
+    setAnimationShouldStop(false)
+    console.log('🔄 [胶囊切换] 重置停止信号')
+  }
   
   // 对于其他卡片，保持原有逻辑
   // 立即更新状态
+  console.log('🔄 [状态更新] 更新活动卡片和胶囊状态', {
+    新卡片: cardId,
+    新胶囊: exampleIndex
+  })
   setActiveCard(cardId)
   setActiveExample(exampleIndex)
   
   // 如果点击的是覆盖动画胶囊，更新覆盖方案状态
   if (cardId === 1 && exampleIndex === 1) {
+    console.log('🎯 [最大化覆盖率] 更新覆盖方案状态为B')
     setCurrentCoveragePlan('B') // 默认显示最优方案B (站点3,5,6 - 75.33%)
   }
   
   // 如果点击的是置信度动画胶囊，更新置信度方案状态
   if (cardId === 1 && exampleIndex === 3) {
+    console.log('🔒 [置信度] 更新置信度方案状态为B')
     setCurrentConfidenceScheme('B') // 默认显示最优方案B (95.2%)
   }
   
@@ -122,37 +190,58 @@ const Section5WorkflowStep1 = () => {
     drawCurrentCardStaticScene(ctx, width, height)
   }
   
-  // 然后播放动画
-  playSpecificExample(cardId, exampleIndex)
+  console.log('✅ [胶囊点击] handleExampleClick 处理完成')
+  // 移除自动播放动画的调用
+  // playSpecificExample(cardId, exampleIndex)
 }
 
   // 播放特定胶囊的动画
   const playSpecificExample = async (cardId, exampleIndex) => {
+    console.log('🚀 [动画开始] playSpecificExample 被调用', {
+      卡片ID: cardId,
+      胶囊索引: exampleIndex,
+      当前播放状态: isPlaying,
+      动画应该停止: animationShouldStop,
+      动画控制器存在: !!animationControllerRef.current
+    })
+    
     // 1. 先取消之前的动画控制器
     if (animationControllerRef.current) {
+      console.log('⏹️ [动画控制] 取消之前的动画控制器')
       animationControllerRef.current.abort()
       animationControllerRef.current = null
     }
     
     // 2. 彻底停止所有当前动画状态
+    console.log('🛑 [动画控制] 设置停止状态')
     setAnimationShouldStop(true)
     setIsPlaying(false)
     setIsPlayingCoverage(false)
     
     // 3. 等待足够长的时间让动画完全停止
+    console.log('⏳ [动画控制] 等待300ms让动画完全停止')
     await new Promise(resolve => setTimeout(resolve, 300))
     
     // 4. 创建新的动画控制器
+    console.log('🆕 [动画控制] 创建新的动画控制器')
     animationControllerRef.current = new AbortController()
     
     // 5. 重置停止信号，准备开始新动画
+    console.log('▶️ [动画控制] 重置停止信号，准备开始新动画')
     setAnimationShouldStop(false)
     
     setIsPlaying(true)
     setAnimationState(`Playing@Card${cardId}[${exampleIndex + 1}]`)
     
+    console.log('🎯 [动画开始] 开始播放动画', {
+      卡片ID: cardId,
+      胶囊索引: exampleIndex,
+      播放状态已设置为: true
+    })
+    
     const canvas = canvasRef.current
     if (!canvas) {
+      console.log('❌ [动画错误] Canvas不存在')
       return
     }
     
@@ -167,24 +256,42 @@ const Section5WorkflowStep1 = () => {
       
       switch (cardId) {
         case 1:
+          if (exampleIndex === 0) {
+            console.log('📊 [最小化误差] 开始播放最小化误差动画')
+          } else if (exampleIndex === 1) {
+            console.log('🎯 [最大化覆盖率] 开始播放最大化覆盖率动画')
+          } else if (exampleIndex === 2) {
+            console.log('⚡ [最短时间] 开始播放最短时间动画')
+          } else if (exampleIndex === 3) {
+            console.log('🔒 [置信度] 开始播放置信度动画')
+          }
           await playCard1SpecificScene(ctx, width, height, exampleIndex, signal)
           break
         case 2:
+          console.log('🔧 [确定变量] 开始播放确定变量动画')
           await playCard2SpecificScene(ctx, width, height, exampleIndex, signal)
           break
         case 3:
+          console.log('🏗️ [构建函数] 开始播放构建函数动画')
           await playCard3SpecificScene(ctx, width, height, exampleIndex, signal)
           break
         case 4:
+          console.log('🎮 [求解算法] 开始播放求解算法动画')
           await playCard4Scene(ctx, width, height, signal)
           break
       }
     } catch (error) {
       if (error.name === 'AbortError') {
+        console.log('⚠️ [动画中断] 动画被中断')
         return
       }
-      console.error('❌ [ERROR] Animation error:', error)
+      console.error('❌ [动画错误] Animation error:', error)
     }
+    
+    console.log('✅ [动画完成] 动画播放完成', {
+      卡片ID: cardId,
+      胶囊索引: exampleIndex
+    })
     
     setIsPlaying(false)
     setAnimationState(`Idle@Card${cardId}`)
@@ -4362,7 +4469,16 @@ const Section5WorkflowStep1 = () => {
           zIndex: 10
         }}>
           <button
-            onClick={() => playSpecificExample(activeCard, activeExample)}
+            onClick={() => {
+              console.log('🎬 [播放按钮] 点击播放按钮', {
+                当前卡片: activeCard,
+                当前胶囊: activeExample,
+                正在播放: isPlaying,
+                动画应该停止: animationShouldStop,
+                动画控制器存在: !!animationControllerRef.current
+              })
+              playSpecificExample(activeCard, activeExample)
+            }}
             style={{
               padding: '8px 12px',
               background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)',
