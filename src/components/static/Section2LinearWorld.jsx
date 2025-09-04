@@ -3,6 +3,7 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import DownHint from '../shared/DownHint'
 import Section2LinearWorldStep1 from './Section2LinearWorldStep1'
+import Section2LinearWorldStep2 from './Section2LinearWorldStep2'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -15,8 +16,8 @@ const Section2LinearWorld = ({ id, currentSection, totalSections }) => {
   // 导航项定义
   const navigationItems = [
     { id: 'page1', label: '1', title: '可加性与齐次性', description: '线性的本质与公理' },
-    { id: 'page2', label: '2', title: '页面2', description: '线性 vs 仿射：一线之差' },
-    { id: 'page3', label: '3', title: '页面3', description: '齐次坐标的升维魔法' }
+    { id: 'page2', label: '2', title: '矩阵即线性变换', description: '旋转 / 缩放 / 剪切' },
+    { id: 'page3', label: '3', title: '仿射变换与齐次坐标', description: '齐次坐标的升维魔法' }
   ]
 
   // 处理阶段切换
@@ -62,57 +63,69 @@ const Section2LinearWorld = ({ id, currentSection, totalSections }) => {
   const renderStageContent = () => {
     const currentItem = navigationItems.find(item => item.id === currentStage)
     
-    console.log('Debug - Current Stage:', currentStage)
-    console.log('Debug - Current Item:', currentItem)
-    
-    if (currentStage === 'page1') {
-      console.log('Debug - Rendering Section2LinearWorldStep1')
-      try {
-        return (
-          <div className="stage-content h-full w-full">
-            <Section2LinearWorldStep1 />
-          </div>
-        )
-      } catch (error) {
-        console.error('Debug - Error rendering Section2LinearWorldStep1:', error)
+    switch (currentStage) {
+      case 'page1':
+        try {
+          return (
+            <div className="stage-content h-full w-full">
+              <Section2LinearWorldStep1 />
+            </div>
+          )
+        } catch (error) {
+          return (
+            <div className="stage-content h-full flex flex-col items-center justify-center">
+              <div className="text-center text-red-400">
+                <h3>组件加载错误</h3>
+                <p>{error.message}</p>
+              </div>
+            </div>
+          )
+        }
+      case 'page2':
+        try {
+          return (
+            <div className="stage-content h-full w-full">
+              <Section2LinearWorldStep2 />
+            </div>
+          )
+        } catch (error) {
+          return (
+            <div className="stage-content h-full flex flex-col items-center justify-center">
+              <div className="text-center text-red-400">
+                <h3>组件加载错误</h3>
+                <p>{error.message}</p>
+              </div>
+            </div>
+          )
+        }
+      default:
         return (
           <div className="stage-content h-full flex flex-col items-center justify-center">
-            <div className="text-center text-red-400">
-              <h3>组件加载错误</h3>
-              <p>{error.message}</p>
+            <div className="text-center">
+              <h2 className="text-4xl font-bold mb-4" style={{ color: 'var(--ink-high)' }}>
+                {currentItem?.title}
+              </h2>
+              <p className="text-lg mb-8" style={{ color: 'var(--ink-mid)' }}>
+                {currentItem?.description}
+              </p>
+              
+              {/* 占位内容区域 */}
+              <div className="mt-12 p-8 rounded-2xl border max-w-2xl backdrop-blur-sm" style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(147, 51, 234, 0.08) 100%)',
+                borderColor: 'rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 8px 25px -8px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.05)'
+              }}>
+                <p className="text-base font-medium" style={{ color: 'rgba(229, 231, 235, 0.9)' }}>
+                  {currentItem?.title} - 内容开发中...
+                </p>
+                <p className="text-sm mt-2" style={{ color: 'rgba(96, 165, 250, 0.7)' }}>
+                  这里将展示具体的可视化内容和交互效果
+                </p>
+              </div>
             </div>
           </div>
         )
-      }
     }
-    
-    console.log('Debug - Rendering placeholder content for:', currentStage)
-    return (
-      <div className="stage-content h-full flex flex-col items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold mb-4" style={{ color: 'var(--ink-high)' }}>
-            {currentItem?.title}
-          </h2>
-          <p className="text-lg mb-8" style={{ color: 'var(--ink-mid)' }}>
-            {currentItem?.description}
-          </p>
-          
-          {/* 占位内容区域 */}
-          <div className="mt-12 p-8 rounded-2xl border max-w-2xl backdrop-blur-sm" style={{
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(147, 51, 234, 0.08) 100%)',
-            borderColor: 'rgba(59, 130, 246, 0.3)',
-            boxShadow: '0 8px 25px -8px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.05)'
-          }}>
-            <p className="text-base font-medium" style={{ color: 'rgba(229, 231, 235, 0.9)' }}>
-              {currentItem?.title} - 内容开发中...
-            </p>
-            <p className="text-sm mt-2" style={{ color: 'rgba(96, 165, 250, 0.7)' }}>
-              这里将展示具体的可视化内容和交互效果
-            </p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -192,7 +205,7 @@ const Section2LinearWorld = ({ id, currentSection, totalSections }) => {
       <div className="relative z-10 h-full mx-auto" style={{ width: '92%', maxWidth: '1400px' }}>
         {/* 主要内容区域 */}
         <div className="flex gap-6" style={{ height: 'calc(100vh - 180px)' }}>
-          {/* 主内容面板（82%） */}
+          {/* 主内容面板（75%） */}
           <div className="flex-1">
             <div 
               className="h-full rounded-2xl backdrop-blur-sm p-8"
@@ -206,8 +219,8 @@ const Section2LinearWorld = ({ id, currentSection, totalSections }) => {
             </div>
           </div>
 
-          {/* 右侧导航面板（18%） */}
-          <div style={{ minWidth: '200px', maxWidth: '240px' }}>
+          {/* 右侧导航面板（25%） */}
+          <div style={{ minWidth: '280px', maxWidth: '320px' }}>
             <div 
               className="h-full rounded-2xl backdrop-blur-sm overflow-hidden relative"
               style={{
