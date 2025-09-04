@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import DownHint from '../shared/DownHint'
 import Section2LinearWorldStep1 from './Section2LinearWorldStep1'
 import Section2LinearWorldStep2 from './Section2LinearWorldStep2'
+import Section2LinearWorldStep3 from './Section2LinearWorldStep3'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -96,6 +97,23 @@ const Section2LinearWorld = ({ id, currentSection, totalSections }) => {
           return (
             <div className="stage-content h-full w-full">
               <Section2LinearWorldStep2 />
+            </div>
+          )
+        } catch (error) {
+          return (
+            <div className="stage-content h-full flex flex-col items-center justify-center">
+              <div className="text-center text-red-400">
+                <h3>组件加载错误</h3>
+                <p>{error.message}</p>
+              </div>
+            </div>
+          )
+        }
+      case 'page3':
+        try {
+          return (
+            <div className="stage-content h-full w-full">
+              <Section2LinearWorldStep3 />
             </div>
           )
         } catch (error) {
