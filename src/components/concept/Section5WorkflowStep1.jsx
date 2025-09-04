@@ -4,6 +4,7 @@ import katex from 'katex'
 import MixedVariableAnimation from './animations/MixedVariableAnimation'
 import SetConstraintAnimation from './animations/SetConstraintAnimation'
 import RegularizationAnimation from './animations/RegularizationAnimation'
+import ProblemPortraitAnimation from './animations/ProblemPortraitAnimation'
 const Section5WorkflowStep1 = () => {
   // Stage1 Canvas 动画状态
   const [activeCard, setActiveCard] = useState(1) // 当前活跃的卡片 1-4
@@ -14,6 +15,8 @@ const Section5WorkflowStep1 = () => {
   const [regularizationAnimationInfo, setRegularizationAnimationInfo] = useState(null) // 正则化动画状态信息
   const [regularizationButtonText, setRegularizationButtonText] = useState('播放') // 正则化动画按钮文字
   const [shouldResetRegularization, setShouldResetRegularization] = useState(false) // 是否应该重置正则化动画
+  const [problemPortraitAnimationInfo, setProblemPortraitAnimationInfo] = useState(null) // 问题画像动画状态信息
+  const [problemPortraitButtonText, setProblemPortraitButtonText] = useState('播放') // 问题画像动画按钮文字
   const canvasRef = useRef(null)
   const katexRef = useRef(null) // KaTeX渲染元素引用
 
@@ -73,6 +76,41 @@ const Section5WorkflowStep1 = () => {
     }
     
     setIsPlaying(false)
+    
+    // 问题画像卡片（卡片4）自动播放动画
+    if (cardId === 4) {
+      console.log('🎯 问题画像卡片被点击，准备自动播放动画', {
+        activeCard: cardId,
+        activeExample: 0,
+        windowFunctionExists: !!window.handlePlayClick
+      })
+      
+      // 延迟更长时间确保组件完全加载和状态更新完成
+      setTimeout(() => {
+        console.log('🔍 检查window.handlePlayClick函数', {
+          exists: !!window.handlePlayClick,
+          type: typeof window.handlePlayClick
+        })
+        
+        if (window.handlePlayClick) {
+          console.log('🚀 自动触发问题画像动画播放')
+          try {
+            window.handlePlayClick()
+            console.log('✅ 问题画像动画播放函数调用成功')
+          } catch (error) {
+            console.error('❌ 问题画像动画播放函数调用失败:', error)
+          }
+        } else {
+          console.warn('⚠️ 问题画像动画播放函数不可用')
+          // 尝试直接检查DOM中是否有问题画像动画组件
+          const canvas = document.querySelector('canvas')
+          console.log('🎨 Canvas元素检查:', {
+            found: !!canvas,
+            count: document.querySelectorAll('canvas').length
+          })
+        }
+      }, 500) // 增加到500ms
+    }
     
     // 不自动播放，只切换静态显示
     const canvas = canvasRef.current
@@ -187,6 +225,20 @@ const Section5WorkflowStep1 = () => {
     const width = canvas.clientWidth
     const height = canvas.clientHeight
     drawCurrentCardStaticScene(ctx, width, height, true) // 传入true表示是胶囊切换触发的绘制
+  }
+  
+  // 问题画像卡片（卡片4）自动播放动画
+  if (cardId === 4 && exampleIndex === 0) {
+    console.log('🎯 问题画像卡片被点击，自动播放动画')
+    // 延迟一小段时间确保状态更新完成
+    setTimeout(() => {
+      if (window.handlePlayClick) {
+        console.log('🚀 自动触发问题画像动画播放')
+        window.handlePlayClick()
+      } else {
+        console.warn('⚠️ 问题画像动画播放函数不可用')
+      }
+    }, 100)
   }
   
   // 移除自动播放动画的调用
@@ -4754,6 +4806,51 @@ const Section5WorkflowStep1 = () => {
           </div>
         )}
         
+        {/* 问题画像动画层 */}
+        {activeCard === 4 && activeExample === 0 && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 5,
+            visibility: 'visible',
+            opacity: 1
+          }}>
+            <ProblemPortraitAnimation 
+              isPlaying={false} // 始终为false，由组件内部控制
+              currentStage={0} // 默认从第0阶段开始
+              setButtonText={setProblemPortraitButtonText} // 传入按钮文字设置函数
+              onAnimationUpdate={(animationStage) => {
+                setProblemPortraitAnimationInfo(animationStage)
+              }}
+              onStageComplete={(stage) => {
+                console.log(`🏁 问题画像动画阶段 ${stage} 完成`)
+              }}
+              onComplete={() => {
+                setIsPlaying(false)
+                setAnimationState(`Idle@Card${activeCard}`)
+                setProblemPortraitButtonText('播放') // 重置按钮文字
+                // 设置最终状态
+                setProblemPortraitAnimationInfo({
+                  stage: 'complete',
+                  title: '问题画像演示完成',
+                  content: [
+                    '问题画像四个维度演示完成',
+                    '点击播放按钮重新观看演示过程'
+                  ]
+                })
+                const canvas = canvasRef.current
+                if (canvas) {
+                  const ctx = canvas.getContext('2d')
+                  drawCurrentCardStaticScene(ctx, canvas.clientWidth, canvas.clientHeight)
+                }
+              }}
+            />
+          </div>
+        )}
+        
         {/* 底部信息公式区域 - 仅在集合约束动画时显示 */}
         {activeCard === 3 && activeExample === 3 && constraintAnimationInfo && (
           <div style={{
@@ -4909,8 +5006,17 @@ const Section5WorkflowStep1 = () => {
                 动画控制器存在: !!animationControllerRef.current
               })
               
+              // 如果是问题画像动画 (卡片4，胶囊0)，调用问题画像动画组件的播放控制
+              if (activeCard === 4 && activeExample === 0) {
+                console.log('🎮 问题画像动画播放控制')
+                if (window.handlePlayClick) {
+                  window.handlePlayClick()
+                } else {
+                  console.warn('⚠️ ProblemPortraitAnimation播放函数不可用')
+                }
+              }
               // 如果是正则化动画 (卡片3，胶囊4)，直接调用动画组件的播放控制
-              if (activeCard === 3 && activeExample === 4) {
+              else if (activeCard === 3 && activeExample === 4) {
                 console.log('🎮 正则化动画播放控制')
                 // 调用RegularizationAnimation组件暴露的播放函数
                 if (window.handlePlayClick) {
@@ -4930,12 +5036,16 @@ const Section5WorkflowStep1 = () => {
               borderRadius: '8px',
               color: '#60A5FA',
               fontSize: '12px',
-              cursor: (activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying) ? 'not-allowed' : 'pointer',
-              opacity: (activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying) ? 0.6 : 1
+              cursor: (activeCard === 4 && activeExample === 0 ? problemPortraitButtonText === '播放中...' : 
+                       activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying) ? 'not-allowed' : 'pointer',
+              opacity: (activeCard === 4 && activeExample === 0 ? problemPortraitButtonText === '播放中...' : 
+                        activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying) ? 0.6 : 1
             }}
-            disabled={activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying}
+            disabled={activeCard === 4 && activeExample === 0 ? problemPortraitButtonText === '播放中...' : 
+                      activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying}
           >
-            {activeCard === 3 && activeExample === 4 ? regularizationButtonText : (isPlaying ? '播放中...' : '播放')}
+            {activeCard === 4 && activeExample === 0 ? problemPortraitButtonText : 
+             activeCard === 3 && activeExample === 4 ? regularizationButtonText : (isPlaying ? '播放中...' : '播放')}
           </button>
         </div>
       </div>
