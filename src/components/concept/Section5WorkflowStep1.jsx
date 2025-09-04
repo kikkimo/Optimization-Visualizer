@@ -3,6 +3,7 @@ import katex from 'katex'
 
 import MixedVariableAnimation from './animations/MixedVariableAnimation'
 import SetConstraintAnimation from './animations/SetConstraintAnimation'
+import RegularizationAnimation from './animations/RegularizationAnimation'
 const Section5WorkflowStep1 = () => {
   // Stage1 Canvas 动画状态
   const [activeCard, setActiveCard] = useState(1) // 当前活跃的卡片 1-4
@@ -10,6 +11,9 @@ const Section5WorkflowStep1 = () => {
   const [animationState, setAnimationState] = useState('Idle@Card1') // 动画状态机
   const [isPlaying, setIsPlaying] = useState(false) // 是否正在播放
   const [constraintAnimationInfo, setConstraintAnimationInfo] = useState(null) // 约束动画状态信息
+  const [regularizationAnimationInfo, setRegularizationAnimationInfo] = useState(null) // 正则化动画状态信息
+  const [regularizationButtonText, setRegularizationButtonText] = useState('播放') // 正则化动画按钮文字
+  const [shouldResetRegularization, setShouldResetRegularization] = useState(false) // 是否应该重置正则化动画
   const canvasRef = useRef(null)
   const katexRef = useRef(null) // KaTeX渲染元素引用
 
@@ -31,7 +35,7 @@ const Section5WorkflowStep1 = () => {
       id: 3,
       title: '③ 构建函数 (Formulate Functions)',
       subtitle: '将目标和约束量化为数学表达。',
-      examples: ['目标函数 f(x) / 代价', '等式约束 g(x)=0', '不等式约束 h(x)≤0', '集合/结构约束（拓扑/锥/半定）', '正则项 R(x)（L1/L2/TV）']
+      examples: ['目标函数 f(x) / 代价', '等式约束 g(x)=0', '不等式约束 h(x)≤0', '集合/结构约束（拓扑/锥/半定）', '正则项 R(x)（L1/L2/全变差TV）']
     },
     {
       id: 4,
@@ -44,6 +48,16 @@ const Section5WorkflowStep1 = () => {
 
   // 处理卡片点击
   const handleCardClick = (cardId) => {
+    console.log(`🃏 卡片点击: ${cardId}, 当前卡片: ${activeCard}`);
+    
+    // 如果切换到不同的卡片，重置正则化动画
+    if (cardId !== activeCard) {
+      console.log('🔄 卡片切换，重置正则化动画');
+      setShouldResetRegularization(true);
+      // 立即重置标志，避免重复触发
+      setTimeout(() => setShouldResetRegularization(false), 100);
+    }
+    
     // 切换到新卡片
     setActiveCard(cardId)
     
@@ -72,6 +86,15 @@ const Section5WorkflowStep1 = () => {
 
   // 处理胶囊点击
   const handleExampleClick = async (cardId, exampleIndex) => {
+    console.log(`💊 胶囊点击: 卡片${cardId}, 胶囊${exampleIndex}, 当前: 卡片${activeCard}, 胶囊${activeExample}`);
+    
+    // 如果切换到不同的卡片或胶囊，重置正则化动画
+    if (cardId !== activeCard || exampleIndex !== activeExample) {
+      console.log('🔄 胶囊切换，重置正则化动画');
+      setShouldResetRegularization(true);
+      // 立即重置标志，避免重复触发
+      setTimeout(() => setShouldResetRegularization(false), 100);
+    }
   
   // 如果是确定变量卡片(cardId=2)，始终强制选择混合变量胶囊(index=2)，不允许切换
   if (cardId === 2) {
@@ -140,6 +163,7 @@ const Section5WorkflowStep1 = () => {
   
   // 对于其他卡片，保持原有逻辑
   // 立即更新状态
+  console.log('胶囊点击', {
     新卡片: cardId,
     新胶囊: exampleIndex
   })
@@ -171,6 +195,7 @@ const Section5WorkflowStep1 = () => {
 
   // 播放特定胶囊的动画
   const playSpecificExample = async (cardId, exampleIndex) => {
+    console.log('播放特定动画', {
       卡片ID: cardId,
       胶囊索引: exampleIndex,
       当前播放状态: isPlaying,
@@ -201,6 +226,7 @@ const Section5WorkflowStep1 = () => {
     setIsPlaying(true)
     setAnimationState(`Playing@Card${cardId}[${exampleIndex + 1}]`)
     
+    console.log('动画开始播放', {
       卡片ID: cardId,
       胶囊索引: exampleIndex,
       播放状态已设置为: true
@@ -245,6 +271,7 @@ const Section5WorkflowStep1 = () => {
       }
     }
     
+    console.log('动画播放完成', {
       卡片ID: cardId,
       胶囊索引: exampleIndex
     })
@@ -280,6 +307,7 @@ const Section5WorkflowStep1 = () => {
       setLastActiveKey(currentAnimationKey)
     }
     
+    console.log('绘制静态场景', {
       活动卡片: activeCard,
       活动胶囊: activeExample,
       是否初次进入: isInitialState,
@@ -461,7 +489,7 @@ const Section5WorkflowStep1 = () => {
       case 1: return await playCard3Scene2(ctx, width, height)
       case 2: return await playCard3Scene3(ctx, width, height)
       case 3: return await playCard3Scene4(ctx, width, height, signal)
-      case 4: return await playCard3Scene5(ctx, width, height)
+      case 4: return await playCard3Scene5(ctx, width, height, signal)
       default: return await playCard3Scene1(ctx, width, height)
     }
   }
@@ -4495,14 +4523,29 @@ const Section5WorkflowStep1 = () => {
     })
   }
 
-  const playCard3Scene5 = async (ctx, width, height) => {
-    ctx.clearRect(0, 0, width, height)
-    drawText(ctx, '正则项 R(x)（L1/L2/TV）', width/2, height/2, {
-      fontSize: 16,
-      align: 'center',
-      color: '#1A202C'
+  const playCard3Scene5 = async (ctx, width, height, signal) => {
+    // 正则化动画现在由 RegularizationAnimation 组件处理
+    // 这里需要等待动画完成的时间，但要响应中止信号
+    const animationDuration = 20000 // 20秒，与正则化动画实际时长一致（8个阶段 * 平均2.5秒）
+    
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        resolve()
+      }, animationDuration)
+      
+      // 如果动画被中止，清除定时器并立即resolve
+      if (signal) {
+        const checkSignal = () => {
+          if (signal.aborted) {
+            clearTimeout(timeoutId)
+            resolve()
+          } else {
+            setTimeout(checkSignal, 100) // 每100ms检查一次中止信号
+          }
+        }
+        checkSignal()
+      }
     })
-    return new Promise(resolve => setTimeout(resolve, 2000))
   }
 
   const playCard4Scene = async (ctx, width, height) => {
@@ -4577,7 +4620,11 @@ const Section5WorkflowStep1 = () => {
                            '\\text{集合约束：} & \\gamma \\cap C^{(+\\delta)} = \\emptyset' +
                            '\\end{aligned}'
                   } else {
-                    return 'f: \\mathbb{R}^n \\rightarrow \\mathbb{R} \\text{ (目标函数构建)}'
+                    return '\\min_{x}\\ J(x)\\;=\\;' +
+                           '\\underbrace{\\sum_{e\\in  \\mathcal{E}} t_e x_e}_{\\text{时间}}' +
+                           '+\\lambda\\,\\underbrace{\\sum_{e\\in  \\mathcal{E}} z_e x_e}_{\\text{收费惩罚}}' +
+                           '+\\mu\\,\\underbrace{\\sum_{e\\in  \\mathcal{E}} c_e x_e}_{\\text{拥堵惩罚}} \\\\\\\\' +
+                           '\\quad \\text{s.t.} \\quad \\mathcal{E} = E \\setminus \\{SC, CT\\}'
                   }
                 } else if (activeCard === 4) {
                   return '\\text{Problem Profile: } (\\text{目标}, \\text{约束}, \\text{变量}) \\rightarrow \\text{求解策略}'
@@ -4587,7 +4634,7 @@ const Section5WorkflowStep1 = () => {
               })(),
               {
                 throwOnError: false,
-                displayMode: activeCard === 3 && activeExample === 3 ? true : false
+                displayMode: (activeCard === 3 && activeExample === 3) || (activeCard === 3 && activeExample === 4) ? true : false
               }
             )
           }}
@@ -4651,6 +4698,49 @@ const Section5WorkflowStep1 = () => {
                   title: '约束演示完成',
                   content: [
                     '集合/结构约束演示完成',
+                    '点击播放按钮重新观看演示过程'
+                  ]
+                })
+                const canvas = canvasRef.current
+                if (canvas) {
+                  const ctx = canvas.getContext('2d')
+                  drawCurrentCardStaticScene(ctx, canvas.clientWidth, canvas.clientHeight)
+                }
+              }}
+            />
+          </div>
+        )}
+        
+        {/* 正则化动画层 */}
+        {activeCard === 3 && activeExample === 4 && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 5,
+            visibility: 'visible',
+            opacity: 1
+          }}>
+            <RegularizationAnimation 
+              isPlaying={false} // 始终为false，由组件内部控制
+              currentStage={0} // 默认从第0阶段开始
+              shouldReset={shouldResetRegularization} // 传入重置信号
+              setButtonText={setRegularizationButtonText} // 传入按钮文字设置函数
+              onAnimationUpdate={(animationStage) => {
+                setRegularizationAnimationInfo(animationStage)
+              }}
+              onComplete={() => {
+                setIsPlaying(false)
+                setAnimationState(`Idle@Card${activeCard}`)
+                setRegularizationButtonText('播放') // 重置按钮文字
+                // 设置最终状态
+                setRegularizationAnimationInfo({
+                  stage: 'complete',
+                  title: '正则化演示完成',
+                  content: [
+                    '正则化演示完成',
                     '点击播放按钮重新观看演示过程'
                   ]
                 })
@@ -4750,6 +4840,57 @@ const Section5WorkflowStep1 = () => {
             </div>
           </div>
         )}
+
+        {/* 底部信息区域 - 仅在正则化动画时显示 */}
+        {activeCard === 3 && activeExample === 4 && regularizationAnimationInfo && (
+          <div style={{
+            position: 'absolute',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 6,
+            backgroundColor: 'rgba(17, 24, 39, 0.92)',
+            border: '1.5px solid rgba(34, 197, 94, 0.25)',
+            borderRadius: '8px',
+            padding: '16px 20px',
+            maxWidth: '85%',
+            minWidth: '60%',
+            maxHeight: '40vh',
+            textAlign: 'center',
+            overflow: 'visible'
+          }}>
+            <div style={{ 
+              color: '#E7EDF8', 
+              fontSize: '14px', 
+              fontFamily: 'Consolas, monospace',
+              lineHeight: '1.4',
+              maxHeight: 'none',
+              overflowY: 'visible'
+            }}>
+              {/* 动态标题 */}
+              <div style={{ 
+                fontSize: '16px', 
+                fontWeight: 'bold', 
+                marginBottom: '8px',
+                color: '#22C55E'
+              }}>
+                {regularizationAnimationInfo.title}
+              </div>
+              
+              {/* 动态内容 */}
+              {regularizationAnimationInfo.content && regularizationAnimationInfo.content.map((line, index) => (
+                <div key={index} style={{ 
+                  marginBottom: index === regularizationAnimationInfo.content.length - 1 ? '0' : '6px',
+                  fontSize: '13px',
+                  textAlign: 'left'
+                }}>
+                  {line}
+                </div>
+              ))}
+              
+            </div>
+          </div>
+        )}
         
         {/* 右上角播放按钮 */}
         <div style={{
@@ -4760,13 +4901,27 @@ const Section5WorkflowStep1 = () => {
         }}>
           <button
             onClick={() => {
+              console.log('播放按钮点击', {
                 当前卡片: activeCard,
                 当前胶囊: activeExample,
                 正在播放: isPlaying,
                 动画应该停止: animationShouldStop,
                 动画控制器存在: !!animationControllerRef.current
               })
-              playSpecificExample(activeCard, activeExample)
+              
+              // 如果是正则化动画 (卡片3，胶囊4)，直接调用动画组件的播放控制
+              if (activeCard === 3 && activeExample === 4) {
+                console.log('🎮 正则化动画播放控制')
+                // 调用RegularizationAnimation组件暴露的播放函数
+                if (window.handlePlayClick) {
+                  window.handlePlayClick()
+                } else {
+                  console.warn('⚠️ RegularizationAnimation播放函数不可用')
+                }
+              } else {
+                // 其他动画使用原有逻辑
+                playSpecificExample(activeCard, activeExample)
+              }
             }}
             style={{
               padding: '8px 12px',
@@ -4775,12 +4930,12 @@ const Section5WorkflowStep1 = () => {
               borderRadius: '8px',
               color: '#60A5FA',
               fontSize: '12px',
-              cursor: isPlaying ? 'not-allowed' : 'pointer',
-              opacity: isPlaying ? 0.6 : 1
+              cursor: (activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying) ? 'not-allowed' : 'pointer',
+              opacity: (activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying) ? 0.6 : 1
             }}
-            disabled={isPlaying}
+            disabled={activeCard === 3 && activeExample === 4 ? regularizationButtonText === '播放中...' : isPlaying}
           >
-            {isPlaying ? '播放中...' : '播放'}
+            {activeCard === 3 && activeExample === 4 ? regularizationButtonText : (isPlaying ? '播放中...' : '播放')}
           </button>
         </div>
       </div>
