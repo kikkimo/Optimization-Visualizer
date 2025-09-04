@@ -12,12 +12,13 @@ const Section2LinearWorldStep1 = ({ id }) => {
 
   // 天平常量
   const W = 900, H = 450;
-  const PIVOT = { x: W / 2, y: 200 };
+  const PIVOT = { x: W / 2 + 50, y: 200 }; // 天平中心右移50px
   const ARM = 260; // 横梁半长
   const PAN_DY = 90; // 链条长度
   const G_EGG = 50;
   const G_MILK = 1000;
-  const BUNDLE_Y = 80; // 捆绑区域Y位置
+  const BUNDLE_X = W - 120; // 捆绑区域 X位置（右侧）
+  const BUNDLE_Y = 100; // 捆绑区域 Y位置（稍微下移）
 
   const tabs = [
     { id: 'add', title: '可加性' },
@@ -149,7 +150,7 @@ const Section2LinearWorldStep1 = ({ id }) => {
     // 动画状态
     let currentAngle = 0;
     let bundleAlpha = 0;
-    let bundleX = W - 200; // 捆绑初始位置（右侧）
+    let bundleX = BUNDLE_X; // 捆绑初始位置（使用常量）
     let leftPanAlpha = 0;
     let showLeftItems = false;
 
@@ -202,10 +203,6 @@ const Section2LinearWorldStep1 = ({ id }) => {
         showLeftItems = true;
       }
       
-      // 绘制地面（深色主题）
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, H - 50, W, 50);
-      
       // 绘制完整连接的基座结构
       const baseGrad = ctx.createLinearGradient(PIVOT.x - 30, PIVOT.y, PIVOT.x + 30, PIVOT.y);
       baseGrad.addColorStop(0, '#475569');
@@ -237,9 +234,9 @@ const Section2LinearWorldStep1 = ({ id }) => {
       ctx.fill();
       ctx.stroke();
       
-      // 底座加强板
+      // 底座加强板（跟随天平位置）
       ctx.fillStyle = '#334155';
-      ctx.fillRect(PIVOT.x - 60, H - 52, 120, 4);
+      ctx.fillRect(PIVOT.x - 75, H - 52, 150, 6);
       
       // 保存状态并旋转
       ctx.save();
