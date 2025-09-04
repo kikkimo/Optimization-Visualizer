@@ -22,41 +22,51 @@ const Section2LinearWorld = ({ id, currentSection, totalSections }) => {
 
   // 处理阶段切换
   const handleStageChange = (stageId) => {
-    setCurrentStage(stageId)
+    // 先取消现有动画
+    gsap.killTweensOf('.stage-content')
     
-    // 添加切换动画
-    const stageContent = document.querySelector('.stage-content')
-    if (stageContent) {
-      gsap.fromTo('.stage-content',
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
-      )
-    }
+    // 淡出当前内容
+    gsap.to('.stage-content', {
+      opacity: 0,
+      y: -10,
+      duration: 0.2,
+      ease: 'power2.in',
+      onComplete: () => {
+        setCurrentStage(stageId)
+      }
+    })
   }
 
-  // 动画效果
+  // 初始滚动动画
   useEffect(() => {
-    ScrollTrigger.create({
+    const trigger = ScrollTrigger.create({
       trigger: sectionRef.current,
       start: "top center",
+      once: true, // 只触发一次
       onEnter: () => {
         // 导航项入场动画
         gsap.fromTo('.nav-item',
           { opacity: 0, y: 20 },
           { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: "power2.out" }
         )
-        
-        // 内容入场动画
-        gsap.fromTo('.stage-content',
-          { opacity: 0, scale: 0.95 },
-          { opacity: 1, scale: 1, duration: 0.8, delay: 0.3, ease: "power2.out" }
-        )
       }
     })
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+      trigger.kill()
     }
+  }, [])
+  
+  // 阶段切换时的内容动画
+  useEffect(() => {
+    // 取消任何现有的动画
+    gsap.killTweensOf('.stage-content')
+    
+    // 内容淡入动画
+    gsap.fromTo('.stage-content',
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }
+    )
   }, [currentStage])
 
   // 渲染页面内容
