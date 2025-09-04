@@ -1,8 +1,9 @@
 import React from 'react';
 
-export default function DownHint({ targetSection, text = '向下滚动继续' }) {
+export default function DownHint({ targetSection, text = '向下滚动继续', isStatic = false }) {
   const handleClick = () => {
-    const target = document.getElementById(`section-${targetSection}`);
+    const targetId = isStatic ? `static-${targetSection}` : `section-${targetSection}`;
+    const target = document.getElementById(targetId);
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }

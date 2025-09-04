@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import NavBar from './components/NavBar'
 import HomePage from './components/home/HomePage'
 import ConceptPage from './components/concept/ConceptPage'
+import StaticPage from './components/static/StaticPage'
 import EcosystemPage from './components/ecosystem/EcosystemPage'
 import WorkflowPage from './components/workflow/WorkflowPage'
 import MethodHub from './components/methods/MethodHub'
@@ -30,6 +31,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/concept" element={<ConceptPage />} />
+          <Route path="/static" element={<StaticPage />} />
           <Route path="/ecosystem" element={<EcosystemPage />} />
           <Route path="/workflow" element={<WorkflowPage />} />
           <Route path="/case" element={<CasePage />} />
