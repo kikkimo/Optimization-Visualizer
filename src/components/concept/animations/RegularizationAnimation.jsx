@@ -38,9 +38,9 @@ const RegularizationAnimation = ({
   
   // 颜色定义
   const COLORS = {
-    background: '#0F1116',
-    gridPrimary: '#2F3642',
-    gridSecondary: '#252933',
+    background: '#111827',
+    gridPrimary: '#374151',
+    gridSecondary: '#4B5563',
     water: '#1B2130',
     city: '#253043',
     startPoint: '#38A169', // 起点S绿色
@@ -57,9 +57,9 @@ const RegularizationAnimation = ({
     congestion: '#E53E3E', // 拥堵暗红
     highSpeed: '#38B2AC', // 高速青色
     feasibleHighlight: 'rgba(56, 178, 172, 0.1)',
-    infoBackground: 'rgba(11, 18, 32, 0.85)',
-    infoText: '#E7EDF8',
-    constraintTag: '#BFC9DA'
+    infoBackground: 'rgba(17, 24, 39, 0.92)',
+    infoText: '#F3F4F6',
+    constraintTag: '#9CA3AF'
   }
   
   // 网格参数
@@ -1289,9 +1289,17 @@ const RegularizationAnimation = ({
     const itemHeight = 25
     
     // 图例背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 2
+    ctx.fillStyle = COLORS.infoBackground
     ctx.fillRect(legendX, legendY, legendWidth, legendHeight)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    ctx.strokeStyle = 'rgba(156, 163, 175, 0.3)'
     ctx.lineWidth = 1
     ctx.strokeRect(legendX, legendY, legendWidth, legendHeight)
     
@@ -1403,9 +1411,17 @@ const RegularizationAnimation = ({
     const sliderHeight = 8
     
     // 参数滑条背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 2
+    ctx.fillStyle = COLORS.infoBackground
     ctx.fillRect(layout.sliders.x, layout.sliders.y, layout.sliders.width, layout.sliders.height)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    ctx.strokeStyle = 'rgba(156, 163, 175, 0.3)'
     ctx.lineWidth = 1
     ctx.strokeRect(layout.sliders.x, layout.sliders.y, layout.sliders.width, layout.sliders.height)
     
@@ -1600,9 +1616,17 @@ const RegularizationAnimation = ({
       const itemHeight = 25
       
       // 图例背景
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+      ctx.shadowBlur = 8
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 2
+      ctx.fillStyle = COLORS.infoBackground
       ctx.fillRect(legendX, legendY, legendWidth, legendHeight)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      ctx.strokeStyle = 'rgba(156, 163, 175, 0.3)'
       ctx.lineWidth = 1
       ctx.strokeRect(legendX, legendY, legendWidth, legendHeight)
       
@@ -1714,9 +1738,17 @@ const RegularizationAnimation = ({
       const sliderHeight = 8
       
       // 参数滑条背景
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+      ctx.shadowBlur = 8
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 2
+      ctx.fillStyle = COLORS.infoBackground
       ctx.fillRect(layout.sliders.x, layout.sliders.y, layout.sliders.width, layout.sliders.height)
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'
+      ctx.shadowColor = 'transparent'
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetX = 0
+      ctx.shadowOffsetY = 0
+      ctx.strokeStyle = 'rgba(156, 163, 175, 0.3)'
       ctx.lineWidth = 1
       ctx.strokeRect(layout.sliders.x, layout.sliders.y, layout.sliders.width, layout.sliders.height)
       
