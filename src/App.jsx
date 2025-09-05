@@ -7,7 +7,7 @@ import NavBar from './components/NavBar'
 import HomePage from './components/home/HomePage'
 import ConceptPage from './components/concept/ConceptPage'
 import StaticPage from './components/static/StaticPage'
-import EcosystemPage from './components/ecosystem/EcosystemPage'
+import DynamicPage from './components/dynamic/DynamicPage'
 import WorkflowPage from './components/workflow/WorkflowPage'
 import MethodHub from './components/methods/MethodHub'
 import MethodCard from './components/methods/MethodCard'
@@ -32,7 +32,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/concept" element={<ConceptPage />} />
           <Route path="/static" element={<StaticPage />} />
-          <Route path="/ecosystem" element={<EcosystemPage />} />
+          <Route path="/dynamic" element={<DynamicPage />} />
           <Route path="/workflow" element={<WorkflowPage />} />
           <Route path="/case" element={<CasePage />} />
           <Route path="/future" element={<FuturePage />} />

@@ -15,7 +15,7 @@ const NavBar = () => {
     { id: 'home', label: '首页', href: '/' },
     { id: 'concept', label: '概念', href: '/concept' },
     { id: 'static', label: '静态', href: '/static' },
-    { id: 'ecosystem', label: '生态', href: '/ecosystem' },
+    { id: 'dynamic', label: '动态', href: '/dynamic' },
     { id: 'methods', label: '方法', href: '/methods' },
     { id: 'case', label: '案例', href: '/case' },
     { id: 'future', label: '趋势', href: '/future' },
@@ -33,8 +33,8 @@ const NavBar = () => {
         setActiveSection('home')
       } else if (location.pathname === '/concept') {
         setActiveSection('concept')
-      } else if (location.pathname === '/ecosystem') {
-        setActiveSection('ecosystem')
+      } else if (location.pathname === '/dynamic') {
+        setActiveSection('dynamic')
       } else if (location.pathname === '/static') {
         setActiveSection('static')
       } else if (location.pathname === '/methods') {
