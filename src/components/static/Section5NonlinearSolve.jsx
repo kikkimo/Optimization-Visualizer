@@ -20,11 +20,11 @@ const Section5NonlinearSolve = ({ id, currentSection, totalSections }) => {
   // 导航项定义 - 非线性求解方法主题（使用蓝-青-绿配色）
   const navigationItems = [
     { id: 'page1', label: '1', title: '认识非线性函数', description: '一个简单的例子了解非线性函数' },
-    { id: 'page2', label: '2', title: '牛顿法与拟牛顿法', description: 'Hessian矩阵 / BFGS / L-BFGS' },
-    { id: 'page3', label: '3', title: '共轭梯度法', description: '共轭方向 / Fletcher-Reeves / 线性收敛' },
-    { id: 'page4', label: '4', title: '信赖域方法', description: '局部模型 / 信赖域半径 / 二次逼近' },
-    { id: 'page5', label: '5', title: '约束优化', description: 'KKT条件 / 拉格朗日乘数 / 序列二次规划' },
-    { id: 'page6', label: '6', title: '全局优化', description: '模拟退火 / 遗传算法 / 粒子群优化' }
+    { id: 'page2', label: '2', title: '牛顿法求根迭代法', description: '泰勒展开 / 一阶导数' },
+    { id: 'page3', label: '3', title: '牛顿迭代法解非线性方程', description: '牛顿迭代法 / 线性收敛' },
+    { id: 'page4', label: '4', title: '向量求导', description: '标量多向量求导 / 向量对向量求导' },
+    { id: 'page5', label: '5', title: '基于高阶近似的求解方法', description: 'Hally法 / Hessian张量' },
+    { id: 'page6', label: '6', title: '等式约束条件求解', description: 'KKT条件 / 拉格朗日乘数' }
   ]
 
   // 处理阶段切换
