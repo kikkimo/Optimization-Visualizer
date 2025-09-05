@@ -6,289 +6,171 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 
 const Section4NonlinearWorldStep3 = () => {
-  const [activeDemo, setActiveDemo] = useState(null)
-  const canvasRef = useRef(null)
-  const [rotation, setRotation] = useState({ x: -0.3, y: 0.5 })
-  const [isDragging, setIsDragging] = useState(false)
-  const lastMousePos = useRef({ x: 0, y: 0 })
+  const [activeDemo, setActiveDemo] = useState('source')
 
-  // 3D多峰函数：创建一个有多个局部最大值的函数，扩大分布范围
+  // 多峰函数：基于多个二维高斯分布的叠加
   const surfaceFunction = (x, y) => {
-    // 主峰（全局最大值）- 位于中心偏右
-    const peak1 = 6 * Math.exp(-((x - 1.2) ** 2 + (y - 0.8) ** 2) / 0.3)
-    // 局部峰1 - 左上角
-    const peak2 = 4.2 * Math.exp(-((x + 1.5) ** 2 + (y - 1.3) ** 2) / 0.25) 
-    // 局部峰2 - 右下角
-    const peak3 = 3.8 * Math.exp(-((x - 1.8) ** 2 + (y + 1.6) ** 2) / 0.28)
-    // 局部峰3 - 左下角
-    const peak4 = 3.5 * Math.exp(-((x + 1.8) ** 2 + (y + 1.2) ** 2) / 0.22)
-    // 局部峰4 - 右上角，较小
-    const peak5 = 3.0 * Math.exp(-((x - 0.5) ** 2 + (y - 2.0) ** 2) / 0.2)
-    // 基础波动，幅度减小
-    const base = 0.3 * Math.sin(1.5 * x) * Math.cos(1.5 * y)
+    // 定义多个高斯峰，每个峰有不同的μ(均值)、σ(标准差)、A(幅度)
+    const gaussianPeaks = [
+      // 全局最大值 - 中心偏右上，幅度最高
+      { mu: [2.5, 1.8], sigma: 0.8, A: 8.0 },
+      // 局部峰1 - 左上角
+      { mu: [-2.2, 2.5], sigma: 0.6, A: 5.5 },
+      // 局部峰2 - 右下角  
+      { mu: [2.8, -2.2], sigma: 0.7, A: 4.8 },
+      // 局部峰3 - 左下角
+      { mu: [-2.8, -1.8], sigma: 0.5, A: 4.2 },
+      // 局部峰4 - 中心左侧
+      { mu: [-0.5, 0.3], sigma: 0.4, A: 3.8 },
+      // 局部峰5 - 右上角偏内
+      { mu: [1.2, 3.2], sigma: 0.6, A: 4.5 }
+    ]
     
-    return peak1 + peak2 + peak3 + peak4 + peak5 + base
+    // 计算所有高斯峰的叠加
+    let totalValue = 0
+    gaussianPeaks.forEach(peak => {
+      const dx = x - peak.mu[0]
+      const dy = y - peak.mu[1] 
+      const exponent = -(dx * dx + dy * dy) / (2 * peak.sigma * peak.sigma)
+      totalValue += peak.A * Math.exp(exponent)
+    })
+    
+    // 添加微小的基础波动来增加复杂性
+    const baseNoise = 0.2 * Math.sin(0.8 * x) * Math.cos(0.8 * y) + 
+                      0.1 * Math.sin(1.2 * x + 0.5) * Math.cos(1.2 * y + 0.3)
+    
+    return totalValue + baseNoise
   }
 
-  // Rainbow颜色映射函数 - 更完整的彩虹光谱
+  // Three.js曲面组件
+  const SmoothSurface = ({ showPeaks = true }) => {
+    const meshRef = useRef()
+    
+    // Rainbow颜色映射函数
+    const getRainbowColor = (value, minVal, maxVal) => {
+      const normalized = Math.max(0, Math.min(1, (value - minVal) / (maxVal - minVal)))
+      const hue = (1 - normalized) * 270 // 270° (紫色) → 0° (红色)
+      const saturation = 1.0
+      const lightness = 0.6
+      
+      // HSL转RGB
+      const hslToRgb = (h, s, l) => {
+        h /= 360
+        const a = s * Math.min(l, 1 - l)
+        const f = n => {
+          const k = (n + h * 12) % 12
+          return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+        }
+        return [f(0), f(8), f(4)]
+      }
+      
+      return hslToRgb(hue, saturation, lightness)
+    }
+    
+    // 创建曲面几何
+    const surfaceGeometry = useMemo(() => {
+      const geometry = new THREE.BufferGeometry()
+      const vertices = []
+      const indices = []
+      const colors = []
+      
+      const size = 60 // 网格密度
+      const xRange = 4.0 // X范围 [-4, 4]
+      const yRange = 4.0 // Y范围 [-4, 4]
+      
+      // 预计算所有Z值以确定颜色范围
+      let minZ = Infinity, maxZ = -Infinity
+      const allPoints = []
+      
+      for (let i = 0; i <= size; i++) {
+        for (let j = 0; j <= size; j++) {
+          const x = -xRange + (i / size) * (2 * xRange)
+          const y = -yRange + (j / size) * (2 * yRange)
+          const z = surfaceFunction(x, y)
+          
+          minZ = Math.min(minZ, z)
+          maxZ = Math.max(maxZ, z)
+          allPoints.push({ x, y, z })
+        }
+      }
+      
+      // 生成顶点和颜色
+      allPoints.forEach(point => {
+        vertices.push(point.x, point.z, point.y) // Three.js中Y是垂直轴
+        
+        // Rainbow颜色映射
+        const [r, g, b] = getRainbowColor(point.z, minZ, maxZ)
+        colors.push(r, g, b)
+      })
+      
+      // 创建面的索引
+      for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size; j++) {
+          const a = i * (size + 1) + j
+          const b = a + size + 1
+          const c = a + 1
+          const d = b + 1
+          
+          indices.push(a, b, c)
+          indices.push(b, d, c)
+        }
+      }
+      
+      geometry.setIndex(indices)
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+      geometry.computeVertexNormals()
+      
+      return geometry
+    }, [])
+    
+    return (
+      <>
+        <mesh ref={meshRef} geometry={surfaceGeometry}>
+          <meshPhongMaterial 
+            vertexColors={true}
+            transparent={true}
+            opacity={0.8}
+            side={THREE.DoubleSide}
+            shininess={30}
+          />
+        </mesh>
+        
+        {/* 峰值点标记 */}
+        {showPeaks && (
+          <>
+            {/* 全局最大值点 */}
+            <mesh position={[2.5, surfaceFunction(2.5, 1.8), 1.8]}>
+              <sphereGeometry args={[0.15, 16, 16]} />
+              <meshPhongMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.3} />
+            </mesh>
+            
+            {/* 局部峰值点 */}
+            {[
+              [-2.2, 2.5], [2.8, -2.2], [-2.8, -1.8], 
+              [-0.5, 0.3], [1.2, 3.2]
+            ].map((pos, index) => (
+              <mesh key={index} position={[pos[0], surfaceFunction(pos[0], pos[1]), pos[1]]}>
+                <sphereGeometry args={[0.12, 16, 16]} />
+                <meshPhongMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.2} />
+              </mesh>
+            ))}
+          </>
+        )}
+      </>
+    )
+  }
+  
+  // Rainbow颜色映射函数 - 保持向后兼容
   const getRainbow = (t) => {
-    // t 在 0-1 之间，映射到彩虹色
     t = Math.max(0, Math.min(1, t))
-    
-    // 使用完整的彩虹光谱：紫(270) -> 蓝(240) -> 青(180) -> 绿(120) -> 黄(60) -> 红(0)
     const h = (1 - t) * 270
-    const s = 80  // 提高饱和度
-    const l = 55  // 调整亮度
-    
+    const s = 80
+    const l = 55
     return { h, s, l }
   }
 
-  // 3D投影函数
-  const project3D = (x, y, z, canvas) => {
-    const cx = canvas.width / 2
-    const cy = canvas.height / 2
-    const scale = 120  // 减小缩放，让XY范围显得更大
-    
-    // 旋转
-    const cosRx = Math.cos(rotation.x)
-    const sinRx = Math.sin(rotation.x) 
-    const cosRy = Math.cos(rotation.y)
-    const sinRy = Math.sin(rotation.y)
-    
-    // Y轴旋转
-    let x1 = x * cosRy + z * sinRy * 0.3  // 减少Z对投影的影响
-    let z1 = -x * sinRy + z * cosRy * 0.3
-    let y1 = y
-    
-    // X轴旋转
-    let y2 = y1 * cosRx - z1 * sinRx
-    let z2 = y1 * sinRx + z1 * cosRx
-    
-    // 投影到2D，增大XY的投影比例
-    const perspective = 5
-    const projX = cx + (x1 * scale * 1.5) / (perspective + z2)  // 增大X投影
-    const projY = cy - (y2 * scale * 1.5) / (perspective + z2)  // 增大Y投影
-    
-    return { x: projX, y: projY, z: z2 }
-  }
 
-  // 渲染3D曲面
-  const render3DSurface = (canvas, ctx) => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    
-    // 设置背景
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    
-    const resolution = 25  // 减少格网密度
-    const triangles = []
-    
-    // 计算Z值的最大最小值用于归一化
-    let minZ = Infinity, maxZ = -Infinity
-    const xyRange = 3.5  // 进一步扩大XY范围到3.5
-    
-    for (let i = 0; i <= resolution; i++) {
-      for (let j = 0; j <= resolution; j++) {
-        const x = -xyRange + (i / resolution) * (2 * xyRange)
-        const y = -xyRange + (j / resolution) * (2 * xyRange)
-        const z = surfaceFunction(x, y)
-        minZ = Math.min(minZ, z)
-        maxZ = Math.max(maxZ, z)
-      }
-    }
-    
-    // 生成曲面网格
-    for (let i = 0; i < resolution; i++) {
-      for (let j = 0; j < resolution; j++) {
-        const x1 = -xyRange + (i / resolution) * (2 * xyRange)
-        const y1 = -xyRange + (j / resolution) * (2 * xyRange)
-        const x2 = -xyRange + ((i + 1) / resolution) * (2 * xyRange)
-        const y2 = -xyRange + ((j + 1) / resolution) * (2 * xyRange)
-        
-        const z1 = surfaceFunction(x1, y1)
-        const z2 = surfaceFunction(x2, y1)
-        const z3 = surfaceFunction(x1, y2)
-        const z4 = surfaceFunction(x2, y2)
-        
-        const p1 = project3D(x1, y1, z1, canvas)
-        const p2 = project3D(x2, y1, z2, canvas)
-        const p3 = project3D(x1, y2, z3, canvas)
-        const p4 = project3D(x2, y2, z4, canvas)
-        
-        // 创建两个三角形
-        const height1 = (z1 + z2 + z3) / 3
-        const height2 = (z2 + z4 + z3) / 3
-        
-        triangles.push({
-          points: [p1, p2, p3],
-          z: (p1.z + p2.z + p3.z) / 3,
-          height: height1,
-          normalizedHeight: Math.max(0, Math.min(1, (height1 - minZ) / (maxZ - minZ)))
-        })
-        triangles.push({
-          points: [p2, p4, p3],
-          z: (p2.z + p4.z + p3.z) / 3,
-          height: height2,
-          normalizedHeight: Math.max(0, Math.min(1, (height2 - minZ) / (maxZ - minZ)))
-        })
-      }
-    }
-    
-    // 按深度排序
-    triangles.sort((a, b) => b.z - a.z)
-    
-    // 调试信息
-    console.log(`Z值范围: ${minZ.toFixed(3)} ~ ${maxZ.toFixed(3)}`)
-    console.log(`三角形数量: ${triangles.length}`)
-    
-    // 验证归一化是否正确
-    const heights = triangles.map(t => t.height)
-    const normalizedHeights = triangles.map(t => t.normalizedHeight)
-    console.log(`实际高度范围: ${Math.min(...heights).toFixed(3)} ~ ${Math.max(...heights).toFixed(3)}`)
-    console.log(`归一化高度范围: ${Math.min(...normalizedHeights).toFixed(3)} ~ ${Math.max(...normalizedHeights).toFixed(3)}`)
-    
-    // 绘制三角形 - 使用Rainbow颜色
-    triangles.forEach((triangle, index) => {
-      const normalizedHeight = triangle.normalizedHeight
-      
-      // 调试前几个三角形的颜色计算
-      if (index < 5) {
-        console.log(`三角形${index}: 高度=${triangle.height.toFixed(3)}, 归一化=${normalizedHeight.toFixed(3)}`)
-      }
-      
-      // 简化的彩虹色映射
-      let r, g, b;
-      if (normalizedHeight < 0.2) {
-        // 紫色到蓝色
-        r = Math.round(128 + 127 * (1 - normalizedHeight * 5));
-        g = 0;
-        b = 255;
-      } else if (normalizedHeight < 0.4) {
-        // 蓝色到青色
-        r = 0;
-        g = Math.round(255 * (normalizedHeight - 0.2) * 5);
-        b = 255;
-      } else if (normalizedHeight < 0.6) {
-        // 青色到绿色
-        r = 0;
-        g = 255;
-        b = Math.round(255 * (1 - (normalizedHeight - 0.4) * 5));
-      } else if (normalizedHeight < 0.8) {
-        // 绿色到黄色
-        r = Math.round(255 * (normalizedHeight - 0.6) * 5);
-        g = 255;
-        b = 0;
-      } else {
-        // 黄色到红色
-        r = 255;
-        g = Math.round(255 * (1 - (normalizedHeight - 0.8) * 5));
-        b = 0;
-      }
-      
-      // 调试前几个三角形的RGB值
-      if (index < 5) {
-        console.log(`三角形${index}: RGB(${r}, ${g}, ${b})`)
-      }
-      
-      // 设置40%透明度
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.4)`
-      ctx.strokeStyle = `rgba(${Math.round(r*0.7)}, ${Math.round(g*0.7)}, ${Math.round(b*0.7)}, 0.2)`
-      ctx.lineWidth = 0.2
-      
-      ctx.beginPath()
-      ctx.moveTo(triangle.points[0].x, triangle.points[0].y)
-      ctx.lineTo(triangle.points[1].x, triangle.points[1].y)
-      ctx.lineTo(triangle.points[2].x, triangle.points[2].y)
-      ctx.closePath()
-      ctx.fill()
-      ctx.stroke()
-    })
-    
-    // 绘制峰值点
-    drawPeakPoints(canvas, ctx)
-  }
-
-  // 绘制峰值点
-  const drawPeakPoints = (canvas, ctx) => {
-    // 全局最大值点 - 更新到新的坐标
-    const globalMax = project3D(1.2, 0.8, surfaceFunction(1.2, 0.8), canvas)
-    ctx.fillStyle = '#22c55e'
-    ctx.beginPath()
-    ctx.arc(globalMax.x, globalMax.y, 12, 0, 2 * Math.PI)
-    ctx.fill()
-    ctx.strokeStyle = '#fbbf24'
-    ctx.lineWidth = 4
-    ctx.stroke()
-    
-    // 添加发光效果
-    ctx.shadowColor = '#22c55e'
-    ctx.shadowBlur = 20
-    ctx.beginPath()
-    ctx.arc(globalMax.x, globalMax.y, 10, 0, 2 * Math.PI)
-    ctx.fill()
-    ctx.shadowBlur = 0
-    
-    // 局部最大值点 - 更新到新的分布坐标
-    const localPeaks = [
-      { x: -1.5, y: 1.3, z: surfaceFunction(-1.5, 1.3) },   // 左上角
-      { x: 1.8, y: -1.6, z: surfaceFunction(1.8, -1.6) },  // 右下角
-      { x: -1.8, y: -1.2, z: surfaceFunction(-1.8, -1.2) }, // 左下角
-      { x: 0.5, y: 2.0, z: surfaceFunction(0.5, 2.0) }     // 右上角
-    ]
-    
-    ctx.fillStyle = '#ef4444'
-    ctx.strokeStyle = '#fbbf24'
-    ctx.lineWidth = 3
-    
-    localPeaks.forEach(peak => {
-      const proj = project3D(peak.x, peak.y, peak.z, canvas)
-      ctx.beginPath()
-      ctx.arc(proj.x, proj.y, 8, 0, 2 * Math.PI)
-      ctx.fill()
-      ctx.stroke()
-      
-      // 添加发光效果
-      ctx.shadowColor = '#ef4444'
-      ctx.shadowBlur = 12
-      ctx.beginPath()
-      ctx.arc(proj.x, proj.y, 6, 0, 2 * Math.PI)
-      ctx.fill()
-      ctx.shadowBlur = 0
-    })
-  }
-
-  // 鼠标事件处理
-  const handleMouseDown = (e) => {
-    setIsDragging(true)
-    lastMousePos.current = { x: e.clientX, y: e.clientY }
-  }
-
-  const handleMouseMove = (e) => {
-    if (!isDragging) return
-    
-    const deltaX = e.clientX - lastMousePos.current.x
-    const deltaY = e.clientY - lastMousePos.current.y
-    
-    setRotation(prev => ({
-      x: prev.x + deltaY * 0.01,
-      y: prev.y + deltaX * 0.01
-    }))
-    
-    lastMousePos.current = { x: e.clientX, y: e.clientY }
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  // 渲染效果
-  useEffect(() => {
-    if (canvasRef.current && activeDemo === 'optimize') {
-      const canvas = canvasRef.current
-      const ctx = canvas.getContext('2d')
-      render3DSurface(canvas, ctx)
-    }
-  }, [activeDemo, rotation])
 
   return (
     <div className="h-full w-full flex flex-col gap-4 relative p-2">
@@ -375,8 +257,8 @@ const Section4NonlinearWorldStep3 = () => {
         {/* 内容展示区域 */}
         <div className="rounded-2xl border backdrop-blur-sm p-4 flex-1"
              style={{
-               background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(251, 146, 60, 0.06) 100%)',
-               borderColor: 'rgba(168, 85, 247, 0.2)',
+               background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(30, 41, 59, 0.4) 50%, rgba(51, 65, 85, 0.3) 100%)',
+               borderColor: 'rgba(34, 197, 94, 0.3)',
                minHeight: '400px'
              }}>
           <AnimatePresence mode="wait">
@@ -546,49 +428,61 @@ const Section4NonlinearWorldStep3 = () => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="h-full overflow-y-auto"
+                className="h-full relative"
               >
-                <div className="space-y-4">
-                  {/* 3D非凸曲面可视化 */}
-                  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-lg p-4 border border-green-500/30">
-                    <div className="text-sm mb-3 text-center font-medium" style={{ color: 'var(--ink-mid)' }}>
-                      3D非凸优化地形：全局峰值 vs 局部峰值
-                    </div>
-                    
-                    <div className="relative">
-                      <canvas
-                        ref={canvasRef}
-                        width={500}
-                        height={320}
-                        className="w-full rounded-lg cursor-move border border-green-500/20"
-                        style={{ background: 'rgba(15, 23, 42, 0.8)' }}
-                        onMouseDown={handleMouseDown}
-                        onMouseMove={handleMouseMove}
-                        onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseUp}
-                      />
-                      
-                      <div className="absolute top-2 right-2 text-xs px-2 py-1 rounded-lg" 
-                           style={{ 
-                             backgroundColor: 'rgba(34, 197, 94, 0.2)', 
-                             color: 'var(--ink-mid)',
-                             border: '1px solid rgba(34, 197, 94, 0.3)'
-                           }}>
-                        🖱️ 拖拽旋转视角
-                      </div>
+                <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-sm font-medium px-3 py-1 rounded-md" 
+                     style={{ 
+                       color: 'var(--ink-mid)',
+                       backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                       border: '1px solid rgba(34, 197, 94, 0.3)'
+                     }}>
+                  3D非凸优化地形：全局峰值 vs 局部峰值
+                </div>
+                
+                <Canvas 
+                  camera={{ position: [8, 6, 8], fov: 60 }}
+                  style={{ 
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(15, 23, 42, 0.1)'
+                  }}
+                >
+                  <ambientLight intensity={0.4} />
+                  <pointLight position={[10, 10, 10]} intensity={1.2} />
+                  <pointLight position={[-5, -5, -5]} intensity={0.4} />
+                  
+                  <SmoothSurface showPeaks={true} />
+                  
+                  <OrbitControls
+                    enableZoom={true}
+                    enablePan={true}
+                    enableRotate={true}
+                    maxPolarAngle={Math.PI * 0.8}
+                    minDistance={5}
+                    maxDistance={20}
+                  />
+                </Canvas>
+                
+                <div className="absolute top-2 right-2 text-xs px-2 py-1 rounded-lg z-20" 
+                     style={{ 
+                       backgroundColor: 'rgba(34, 197, 94, 0.2)', 
+                       color: 'var(--ink-mid)',
+                       border: '1px solid rgba(34, 197, 94, 0.3)'
+                     }}>
+                  🖱️ 鼠标控制：旋转/缩放/漫游
+                </div>
 
-                      {/* 图例 */}
-                      <div className="absolute bottom-2 left-2 flex gap-3 text-xs">
-                        <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded-full bg-green-500 border border-yellow-400"></div>
-                          <span style={{ color: 'var(--ink-mid)' }}>全局峰值 👑</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-yellow-400"></div>
-                          <span style={{ color: 'var(--ink-mid)' }}>局部峰值</span>
-                        </div>
-                      </div>
-                    </div>
+                {/* 图例 */}
+                <div className="absolute bottom-2 left-2 flex gap-3 text-xs z-20">
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-md" 
+                       style={{ backgroundColor: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                    <div className="w-3 h-3 rounded-full bg-green-500 border border-yellow-400"></div>
+                    <span style={{ color: 'var(--ink-mid)' }}>全局峰值 👑</span>
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-md" 
+                       style={{ backgroundColor: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 border border-yellow-400"></div>
+                    <span style={{ color: 'var(--ink-mid)' }}>局部峰值</span>
                   </div>
                 </div>
               </motion.div>

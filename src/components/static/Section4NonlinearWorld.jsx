@@ -12,7 +12,7 @@ const Section4NonlinearWorld = ({ id, currentSection, totalSections }) => {
   const sectionRef = useRef()
   
   // 状态管理
-  const [currentStage, setCurrentStage] = useState('page1')
+  const [currentStage, setCurrentStage] = useState('page3')
   
   // 导航项定义 - 非线性系统主题
   const navigationItems = [
