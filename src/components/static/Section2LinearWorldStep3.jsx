@@ -251,7 +251,7 @@ const Section2LinearWorldStep3 = () => {
 
           {/* 缩放 */}
           <div className="grid grid-cols-[1fr_80px] items-center gap-3">
-            <label className="text-sm col-span-2" style={{ color: 'var(--ink-mid)' }}>缩放（左：缩小1/4~1x，右：放大1~4x）</label>
+            <label className="text-sm col-span-2" style={{ color: 'var(--ink-mid)' }}>缩放</label>
             <input type="range" min={-100} max={100} step={1} value={scaleSlider} 
                    onChange={e=>setScaleSlider(parseFloat(e.target.value))} 
                    className="w-full h-2 rounded-lg appearance-none cursor-pointer"
