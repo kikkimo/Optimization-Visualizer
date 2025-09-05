@@ -14,6 +14,37 @@ export function useDynamicSections() {
     }
   }, [])
 
+  // 为每个dynamic-${i}元素创建对应的section-${i}锚点，供DownHint使用
+  useEffect(() => {
+    const cleanupElements = []
+    
+    for (let i = 0; i < 6; i++) {
+      const dynamicElement = document.getElementById(`dynamic-${i}`)
+      if (dynamicElement && !document.getElementById(`section-${i}`)) {
+        // 创建隐藏的锚点元素
+        const anchor = document.createElement('span')
+        anchor.id = `section-${i}`
+        anchor.style.position = 'absolute'
+        anchor.style.top = '0'
+        anchor.style.left = '0'
+        anchor.style.visibility = 'hidden'
+        anchor.style.pointerEvents = 'none'
+        
+        // 将锚点插入到dynamic元素内部的开头
+        dynamicElement.insertBefore(anchor, dynamicElement.firstChild)
+        cleanupElements.push(anchor)
+      }
+    }
+
+    return () => {
+      cleanupElements.forEach(element => {
+        if (element.parentNode) {
+          element.parentNode.removeChild(element)
+        }
+      })
+    }
+  }, [])
+
   useEffect(() => {
     let scrollTimeout = null
 

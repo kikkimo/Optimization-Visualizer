@@ -79,18 +79,9 @@ const Section2CoreIdeas = ({ id, currentSection, totalSections }) => {
         </div>
       </div>
 
-      {/* 页面指示器 */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm" style={{ color: 'var(--ink-mid)' }}>
-            {currentSection + 1} / {totalSections}
-          </span>
-        </div>
-      </div>
-
       {/* 下一页提示 */}
       {currentSection < totalSections - 1 && (
-        <DownHint targetSection={currentSection + 1} text="向下滚动继续" isStatic={false} />
+        <DownHint targetSection={2} text="向下滚动继续" isStatic={false} />
       )}
     </div>
   )
